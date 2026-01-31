@@ -36,7 +36,7 @@ export default function Home() {
           </div>
           <div className="rounded-2xl bg-slate-50 p-6">
             <div className="font-semibold">გარანტია და სერვისი</div>
-            <p className="mt-2 text-sm text-slate-600">ტექნიკური მხარდაჭერა და ნაწილები.</p>
+            <p className="mt-2 text-sm text-blue-700">ტექნიკური მხარდაჭერა და ნაწილები.</p>
           </div>
         </div>
       </section>
