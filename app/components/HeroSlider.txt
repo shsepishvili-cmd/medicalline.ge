@@ -1,0 +1,37 @@
+"use client";
+
+import { Swiper, SwiperSlide } from "swiper/react";
+import { Autoplay, Pagination } from "swiper/modules";
+
+import "swiper/css";
+import "swiper/css/pagination";
+
+export default function HeroSlider() {
+  return (
+    <Swiper
+      modules={[Autoplay, Pagination]}
+      autoplay={{ delay: 3500, disableOnInteraction: false }}
+      pagination={{ clickable: true }}
+      loop
+      className="rounded-3xl overflow-hidden"
+    >
+      <SwiperSlide>
+        <div className="h-[320px] bg-gradient-to-r from-slate-900 to-blue-600 text-white flex items-center justify-center">
+          <h2 className="text-3xl font-bold">CBCT და 3D დიაგნოსტიკა</h2>
+        </div>
+      </SwiperSlide>
+
+      <SwiperSlide>
+        <div className="h-[320px] bg-gradient-to-r from-blue-600 to-sky-400 text-white flex items-center justify-center">
+          <h2 className="text-3xl font-bold">ინტრაორალური სკანერები</h2>
+        </div>
+      </SwiperSlide>
+
+      <SwiperSlide>
+        <div className="h-[320px] bg-slate-900 text-white flex items-center justify-center">
+          <h2 className="text-3xl font-bold">სტომატოლოგიური სავარძლები</h2>
+        </div>
+      </SwiperSlide>
+    </Swiper>
+  );
+}
