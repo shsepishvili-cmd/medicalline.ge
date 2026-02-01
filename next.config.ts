@@ -1,17 +1,16 @@
-/** @type {import('next').NextConfig} */
-const nextConfig = {
-  eslint: {
-    // აიგნორირებს Lint-ის შეცდომებს აწყობისას
-    ignoreDuringBuilds: true,
-  },
+import type { NextConfig } from "next";
+
+const nextConfig: NextConfig = {
+  /* აქ ვთიშავთ შემოწმებებს, რომ საიტი ჩაირთოს */
   typescript: {
-    // აიგნორირებს TypeScript-ის შეცდომებს აწყობისას
     ignoreBuildErrors: true,
   },
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
   images: {
-    // აიგნორირებს სურათების ოპტიმიზაციის მკაცრ წესებს
     unoptimized: true,
-  }
+  },
 };
 
 export default nextConfig;
