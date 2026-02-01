@@ -1,0 +1,201 @@
+"use client";
+
+import React, { useState } from 'react';
+import { CheckCircle2, MessageCircle, ArrowLeft, Search, X, Hash } from 'lucide-react';
+import Link from 'next/link';
+
+interface Product {
+  id: number;
+  name: string;
+  img: string;
+  cat: string;
+  description: string;
+  specs: string[];
+  hashtags: string[];
+}
+
+export default function ProductsPage() {
+  const [filter, setFilter] = useState<string>('ყველა');
+  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+
+  const products: Product[] = [
+    // --- APEX LOCATORS ---
+    { id: 1, name: "FindPex", img: "/images/findpex.png", cat: "ენდოდონტია", description: "FindPex არის უახლესი თაობის აპექს ლოკატორი დიდი, ფერადი სენსორული ეკრანით.", specs: ["ფერადი LCD", "ზუსტი გაზომვა"], hashtags: ["#ApexLocator", "#SmartEndo"] },
+    { id: 2, name: "E-PEX", img: "/images/epex.png", cat: "ენდოდონტია", description: "კლასიკური ზუსტი აპექს ლოკატორი Multi-frequency ტექნოლოგიით.", specs: ["Multi-frequency", "ინტეგრირებადი"], hashtags: ["#Classic", "#Precise"] },
+    { id: 3, name: "AirPex", img: "/images/airpex.jpg", cat: "ენდოდონტია", description: "მსოფლიოში ყველაზე პატარა და მსუბუქი აპექს ლოკატორი.", specs: ["წონა: 15გ", "LED დისპლეი"], hashtags: ["#Wireless", "#MicroDesign"] },
+
+    // --- ENDO MOTORS ---
+    { id: 4, name: "E-Connect S+", img: "/images/econnectsplus.png", cat: "ენდოდონტია", description: "პრემიუმ კლასის ენდო-მოტორი ინტეგრირებული აპექს ლოკატორით.", specs: ["1500 rpm", "Brushless ძრავი"], hashtags: ["#Brushless", "#AllInOne"] },
+    { id: 5, name: "E-Connect S", img: "/images/econnects.png", cat: "ენდოდონტია", description: "საიმედო ენდო-მოტორი OLED ეკრანით და აპექს ლოკატორით.", specs: ["OLED ეკრანი", "ინტეგრირებული"], hashtags: ["#Reliable", "#EndoMotor"] },
+    { id: 6, name: "E-CONNECT", img: "/images/econnect.png", cat: "ენდოდონტია", description: "საბაზისო ენდო-მოტორი (Basic Version).", specs: ["სტანდარტული ფუნქციები"], hashtags: ["#Basic", "#Standard"] },
+    { id: 7, name: "E-xtreme", img: "/images/extreme.png", cat: "ენდოდონტია", description: "ულტრა-მსუბუქი (99გ) ენდო-მოტორი.", specs: ["360° თავაკი", "ჩუმი ძრავი"], hashtags: ["#Lightweight", "#Extreme"] },
+    { id: 8, name: "E-Value E", img: "/images/evalebe.png", cat: "ენდოდონტია", description: "უსადენო მოტორი Adaptive Torque-ით.", specs: ["მინიატიურული თავაკი"], hashtags: ["#Safety", "#AdaptiveTorque"] },
+    { id: 9, name: "E-Value", img: "/images/evalue.png", cat: "ენდოდონტია", description: "ეკონომიური და საიმედო ენდო-მოტორი.", specs: ["საბაზისო ფუნქციები"], hashtags: ["#Economy", "#Value"] },
+
+    // --- ENDO FILES ---
+    { id: 10, name: "E-FLEX GOLD", img: "/images/eflexgold.png", cat: "ენდოდონტია", description: "თერმულად დამუშავებული ოქროსფერი NiTi ფაილები.", specs: ["მაღალი ჭრა", "Gold Heat"], hashtags: ["#GoldFiles", "#CuttingEfficiency"] },
+    { id: 11, name: "E-FLEX BLUE", img: "/images/eflexblue.png", cat: "ენდოდონტია", description: "ლურჯი NiTi ფაილები Controlled Memory-ით.", specs: ["მაღალი მოქნილობა"], hashtags: ["#BlueFiles", "#Flexible"] },
+    { id: 12, name: "E-FLEX S", img: "/images/eflexs.png", cat: "ენდოდონტია", description: "სტანდარტული NiTi ფაილების სისტემა.", specs: ["უნივერსალური"], hashtags: ["#Standard", "#System"] },
+    { id: 13, name: "E-FLEX REC", img: "/images/eflexrec.png", cat: "ენდოდონტია", description: "რეკიპროკული მოძრაობის ფაილები.", specs: ["Reciprocating", "გამძლეობა"], hashtags: ["#Reciproc", "#Durable"] },
+    { id: 14, name: "E-FLEX ONE", img: "/images/eflexone.png", cat: "ენდოდონტია", description: "Single File სისტემა - ერთი ფაილით დამუშავება.", specs: ["ერთი ფაილი", "M-Wire"], hashtags: ["#SingleFile", "#Fast"] },
+    { id: 15, name: "E-FLEX MINI", img: "/images/eflexmini.png", cat: "ენდოდონტია", description: "მოკლე ფაილები რთული წვდომისთვის.", specs: ["შეზღუდული გახსნა"], hashtags: ["#MiniFiles", "#Posterior"] },
+    { id: 16, name: "E-FLEX RT", img: "/images/eflexrt.png", cat: "ენდოდონტია", description: "Retreatment ფაილები (გადამკურნალება).", specs: ["გუტაპერჩას მოცილება"], hashtags: ["#Retreatment", "#ReEndo"] },
+    { id: 17, name: "E-FLEX PATH", img: "/images/eflexpath.png", cat: "ენდოდონტია", description: "გლიდ პათის (Glide Path) შესაქმნელი ფაილები.", specs: ["უსაფრთხო გავლა"], hashtags: ["#GlidePath", "#Safety"] },
+    { id: 18, name: "E-STYLE GOLD & BLUE", img: "/images/estyle.png", cat: "ენდოდონტია", description: "E-Style სერიის ეკონომიური როტაციული ფაილები.", specs: ["Gold & Blue ვარიანტები"], hashtags: ["#EconomyLine"] },
+    { id: 19, name: "Hand Files", img: "/images/handfiles.png", cat: "ენდოდონტია", description: "K-Files, H-Files, Reamers (ხელის ფაილები).", specs: ["უჟანგავი ფოლადი"], hashtags: ["#HandFiles", "#Manual"] },
+
+    // --- OBTURATION ---
+    { id: 20, name: "Space-Pack & Fill", img: "/images/spacepack.jpg", cat: "ენდოდონტია", description: "ობტურაციის სრული სისტემა (Downpack + Backfill).", specs: ["სწრაფი გაცხელება", "3D შევსება"], hashtags: ["#Obturation", "#3DFill"] },
+    { id: 21, name: "Fast-Pack Pro", img: "/images/fastpackpro.png", cat: "ენდოდონტია", description: "პროფესიონალური Downpack აპარატი.", specs: ["0.5 წამი გაცხელება"], hashtags: ["#Downpack", "#Heat"] },
+    { id: 22, name: "Fast-Fill", img: "/images/fastfill.png", cat: "ენდოდონტია", description: "გუტაპერჩას ინჟექტორი (Backfill).", specs: ["ზუსტი დოზირება"], hashtags: ["#Backfill", "#Injector"] },
+    { id: 23, name: "Gutta Percha", img: "/images/gutta.jpg", cat: "ენდოდონტია", description: "მაღალი ხარისხის გუტაპერჩის წკირები.", specs: ["ზუსტი ზომები"], hashtags: ["#GP", "#Points"] },
+    { id: 24, name: "Paper Points", img: "/images/absorber.jpg", cat: "ენდოდონტია", description: "სტერილური ქაღალდის წკირები.", specs: ["მაღალი შეწოვადობა"], hashtags: ["#PaperPoints", "#Dry"] },
+
+    // --- ULTRASONIC & HYGIENE ---
+    { id: 25, name: "UltraMint Pro", img: "/images/ultramint.png", cat: "ჰიგიენა", description: "პრემიუმ სკალერი სენსორული მართვით და ბოთლით.", specs: ["სენსორული", "ავტონომიური წყალი"], hashtags: ["#Scaler", "#ProHygiene"] },
+    { id: 26, name: "Ultra X", img: "/images/ultrax.jpg", cat: "ენდოდონტია", description: "ულტრაბგერითი აქტივატორი ირიგაციისთვის.", specs: ["45 kHz", "კავიტაცია"], hashtags: ["#Activator", "#Irrigation"] },
+    { id: 27, name: "E-FLOW", img: "/images/eflow.png", cat: "ენდოდონტია", description: "საირიგაციო ხსნარების გაცხელების სისტემა.", specs: ["თბილი ხსნარები"], hashtags: ["#WarmIrrigation", "#Flow"] },
+
+    // --- X-RAY ---
+    { id: 28, name: "HyperLight", img: "/images/hyperlightm.png", cat: "რადიოლოგია", description: "მსოფლიოში აღიარებული პორტატული რენტგენი.", specs: ["65kV", "0.4mm ფოკუსი"], hashtags: ["#PortableXRay", "#BestSeller"] },
+    { id: 29, name: "HyperLight-G", img: "/images/hyperlightg.png", cat: "რადიოლოგია", description: "პორტატული რენტგენი პისტოლეტის დიზაინით.", specs: ["Gun Type", "ერგონომიული"], hashtags: ["#GunType", "#EasyUse"] },
+    { id: 30, name: "HyperLight-M", img: "/images/hyperlightm.png", cat: "რადიოლოგია", description: "კომპაქტური პორტატული რენტგენი.", specs: ["მინი დიზაინი"], hashtags: ["#MiniXRay"] },
+    { id: 31, name: "NanoPix 1 / 2", img: "/images/nanopix1.png", cat: "რადიოლოგია", description: "უმაღლესი რეზოლუციის რადიოვიზიოგრაფი.", specs: ["25 lp/mm", "IP68"], hashtags: ["#RVG", "#HighRes"] },
+    { id: 32, name: "NanoPix 1.5", img: "/images/nanopix1.5.png", cat: "რადიოლოგია", description: "უნივერსალური ზომის სენსორი.", specs: ["უნივერსალური ზომა"], hashtags: ["#UniversalSize"] },
+    { id: 33, name: "NanoPix-E 1.3", img: "/images/nanopix1.3.png", cat: "რადიოლოგია", description: "ეკონომიური სერიის სენსორი.", specs: ["CSI ტექნოლოგია"], hashtags: ["#Economy", "#Digital"] },
+    { id: 34, name: "NanoPix-M", img: "/images/nanopixm.png", cat: "რადიოლოგია", description: "M-Tech სენსორი გამძლე კაბელით.", specs: ["გამძლე კაბელი"], hashtags: ["#Durable", "#MTech"] },
+    { id: 35, name: "FinScan F350", img: "/images/finscan.png", cat: "რადიოლოგია", description: "CBCT აპარატი (ტომოგრაფი) Canon-ის მილით.", specs: ["16x10 FOV", "3D პანორამა"], hashtags: ["#CBCT", "#3D"] },
+
+    // --- SCANNERS ---
+    { id: 36, name: "Helios 700", img: "/images/helios700.png", cat: "ციფრული სკანერები", description: "ფლაგმანი უსადენო სკანერი Wi-Fi 6-ით.", specs: ["Wi-Fi 6", "16μm სიზუსტე"], hashtags: ["#WirelessScanner", "#Flagship"] },
+    { id: 37, name: "Helios 680", img: "/images/helios680.png", cat: "ციფრული სკანერები", description: "ულტრა-მსუბუქი (161გ) სკანერი.", specs: ["AI ფილტრაცია", "სწრაფი"], hashtags: ["#Lightweight", "#Fast"] },
+    { id: 38, name: "Helios 600", img: "/images/helios600.png", cat: "ციფრული სკანერები", description: "მაღალი სიჩქარის სადენიანი სკანერი.", specs: ["AI ტექნოლოგია"], hashtags: ["#WiredScanner", "#Speed"] },
+    { id: 39, name: "Helios 500", img: "/images/helios500.png", cat: "ციფრული სკანერები", description: "კომპაქტური სკანერი დამწყებთათვის.", specs: ["საბაზისო მოდელი"], hashtags: ["#Starter", "#Compact"] },
+
+    // --- OPTICS ---
+    { id: 40, name: "Acuvision X", img: "/images/acuvisionx.jpg", cat: "ოპტიკა", description: "მიკროსკოპი გერმანული ოპტიკით და 4K კამერით.", specs: ["Full HD/4K", "Vario Focus"], hashtags: ["#Microscope", "#4K"] },
+    { id: 41, name: "Brilliance", img: "/images/brilliance.jpg", cat: "ოპტიკა", description: "სტანდარტული Flip-up ლუპები.", specs: ["Flip-up", "მსუბუქი"], hashtags: ["#Loupes", "#Standard"] },
+    { id: 42, name: "Brilliance BP", img: "/images/brilliancebp.png", cat: "ოპტიკა", description: "სპორტული ჩარჩოს დიზაინის ლუპები.", specs: ["სპორტული", "დაცვა"], hashtags: ["#Sporty", "#Protection"] },
+    { id: 43, name: "Brilliance 48°", img: "/images/brilliance48.png", cat: "ოპტიკა", description: "ერგონომიული ლუპები კისრის დასაცავად.", specs: ["48° გარდატეხა"], hashtags: ["#Ergo", "#NeckRelief"] },
+    { id: 44, name: "Brilliance 48° Pro", img: "/images/brilliance48pro.jpg", cat: "ოპტიკა", description: "პროფესიონალური ერგონომიული ლუპები.", specs: ["უმაღლესი ხედვა"], hashtags: ["#ProSeries", "#TopQuality"] },
+    { id: 45, name: "Wireless Z+", img: "/images/wirelessz.jpg", cat: "ოპტიკა", description: "უსადენო LED განათება.", specs: ["ძლიერი ნათება", "2 ელემენტი"], hashtags: ["#Headlight", "#Wireless"] },
+
+    // --- SURGERY ---
+    { id: 46, name: "MotorSurg", img: "/images/motorsurg.png", cat: "ქირურგია", description: "მძლავრი ფიზიოდისპენსერი იმპლანტაციისთვის.", specs: ["80 N.cm", "სენსორული"], hashtags: ["#Implant", "#Surgery"] },
+    { id: 47, name: "MotorTurbo", img: "/images/motorturbo.png", cat: "ქირურგია", description: "ელექტრო ძრავი 1:5 თავაკით.", specs: ["1:5 თავაკი", "უვიბრაციო"], hashtags: ["#ElectricMotor", "#Prep"] },
+    { id: 48, name: "SurfyOne", img: "/images/surfyone.png", cat: "ქირურგია", description: "პიეზო ქირურგიული აპარატი.", specs: ["ძვლის ჭრა", "უსაფრთხო"], hashtags: ["#Piezo", "#Osteotomy"] },
+
+    // --- OTHERS & STERILIZATION ---
+    { id: 49, name: "CuringPen-X", img: "/images/curinpenx.png", cat: "სხვა", description: "ფლაგმანი პოლიმერიზაციის ნათურა.", specs: ["მეტალის კორპუსი", "კარიეს დეტექტორი"], hashtags: ["#Curing", "#Flagship"] },
+    { id: 50, name: "CuringPen", img: "/images/curingpen.jpg", cat: "სხვა", description: "სტანდარტული, ძლიერი ნათურა.", specs: ["ძლიერი სხივი"], hashtags: ["#Standard", "#Reliable"] },
+    { id: 51, name: "CuringPen-E", img: "/images/curinpene.png", cat: "სხვა", description: "ეკონომიური პოლიმერიზაციის ნათურა.", specs: ["მსუბუქი", "ფერადი"], hashtags: ["#Economy", "#Light"] },
+    { id: 52, name: "SofTouch", img: "/images/softouch.jpg", cat: "სხვა", description: "კომპიუტერული ანესთეზიის სისტემა.", specs: ["უმტკივნეულო"], hashtags: ["#Anesthesia", "#Painless"] },
+    { id: 53, name: "E-Sanit", img: "/images/esanit.png", cat: "ჰიგიენა", description: "B-კლასის ავტოკლავი.", specs: ["23L / 18L", "პრინტერი"], hashtags: ["#Autoclave", "#Sterile"] }
+  ];
+
+  const categories = ['ყველა', 'ენდოდონტია', 'რადიოლოგია', 'ციფრული სკანერები', 'ქირურგია', 'ოპტიკა', 'ჰიგიენა', 'სხვა'];
+
+  const filteredProducts = products.filter(p => {
+    const matchesFilter = filter === 'ყველა' || p.cat === filter;
+    const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase());
+    return matchesFilter && matchesSearch;
+  });
+
+  return (
+    <main className="min-h-screen bg-slate-50 py-24 px-6 uppercase tracking-tighter font-sans text-slate-900 selection:bg-blue-100">
+      <div className="max-w-7xl mx-auto">
+        <div className="flex flex-col md:flex-row justify-between items-center mb-12 gap-6 animate-in slide-in-from-top duration-500">
+          <Link href="/" className="flex items-center gap-2 text-slate-500 font-bold hover:text-blue-600 transition tracking-normal underline">
+            <ArrowLeft size={20}/> მთავარზე
+          </Link>
+          <h1 className="text-4xl md:text-5xl font-black uppercase tracking-tight">კატალოგი</h1>
+          <div className="relative w-full md:w-72 group">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" size={20} />
+            <input 
+              type="text" 
+              placeholder="მოძებნე პროდუქტი..." 
+              className="w-full pl-12 pr-4 py-3.5 rounded-2xl border border-slate-200 bg-white focus:outline-none focus:ring-4 focus:ring-blue-100 focus:border-blue-500 font-bold text-sm shadow-sm transition-all"
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
+        </div>
+
+        <div className="flex flex-wrap justify-center gap-3 mb-16 animate-in fade-in duration-700 delay-100">
+          {categories.map((c) => (
+            <button key={c} onClick={() => setFilter(c)}
+              className={`px-6 py-2.5 rounded-full font-bold text-xs tracking-wide transition-all duration-300 transform ${filter === c ? 'bg-slate-900 text-white shadow-lg scale-105 ring-2 ring-offset-2 ring-slate-900' : 'bg-white text-slate-500 border border-slate-200 hover:border-slate-400 hover:text-slate-900 hover:-translate-y-0.5'}`}>
+              {c}
+            </button>
+          ))}
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+          {filteredProducts.map((item) => (
+            <div key={item.id} onClick={() => setSelectedProduct(item)} className="group cursor-pointer relative bg-white rounded-[2rem] p-6 border border-slate-100 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-500 flex flex-col items-center overflow-hidden hover:-translate-y-2">
+              <div className="absolute top-4 right-4 bg-slate-50 text-slate-400 text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-wider">{item.cat}</div>
+              
+              <div className="relative w-full h-64 mb-6 flex items-center justify-center overflow-visible">
+                <img src={item.img} alt={item.name} className="max-h-56 w-auto object-contain transition-transform duration-500 group-hover:scale-125 drop-shadow-lg"
+                  onError={(e: any) => { e.target.src = 'https://via.placeholder.com/400x400/f8fafc/cbd5e1?text=' + item.name; }} />
+              </div>
+
+              <div className="w-full text-center relative z-10">
+                <h3 className="text-lg font-black text-slate-900 mb-2 leading-tight group-hover:text-blue-600 transition-colors">{item.name}</h3>
+                <div className="h-0.5 w-12 bg-slate-100 mx-auto mb-4 group-hover:w-full group-hover:bg-blue-100 transition-all duration-500"></div>
+                <button className="text-xs font-bold text-slate-400 uppercase tracking-widest group-hover:text-slate-900 transition-colors flex items-center justify-center gap-2 mx-auto">
+                   იხილე დეტალურად <ArrowLeft size={14} className="rotate-180" />
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {selectedProduct && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md animate-in fade-in duration-200" onClick={() => setSelectedProduct(null)}>
+          <div className="relative bg-white w-full max-w-5xl rounded-[2.5rem] overflow-hidden flex flex-col md:flex-row shadow-2xl animate-in zoom-in-95 duration-300 max-h-[90vh]" onClick={e => e.stopPropagation()}>
+            <button onClick={() => setSelectedProduct(null)} className="absolute top-6 right-6 p-2.5 bg-slate-100 hover:bg-red-500 hover:text-white rounded-full z-20 transition-all duration-300">
+              <X size={24} />
+            </button>
+            <div className="md:w-1/2 bg-slate-50 p-12 flex items-center justify-center relative overflow-hidden">
+               <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-5"></div>
+              <img src={selectedProduct.img} alt={selectedProduct.name} className="max-h-[80%] w-auto object-contain drop-shadow-2xl z-10" 
+                onError={(e: any) => { e.target.src = 'https://via.placeholder.com/400x400/f8fafc/cbd5e1?text=' + selectedProduct.name; }} />
+            </div>
+            <div className="md:w-1/2 p-8 md:p-14 overflow-y-auto bg-white flex flex-col">
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-4">
+                  <span className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider">{selectedProduct.cat}</span>
+                </div>
+                <h2 className="text-4xl md:text-5xl font-black text-slate-900 mb-6 leading-none tracking-tight">{selectedProduct.name}</h2>
+                <p className="text-slate-600 text-lg font-medium leading-relaxed mb-8">{selectedProduct.description}</p>
+                <div className="bg-slate-50 rounded-2xl p-6 mb-8 border border-slate-100">
+                  <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-4">მახასიათებლები</h4>
+                  <div className="grid grid-cols-1 gap-3">
+                    {selectedProduct.specs.map((spec: any, i: number) => (
+                      <div key={i} className="flex items-center gap-3 text-slate-700 font-bold text-sm">
+                        <CheckCircle2 size={18} className="text-green-500 shrink-0" /> {spec}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-2 mb-8">
+                  {selectedProduct.hashtags.map((tag: string, i: number) => (
+                    <span key={i} className="text-[11px] font-bold text-blue-500 bg-blue-50 px-3 py-1 rounded-lg flex items-center gap-1">
+                      <Hash size={10} /> {tag.replace('#', '')}
+                    </span>
+                  ))}
+                </div>
+              </div>
+              <button onClick={() => window.open(`https://wa.me/995514011116?text=გამარჯობა, მაინტერესებს: ${selectedProduct.name}`, '_blank')}
+                className="w-full py-5 bg-[#25D366] hover:bg-[#20bd5a] text-white rounded-2xl font-black text-sm uppercase flex items-center justify-center gap-3 tracking-wide shadow-lg hover:shadow-green-500/30 transition-all transform active:scale-95 group">
+                <MessageCircle size={22} className="group-hover:rotate-12 transition-transform" /> ფასის გაგება WhatsApp
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </main>
+  );
+}

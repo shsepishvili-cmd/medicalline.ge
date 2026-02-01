@@ -1,0 +1,65 @@
+export default function EighteethPage() {
+  const categories = [
+    {
+      title: "ენდოდონტია და რესტავრაცია",
+      products: [
+        { name: "E-CONNECT S+", type: "Endo Motor", desc: "ინტეგრირებული აპექს ლოკატორით" },
+        { name: "Ultra X", type: "Ultrasonic Activator", desc: "ულტრაბგერითი ენდო-აქტივატორი" },
+        { name: "E-FLEX GOLD", type: "Endo Files", desc: "ოქროს თერმული დამუშავების ფაილები" },
+        { name: "Fast-Fill", type: "Obturation", desc: "გუტაპერჩით შევსების სისტემა" }
+      ]
+    },
+    {
+      title: "ვიზუალიზაცია და ციფრული სკანირება",
+      products: [
+        { name: "Helios 600", type: "Intraoral Scanner", desc: "მაღალი სიზუსტის ციფრული ანაბეჭდი" },
+        { name: "NanoPix 2", type: "Digital Sensor", desc: "ულტრა-თხელი ციფრული სენსორი" },
+        { name: "HyperLight", type: "Portable X-Ray", desc: "პორტატული რენტგენის აპარატი" },
+        { name: "FinScan F350", type: "CBCT", desc: "3D კომპიუტერული ტომოგრაფია" }
+      ]
+    },
+    {
+      title: "ოპტიკა და ქირურგია",
+      products: [
+        { name: "Acuvision X", type: "Microscope", desc: "პრემიუმ კლასის სტომატოლოგიური მიკროსკოპი" },
+        { name: "Brilliance", type: "Loupes", desc: "ერგონომიული ბინოკულარები" },
+        { name: "MotorSurg", type: "Implant Motor", desc: "იმპლანტოლოგიური ფიზიოდისპენსერი" }
+      ]
+    }
+  ];
+
+  return (
+    <main className="bg-white min-h-screen pb-20">
+      {/* ბრენდის Header */}
+      <section className="bg-slate-50 py-16 border-b border-blue-50 text-center">
+        <div className="max-w-4xl mx-auto px-4">
+          <img src="/images/eighteeth-logo.png" alt="Eighteeth" className="h-24 mx-auto mb-6 object-contain" />
+          <h1 className="text-3xl font-black text-blue-900 uppercase">Eighteeth ოფიციალური კატალოგი</h1>
+          <p className="mt-4 text-slate-600">ინოვაციური სტომატოლოგიური გადაწყვეტილებები Medical Line Georgia-სგან</p>
+        </div>
+      </section>
+
+      {/* კატეგორიების სექციები */}
+      {categories.map((cat, idx) => (
+        <section key={idx} className="max-w-7xl mx-auto px-4 mt-20">
+          <h2 className="text-2xl font-bold text-blue-900 mb-10 border-l-4 border-blue-500 pl-4">{cat.title}</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {cat.products.map((p, i) => (
+              <div key={i} className="group bg-white border border-slate-100 rounded-2xl p-5 hover:shadow-xl transition-all duration-300">
+                <div className="h-48 bg-slate-50 rounded-xl mb-4 flex items-center justify-center p-4">
+                  <span className="text-slate-300 font-bold uppercase text-xs">ფოტო მალე</span>
+                </div>
+                <span className="text-blue-500 text-[10px] font-bold uppercase tracking-widest">{p.type}</span>
+                <h3 className="text-lg font-bold text-blue-900 mt-1">{p.name}</h3>
+                <p className="text-slate-500 text-xs mt-2 leading-relaxed">{p.desc}</p>
+                <button className="w-full mt-6 py-2 bg-blue-50 text-blue-700 rounded-lg text-sm font-bold group-hover:bg-blue-700 group-hover:text-white transition">
+                  დეტალურად
+                </button>
+              </div>
+            ))}
+          </div>
+        </section>
+      ))}
+    </main>
+  );
+}

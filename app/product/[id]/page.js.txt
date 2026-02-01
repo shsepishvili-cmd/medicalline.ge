@@ -1,0 +1,76 @@
+"use client";
+import Link from 'next/link';
+import { ChevronRight, Home, ArrowLeft } from 'lucide-react';
+
+export default function Breadcrumbs({ pageTitle, category }) {
+  return (
+    <div className="max-w-7xl mx-auto px-6 pt-32 pb-6">
+      <div className="flex flex-col gap-6">
+        
+        {/* 1. უკან დაბრუნების სტილიზებული ღილაკი */}
+        <Link 
+          href="/" 
+          className="inline-flex items-center gap-3 text-slate-400 hover:text-blue-600 transition-all group"
+        >
+          <div className="w-10 h-10 rounded-full border border-slate-200 flex items-center justify-center group-hover:border-blue-600 group-hover:bg-blue-50 transition-all">
+            <ArrowLeft size={18} />
+          </div>
+          <span className="font-black uppercase text-[11px] tracking-[0.2em]">უკან</span>
+        </Link>
+
+        {/* 2. ნავიგაციის "ნამცეცები" */}
+        <nav className="flex items-center gap-3 text-[10px] font-black uppercase tracking-widest text-slate-400">
+          <Link href="/" className="hover:text-blue-600 flex items-center gap-1 transition">
+            <Home size={12} />
+            მთავარი
+          </Link>
+          
+          <ChevronRight size={12} className="text-slate-300" />
+          
+          {category && (
+            <>
+              <Link href="/catalog" className="hover:text-blue-600 transition">
+                {category}
+              </Link>
+              <ChevronRight size={12} className="text-slate-300" />
+            </>
+          )}
+          
+          <span className="text-blue-600">{pageTitle}</span>
+        </nav>
+      </div>
+    </div>
+  );
+}
+
+import React from 'react';
+import Link from 'next/link';
+import { ArrowLeft, ChevronRight } from 'lucide-react';
+
+export default function ProductPage() {
+  return (
+    <main className="min-h-screen bg-white pt-32 pb-20 px-6">
+      <div className="max-w-7xl mx-auto">
+        
+        {/* --- უკან დაბრუნების ღილაკი --- */}
+        <div className="mb-12">
+          <Link 
+            href="/" 
+            className="inline-flex items-center gap-3 text-slate-400 hover:text-blue-600 transition-all group"
+          >
+            <div className="w-10 h-10 rounded-full border border-slate-200 flex items-center justify-center group-hover:border-blue-600 group-hover:bg-blue-50 transition-all">
+              <ArrowLeft size={18} />
+            </div>
+            <span className="font-black uppercase text-[11px] tracking-[0.2em]">მთავარ გვერდზე</span>
+          </Link>
+        </div>
+
+        {/* გვერდის კონტენტი აქ გაგრძელდება... */}
+        <div className="grid md:grid-cols-2 gap-20">
+            {/* პროდუქტის დეტალები */}
+        </div>
+        
+      </div>
+    </main>
+  );
+}

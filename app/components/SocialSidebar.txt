@@ -1,0 +1,32 @@
+"use client";
+import { Facebook, Youtube, Send, MessageCircle } from "lucide-react";
+
+export default function SocialSidebar() {
+  const socials = [
+    { id: 1, name: "Facebook", icon: <Facebook size={20} />, color: "bg-[#1877F2]", link: "https://facebook.com" },
+    { id: 2, name: "YouTube", icon: <Youtube size={20} />, color: "bg-[#FF0000]", link: "https://youtube.com" },
+    { id: 3, name: "Telegram", icon: <Send size={20} />, color: "bg-[#0088cc]", link: "https://t.me" },
+    { id: 4, name: "WhatsApp", icon: <MessageCircle size={20} />, color: "bg-[#25D366]", link: "https://wa.me/995514011116" },
+  ];
+
+  return (
+    <div className="fixed left-0 top-1/2 -translate-y-1/2 z-[100] flex flex-col gap-2">
+      {socials.map((s) => (
+        <a
+          key={s.id}
+          href={s.link}
+          target="_blank"
+          rel="noreferrer"
+          className={`flex items-center justify-end w-12 hover:w-32 h-12 ${s.color} text-white transition-all duration-300 rounded-r-2xl shadow-lg group overflow-hidden`}
+        >
+          <span className="absolute left-3 opacity-0 group-hover:opacity-100 transition-opacity font-bold text-[10px] uppercase tracking-widest">
+            {s.name}
+          </span>
+          <div className="min-w-[48px] flex items-center justify-center">
+            {s.icon}
+          </div>
+        </a>
+      ))}
+    </div>
+  );
+}
