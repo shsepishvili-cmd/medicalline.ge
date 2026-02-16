@@ -1,7 +1,5 @@
-import type { NextConfig } from "next";
-
-const nextConfig: NextConfig = {
-  /* აქ ვთიშავთ შემოწმებებს, რომ საიტი ჩაირთოს */
+/** @type {import('next').NextConfig} */
+const nextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
@@ -9,8 +7,8 @@ const nextConfig: NextConfig = {
     ignoreDuringBuilds: true,
   },
   images: {
-    unoptimized: true,
-  },
+    unoptimized: true, // ეხმარება სურათების სწრაფ დამუშავებაში
+  }
 };
 
 export default nextConfig;

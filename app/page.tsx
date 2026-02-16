@@ -2,13 +2,57 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import Script from 'next/script';
 import { 
   Phone, Facebook, Instagram, Youtube, 
-  Home, Grid, Image as ImageIcon, MapPin, 
-  ChevronRight, MessageCircle, Camera, CheckCircle2, Mail, Menu, ArrowRight
+  Home, Grid, MapPin, 
+  ChevronRight, MessageCircle, CheckCircle2, Mail, ArrowRight, Star, Camera
 } from 'lucide-react';
 
-const TiktokIcon = ({ size = 22, color = "currentColor" }) => (
+const TopGe = () => {
+  useEffect(() => {
+    const existingScript = document.getElementById('top-ge-script');
+    if (existingScript) {
+      existingScript.remove();
+    }
+
+    const script = document.createElement('script');
+    script.id = 'top-ge-script';
+    script.src = "https://counter.top.ge/counter.js";
+    script.async = true;
+    document.body.appendChild(script);
+
+    return () => {
+      if (script) script.remove();
+    };
+  }, []);
+
+  return (
+    <div className="relative z-[110] flex items-center justify-center min-h-[50px] my-6">
+       <div id="top-ge-counter-container" data-site-id="118515"></div>
+    </div>
+  );
+};
+
+// --- Soro Blog სექცია (ახალი) ---
+const SoroBlogSection = () => {
+  return (
+    <section className="py-24 bg-white px-6 border-t border-slate-100">
+      <div className="max-w-7xl mx-auto">
+        <h2 className="text-4xl font-black uppercase italic mb-12 underline decoration-blue-600 underline-offset-8">
+          რჩევები კლინიკებს
+        </h2>
+        <div id="soro-blog" className="min-h-[400px]"></div>
+        <Script 
+          src="https://app.trysoro.com/api/embed/d2061d8a-816f-4b03-8f75-b11203d59f5d" 
+          strategy="lazyOnload"
+        />
+      </div>
+    </section>
+  );
+};
+
+const TiktokIcon = ({ size = 22, color = "currentColor" }: { size?: number, color?: string }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill={color} xmlns="http://www.w3.org/2000/svg">
     <path d="M19.589 6.686a4.793 4.793 0 0 1-3.77-4.245V2h-3.445v13.672a2.896 2.896 0 0 1-5.201 1.743l-.002-.001.002.001a2.895 2.895 0 0 1 3.183-4.51v-3.5a6.329 6.329 0 0 0-5.394 10.692 6.33 6.33 0 0 0 10.857-4.424V8.687a8.182 8.182 0 0 0 4.773 1.526V6.79a4.831 4.831 0 0 1-1.003-.104z" />
   </svg>
@@ -32,15 +76,18 @@ export default function MedicalLineHome() {
   }, []);
 
   const categories = [
-    { title: "ენდომოტორი", img: "/images/econnect2.png", color: "bg-blue-50" },
+    { title: "ენდომოტორი", img: "/images/extreme.png", color: "bg-blue-50" },
     { title: "ინტრაორალური სკანერი", img: "/images/helios700.png", color: "bg-slate-50" },
     { title: "დენტალური ტომოგრაფი", img: "/images/finscan.png", color: "bg-gray-50" },
-    { title: "დენტალური მიკროსკოპი", img: "/images/acuvisionx.png", color: "bg-gray-50" },
+    { title: "დენტალური მიკროსკოპი", img: "/images/acuvisionx.jpg", color: "bg-gray-50" },
   ];
 
-  const gallery = [
-    "/images/5.jpg", "/images/1.jpg", "/images/3.jpg",
-    "/images/7.jpg", "/images/4.jpg", "/images/6.jpg"
+  const reviews = [
+    { name: "დრ. გიორგი ბერიძე", text: "Helios 700-მა ჩემი კლინიკის მუშაობა სრულიად შეცვალა. სკანირება არის უსწრაფესი, ხოლო სიზუსტე - იდეალური. რეკომენდაცია ჩემგან!", rating: 5, product: "Helios 700" },
+    { name: "დრ. ნინო კახიანი", text: "E-Connect S+ არის საუკეთესო ენდომოტორი, რაც კი გამომიყენებია. ძალიან ჩუმია, მსუბუქი და აპექს ლოკატორიც ზუსტად მუშაობს.", rating: 5, product: "E-Connect S+" },
+    { name: "დრ. დავით მ.", text: "HyperLight პორტატული რენტგენი ძალიან მოსახერხებელია. სურათის ხარისხი არ ჩამოუვარდება სტაციონარულ აპარატებს.", rating: 5, product: "HyperLight" },
+    { name: "დრ. ანა ს.", text: "Medical Line-ის გუნდს დიდი მადლობა ოპერატიულობისთვის. განვადება 10 წუთში დამიმტკიცეს და ინსტალაციაც მალევე გააკეთეს.", rating: 5, product: "Service" },
+    { name: "დრ. ლევან ქ.", text: "Eighteeth-ის პროდუქცია ფასი/ხარისხით ნამდვილად უკონკურენტოა საქართველოში. უკვე მე-3 აპარატს ვყიდულობ თქვენთან.", rating: 5, product: "General" }
   ];
 
   return (
@@ -71,6 +118,7 @@ export default function MedicalLineHome() {
             <Link href="#about" className={`${isScrolled ? 'text-slate-900' : 'text-white'} hover:text-blue-500 transition`}>ჩვენს შესახებ</Link>
             <Link href="#services" className={`${isScrolled ? 'text-slate-900' : 'text-white'} hover:text-blue-500 transition`}>სერვისი</Link>
             <Link href="/catalog" className={`${isScrolled ? 'text-slate-900' : 'text-white'} hover:text-blue-500 transition`}>პროდუქცია</Link>
+            <Link href="/gallery" className={`${isScrolled ? 'text-slate-900' : 'text-white'} hover:text-blue-500 transition`}>გალერეა</Link>
             <Link href="/blog" className={`${isScrolled ? 'text-slate-900' : 'text-white'} hover:text-blue-500 transition underline decoration-blue-500 underline-offset-4`}>ბლოგი</Link>
             <Link href="#contact" className={`${isScrolled ? 'text-slate-900' : 'text-white'} hover:text-blue-500 transition`}>კონტაქტი</Link>
           </div>
@@ -120,7 +168,9 @@ export default function MedicalLineHome() {
           </div>
           <div className="space-y-6">
             <h2 className="text-3xl font-black uppercase leading-none tracking-tighter italic underline decoration-blue-600 underline-offset-8">ჩვენს შესახებ</h2>
-            <p className="text-slate-600 text-lg leading-relaxed normal-case tracking-normal font-medium">Medical Line Georgia არის Eighteeth-ის ოფიციალური წარმომადგენელი საქართველოში. ჩვენი მიზანია ექიმებისთვის უახლესი ტექნოლოგიების ხელმისაწვდომობა და პროფესიონალური მხარდაჭერა.</p>
+            <p className="text-slate-600 text-lg leading-relaxed normal-case tracking-normal font-medium">
+              Medical Line Georgia — Eighteeth-ის ექსკლუზიური პარტნიორი საქართველოში. <span className="font-black text-slate-900 bg-blue-50 px-2 rounded">10 წელზე მეტი გამოცდილებით</span>, ჩვენი მისიაა ქართველ სტომატოლოგებს გავუმარტივოთ წვდომა თანამედროვე ციფრულ ტექნოლოგიებზე, უზრუნველვყოთ უმაღლესი ხარისხის სერვისი და მუდმივი პროფესიული მხარდაჭერა.
+            </p>
           </div>
         </div>
       </section>
@@ -172,30 +222,64 @@ export default function MedicalLineHome() {
             <Link href="/blog" className="font-black text-xs hover:text-blue-600 transition flex items-center gap-1">ყველა სტატია <ArrowRight size={16}/></Link>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <Link href="/blog/helios-700-review" className="group bg-white p-6 rounded-[2.5rem] border border-slate-100 transition-all hover:shadow-2xl">
-              <h3 className="text-2xl font-black mb-3 group-hover:text-blue-600 transition uppercase tracking-tighter italic">HELIOS 700 - ციფრული რევოლუცია</h3>
-              <p className="text-slate-500 font-bold text-sm normal-case tracking-normal italic">გაიგეთ, რატომ ირჩევენ ექიმები Eighteeth-ის სკანერს.</p>
+            <Link href="/blog/gdda-expo-2025" className="group bg-white p-6 rounded-[2.5rem] border border-slate-100 transition-all hover:shadow-2xl">
+              <h3 className="text-2xl font-black mb-3 group-hover:text-blue-600 transition uppercase tracking-tighter italic">GDDA EXPO 2025 - სრული მიმოხილვა</h3>
+              <p className="text-slate-500 font-bold text-sm normal-case tracking-normal italic">როგორ წარსდგა MEDICAL LINE გამოფენაზე და რა იყო მთავარი სიახლეები.</p>
             </Link>
-            <Link href="/blog/rentgen-licenzireba-saqartveloshi" className="group bg-white p-6 rounded-[2.5rem] border border-slate-100 transition-all hover:shadow-2xl">
-              <h3 className="text-2xl font-black mb-3 group-hover:text-blue-600 transition uppercase tracking-tighter italic">რენტგენის ლიცენზირება</h3>
-              <p className="text-slate-500 font-bold text-sm normal-case tracking-normal italic">სრული ინფორმაცია რენტგენის კაბინეტის მოსაწყობად საქართველოში.</p>
+            <Link href="/blog/esanit-autoclave-maintenance" className="group bg-white p-6 rounded-[2.5rem] border border-slate-100 transition-all hover:shadow-2xl">
+              <h3 className="text-2xl font-black mb-3 group-hover:text-blue-600 transition uppercase tracking-tighter italic">ავტოკლავის მოვლის 12 წესი</h3>
+              <p className="text-slate-500 font-bold text-sm normal-case tracking-normal italic">ინჟინრის რჩევები თქვენი აპარატურის ხანგრძლივი მუშაობისთვის.</p>
             </Link>
           </div>
         </div>
       </section>
 
-      {/* --- GALLERY --- */}
-      <section id="gallery" className="py-24 bg-slate-900 text-white px-6 rounded-t-[4rem] -mt-12 scroll-mt-20">
-        <div className="max-w-7xl mx-auto mb-12 flex justify-between items-center">
-            <h2 className="text-4xl font-black uppercase tracking-tighter italic">გალერეა</h2>
-            <Camera className="text-blue-500" />
-        </div>
-        <div className="max-w-7xl mx-auto grid grid-cols-2 md:grid-cols-3 gap-4">
-          {gallery.map((src, i) => (
-            <div key={i} className="aspect-square rounded-[2rem] overflow-hidden border border-white/5 group">
-              <img src={src} className="w-full h-full object-cover group-hover:scale-110 transition-all duration-700 opacity-80 group-hover:opacity-100" alt="Gallery" />
+      {/* --- SORO BLOG SECTION (აქ ჩავსვი!) --- */}
+      <SoroBlogSection />
+
+      {/* --- GALLERY BANNER --- */}
+      <section className="py-12 bg-white px-6">
+        <div className="max-w-7xl mx-auto">
+          <Link href="/gallery" className="group relative block h-[250px] md:h-[300px] rounded-[3rem] overflow-hidden border-4 border-slate-100 shadow-2xl">
+            <img src="/images/cover.png" alt="Gallery" className="w-full h-full object-cover brightness-[0.4] group-hover:brightness-[0.3] group-hover:scale-105 transition-all duration-700"/>
+            <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-6">
+              <Camera size={48} className="text-white mb-4 opacity-80"/>
+              <h2 className="text-3xl md:text-5xl font-black text-white uppercase italic tracking-tighter mb-4">ფოტო გალერეა</h2>
+              <span className="bg-blue-600 text-white px-8 py-3 rounded-2xl font-black uppercase text-[10px] tracking-widest group-hover:bg-blue-700 transition shadow-lg">დაათვალიერე</span>
             </div>
-          ))}
+          </Link>
+        </div>
+      </section>
+
+      {/* --- REVIEWS --- */}
+      <section className="py-24 bg-slate-50 px-6 border-t border-slate-100">
+        <div className="max-w-7xl mx-auto text-center">
+           <h2 className="text-3xl font-black uppercase mb-12 italic underline decoration-blue-600 underline-offset-8">რას ამბობენ ექიმები</h2>
+           <div className="flex md:grid md:grid-cols-3 gap-6 overflow-x-auto pb-8 snap-x snap-mandatory hide-scrollbar">
+             {reviews.map((r, i) => (
+                <div key={i} className="min-w-[300px] md:min-w-0 bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100 relative snap-center flex flex-col justify-between hover:shadow-xl transition-all">
+                   <div>
+                       <div className="absolute top-6 right-8 opacity-10">
+                           <Star size={48} className="text-slate-900 fill-slate-900"/>
+                       </div>
+                       <div className="flex gap-1 mb-4 text-orange-400">
+                          {[...Array(r.rating)].map((_, i) => <Star key={i} size={16} fill="currentColor"/>)}
+                       </div>
+                       <p className="text-slate-600 font-bold italic mb-6 text-left leading-relaxed text-sm">"{r.text}"</p>
+                   </div>
+                   <div className="text-left border-t border-slate-50 pt-4">
+                       <h4 className="font-black uppercase text-slate-900 text-sm">{r.name}</h4>
+                       <span className="text-[10px] font-bold text-blue-500 uppercase tracking-wider">{r.product}</span>
+                   </div>
+                </div>
+             ))}
+           </div>
+           <button 
+             onClick={() => window.open('https://www.facebook.com/medicalline.ge/reviews', '_blank')}
+             className="mt-8 bg-[#1877F2] text-white px-10 py-4 rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-blue-700 transition-all shadow-xl shadow-blue-500/30 flex items-center justify-center gap-3 mx-auto active:scale-95"
+           >
+              <Facebook size={20}/> დაგვიტოვეთ შეფასება Facebook-ზე
+           </button>
         </div>
       </section>
 
@@ -212,7 +296,14 @@ export default function MedicalLineHome() {
             </form>
           </div>
           <div className="h-[400px] lg:h-[500px] rounded-[3.5rem] overflow-hidden shadow-2xl border-4 border-white grayscale hover:grayscale-0 transition-all duration-700">
-             <iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2978.1234!2d44.7!3d41.7!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zNDHCsDQyJzAwLjAiTiA0NMKwNDInMDAuMCJF!5e0!3m2!1ska!2sge!4v123456789" width="100%" height="100%" style={{ border: 0 }} allowFullScreen loading="lazy"></iframe>
+             <iframe 
+  src="https://maps.app.goo.gl/HhyqrjkBtVeht8HW7" 
+  width="100%" 
+  height="100%" 
+  style={{ border: 0 }} 
+  allowFullScreen 
+  loading="lazy">
+</iframe>
           </div>
         </div>
       </section>
@@ -226,14 +317,17 @@ export default function MedicalLineHome() {
                   <MapPin size={18} className="text-blue-500" /> თბილისი, დ. ჯაბიძის #8
                </p>
                <p className="flex items-center justify-center gap-2">
-                  <Mail size={18} className="text-blue-500" /> <ltdmedicalline className="ge"></ltdmedicalline>
+                  <Mail size={18} className="text-blue-500" /> ltdmedicalline@gmail.com
                </p>
                <a href="tel:514011116" className="flex items-center justify-center gap-2 hover:text-white transition-colors">
                   <Phone size={18} className="text-blue-500" /> 514 011 116
                </a>
             </div>
+            <div className="mt-8 flex justify-center">
+              <TopGe />
+            </div>
          </div>
-         <p className="text-slate-500 text-[10px] uppercase font-bold tracking-[0.4em]">© 2026 MEDICAL LINE GEORGIA | DESIGNED BY SHOTA SEPISHVILI</p>
+         <p className="text-slate-500 text-[10px] uppercase font-bold tracking-[0.4em]">© 2026 MEDICAL LINE GEORGIA | DESINGED BY SHOTA SEPISHVILI</p>
       </footer>
 
       {/* --- MOBILE NAV --- */}
@@ -241,7 +335,7 @@ export default function MedicalLineHome() {
         <Link href="/" className="flex flex-col items-center gap-1 text-blue-600"><Home size={22} /><span className="text-[10px] font-black uppercase">მთავარი</span></Link>
         <Link href="/catalog" className="flex flex-col items-center gap-1 text-slate-400"><Grid size={22} /><span className="text-[10px] font-black uppercase">პროდუქცია</span></Link>
         <a href={socialLinks.whatsapp} target="_blank" className="relative -top-8 w-16 h-16 bg-[#25D366] text-white rounded-full flex items-center justify-center shadow-2xl border-4 border-white"><MessageCircle size={28} fill="white"/></a>
-        <Link href="/blog" className="flex flex-col items-center gap-1 text-slate-400"><ImageIcon size={22} /><span className="text-[10px] font-black uppercase">ბლოგი</span></Link>
+        <Link href="/gallery" className="flex flex-col items-center gap-1 text-slate-400"><Camera size={22} /><span className="text-[10px] font-black uppercase">გალერეა</span></Link>
         <Link href="#contact" className="flex flex-col items-center gap-1 text-slate-400"><MapPin size={22} /><span className="text-[10px] font-black uppercase">კონტაქტი</span></Link>
       </div>
     </main>
