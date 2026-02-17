@@ -6,7 +6,7 @@ import Script from 'next/script';
 import { 
   Phone, Facebook, Instagram, Youtube, 
   Home, Grid, MapPin, 
-  ChevronRight, MessageCircle, CheckCircle2, Mail, ArrowRight, Star, Camera
+  ChevronRight, MessageCircle, CheckCircle2, Mail, ArrowRight, Star, Camera, BookOpen
 } from 'lucide-react';
 
 const TopGe = () => {
@@ -34,7 +34,7 @@ const TopGe = () => {
   );
 };
 
-// --- Soro Blog სექცია (ახალი) ---
+// --- Soro Blog სექცია ---
 const SoroBlogSection = () => {
   return (
     <section className="py-24 bg-white px-6 border-t border-slate-100">
@@ -52,9 +52,17 @@ const SoroBlogSection = () => {
   );
 };
 
+// --- Custom Icons ---
 const TiktokIcon = ({ size = 22, color = "currentColor" }: { size?: number, color?: string }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill={color} xmlns="http://www.w3.org/2000/svg">
     <path d="M19.589 6.686a4.793 4.793 0 0 1-3.77-4.245V2h-3.445v13.672a2.896 2.896 0 0 1-5.201 1.743l-.002-.001.002.001a2.895 2.895 0 0 1 3.183-4.51v-3.5a6.329 6.329 0 0 0-5.394 10.692 6.33 6.33 0 0 0 10.857-4.424V8.687a8.182 8.182 0 0 0 4.773 1.526V6.79a4.831 4.831 0 0 1-1.003-.104z" />
+  </svg>
+);
+
+// ❗️ ნამდვილი WhatsApp ლოგო ❗️
+const WhatsappIcon = ({ size = 28, color = "currentColor" }: { size?: number, color?: string }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill={color} xmlns="http://www.w3.org/2000/svg">
+    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.888-.788-1.489-1.761-1.663-2.06-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51a5.8 5.8 0 0 0-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.015-1.04 2.476 0 1.46 1.065 2.871 1.213 3.07.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z"/>
   </svg>
 );
 
@@ -91,7 +99,7 @@ export default function MedicalLineHome() {
   ];
 
   return (
-    <main className="min-h-screen bg-white font-sans text-slate-900 pb-24 md:pb-0 overflow-x-hidden selection:bg-blue-100 uppercase tracking-tighter">
+    <main className="min-h-screen bg-white font-sans text-slate-900 pb-24 md:pb-0 overflow-x-hidden selection:bg-blue-100 uppercase tracking-tighter relative">
       
       {/* --- SIDEBARS --- */}
       <div className="fixed left-0 top-1/2 -translate-y-1/2 z-[100] hidden md:flex flex-col">
@@ -102,8 +110,9 @@ export default function MedicalLineHome() {
         </button>
       </div>
 
+      {/* Desktop Social sidebar */}
       <div className="fixed right-0 top-1/2 -translate-y-1/2 z-[100] hidden md:flex flex-col gap-2">
-        <a href={socialLinks.whatsapp} target="_blank" className="w-12 h-12 bg-[#25D366] text-white flex items-center justify-center rounded-l-xl hover:w-16 transition-all shadow-lg group"><MessageCircle size={22}/></a>
+        <a href={socialLinks.whatsapp} target="_blank" className="w-12 h-12 bg-[#25D366] text-white flex items-center justify-center rounded-l-xl hover:w-16 transition-all shadow-lg group"><WhatsappIcon size={24}/></a>
         <a href={socialLinks.facebook} target="_blank" className="w-12 h-12 bg-[#1877F2] text-white flex items-center justify-center rounded-l-xl hover:w-16 transition-all shadow-lg group"><Facebook size={22}/></a>
         <a href={socialLinks.instagram} target="_blank" className="w-12 h-12 bg-black text-white flex items-center justify-center rounded-l-xl hover:w-16 transition-all shadow-lg group"><Instagram size={22}/></a>
         <a href={socialLinks.tiktok} target="_blank" className="w-12 h-12 bg-black text-white flex items-center justify-center rounded-l-xl hover:w-16 transition-all shadow-lg group"><TiktokIcon size={20} color="white" /></a>
@@ -234,7 +243,7 @@ export default function MedicalLineHome() {
         </div>
       </section>
 
-      {/* --- SORO BLOG SECTION (აქ ჩავსვი!) --- */}
+      {/* --- SORO BLOG SECTION --- */}
       <SoroBlogSection />
 
       {/* --- GALLERY BANNER --- */}
@@ -297,13 +306,14 @@ export default function MedicalLineHome() {
           </div>
           <div className="h-[400px] lg:h-[500px] rounded-[3.5rem] overflow-hidden shadow-2xl border-4 border-white grayscale hover:grayscale-0 transition-all duration-700">
              <iframe 
-  src="https://maps.app.goo.gl/HhyqrjkBtVeht8HW7" 
-  width="100%" 
-  height="100%" 
-  style={{ border: 0 }} 
-  allowFullScreen 
-  loading="lazy">
-</iframe>
+               src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2974.237495918335!2d44.83381831214001!3d41.80164397113052!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x40446d697dced4bf%3A0xfd8f7a5b9f3bae56!2sMedical%20Line%20Georgia%20LTD!5e0!3m2!1sen!2sge!4v1771001679314!5m2!1sen!2sge" 
+               width="100%" 
+               height="100%" 
+               style={{ border: 0 }} 
+               allowFullScreen 
+               loading="lazy" 
+               referrerPolicy="no-referrer-when-downgrade">
+             </iframe>
           </div>
         </div>
       </section>
@@ -330,14 +340,41 @@ export default function MedicalLineHome() {
          <p className="text-slate-500 text-[10px] uppercase font-bold tracking-[0.4em]">© 2026 MEDICAL LINE GEORGIA | DESINGED BY SHOTA SEPISHVILI</p>
       </footer>
 
-      {/* --- MOBILE NAV --- */}
-      <div className="fixed bottom-0 left-0 w-full bg-white/95 backdrop-blur-lg border-t border-slate-200 z-[100] flex justify-around items-center py-4 pb-8 md:hidden shadow-2xl">
-        <Link href="/" className="flex flex-col items-center gap-1 text-blue-600"><Home size={22} /><span className="text-[10px] font-black uppercase">მთავარი</span></Link>
-        <Link href="/catalog" className="flex flex-col items-center gap-1 text-slate-400"><Grid size={22} /><span className="text-[10px] font-black uppercase">პროდუქცია</span></Link>
-        <a href={socialLinks.whatsapp} target="_blank" className="relative -top-8 w-16 h-16 bg-[#25D366] text-white rounded-full flex items-center justify-center shadow-2xl border-4 border-white"><MessageCircle size={28} fill="white"/></a>
-        <Link href="/gallery" className="flex flex-col items-center gap-1 text-slate-400"><Camera size={22} /><span className="text-[10px] font-black uppercase">გალერეა</span></Link>
-        <Link href="#contact" className="flex flex-col items-center gap-1 text-slate-400"><MapPin size={22} /><span className="text-[10px] font-black uppercase">კონტაქტი</span></Link>
+      {/* 🟢 FLOATING WHATSAPP BUTTON (Mobile) 🟢 */}
+      {/* ეს არის ის მცურავი ღილაკი, რომელიც Google Translate-თან ერთად იჯდება ქვედა მარჯვენა კუთხეში */}
+      <a 
+        href={socialLinks.whatsapp} 
+        target="_blank" 
+        rel="noreferrer"
+        className="md:hidden fixed bottom-24 right-4 z-[100] bg-[#25D366] text-white w-14 h-14 rounded-full flex items-center justify-center shadow-[0_4px_14px_0_rgba(37,211,102,0.39)] border-[3px] border-white hover:scale-110 transition-transform"
+      >
+        <WhatsappIcon size={26} color="white" />
+      </a>
+
+      {/* --- MOBILE NAV (სუფთა, 5 ღილაკიანი ვერსია) --- */}
+      <div className="fixed bottom-0 left-0 w-full bg-white/95 backdrop-blur-lg border-t border-slate-200 z-[90] flex justify-around px-2 items-center py-3 pb-8 md:hidden shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.1)]">
+        <Link href="/" className="flex flex-col items-center gap-1 text-blue-600 hover:text-blue-800 transition w-14">
+          <Home size={22} />
+          <span className="text-[9px] font-black uppercase tracking-wider text-center">მთავარი</span>
+        </Link>
+        <Link href="/catalog" className="flex flex-col items-center gap-1 text-slate-400 hover:text-blue-600 transition w-14">
+          <Grid size={22} />
+          <span className="text-[9px] font-black uppercase tracking-wider text-center">კატალოგი</span>
+        </Link>
+        <Link href="/gallery" className="flex flex-col items-center gap-1 text-slate-400 hover:text-blue-600 transition w-14">
+          <Camera size={22} />
+          <span className="text-[9px] font-black uppercase tracking-wider text-center">გალერეა</span>
+        </Link>
+        <Link href="/blog" className="flex flex-col items-center gap-1 text-slate-400 hover:text-blue-600 transition w-14">
+          <BookOpen size={22} />
+          <span className="text-[9px] font-black uppercase tracking-wider text-center">ბლოგი</span>
+        </Link>
+        <Link href="#contact" className="flex flex-col items-center gap-1 text-slate-400 hover:text-blue-600 transition w-14">
+          <MapPin size={22} />
+          <span className="text-[9px] font-black uppercase tracking-wider text-center">კონტაქტი</span>
+        </Link>
       </div>
+      
     </main>
   );
 }

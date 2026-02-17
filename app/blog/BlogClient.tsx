@@ -96,7 +96,20 @@ export default function BlogClient() {
             ))}
           </div>
         )}
-      </div>
+      </div>{/* Facebook Comments Section */}
+<div className="mt-16 max-w-4xl mx-auto border-t-2 border-slate-200 pt-12">
+  <h3 className="text-2xl font-black text-slate-900 mb-6 uppercase italic flex items-center gap-3">
+    <span className="w-8 h-1 bg-blue-600 rounded-full"></span>
+    დატოვეთ კომენტარი
+  </h3>
+  
+  <div 
+    className="fb-comments w-full bg-white p-4 rounded-2xl shadow-sm border border-slate-100" 
+    data-href="https://medicalline.ge/blog" 
+    data-width="100%" 
+    data-numposts="5"
+  ></div>
+</div>
     </>
   );
 }
