@@ -176,7 +176,7 @@ export default function Home() {
             <div className="h-[400px] rounded-[3rem] overflow-hidden shadow-2xl border-4 border-white/10 relative">
               <iframe 
                 src="https://www.google.com/maps/embed?pb=!1m14!1m12!1m3!1d355.7001402206416!2d44.77351658428236!3d41.72265004245749!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!5e0!3m2!1ska!2sge!4v1715600000000!5m2!1ska!2sge" 
-                width="100%" height="100%" style={{ border: 0 }} allowFullScreen="" loading="lazy">
+                width="100%" height="100%" style={{ border: 0 }} allowFullScreen loading="lazy">
               </iframe>
             </div>
             <div className="flex justify-between items-center font-bold text-slate-400 uppercase text-[10px] tracking-widest">
