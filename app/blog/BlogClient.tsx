@@ -13,7 +13,7 @@ export default function BlogClient() {
   const filteredArticles = useMemo(() => {
     return blogArticles.filter(art => 
       art.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      art.excerpt.toLowerCase().includes(searchQuery.toLowerCase())
+      (art.excerpt || "").toLowerCase().includes(searchQuery.toLowerCase())
     );
   }, [searchQuery]);
 
