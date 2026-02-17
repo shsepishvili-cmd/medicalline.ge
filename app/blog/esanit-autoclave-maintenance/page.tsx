@@ -10,11 +10,9 @@ import {
 
 export default function EsanitArticle() {
   
-  useEffect(() => {
-    if (window.FB) {
-      window.FB.XFBML.parse();
-    }
-  }, []);
+  if ((window as any).FB) {
+  (window as any).FB.XFBML.parse();
+}
 
   const handleShare = () => {
     const currentUrl = window.location.href;
