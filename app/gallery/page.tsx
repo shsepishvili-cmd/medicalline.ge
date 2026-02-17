@@ -28,7 +28,7 @@ function CenterLogo() {
           url="/images/eighteeth-logo.png" 
           transparent // ეს აუცილებელია PNG-სთვის, რომ ფონი არ ჰქონდეს
           side={THREE.DoubleSide}
-          scale={[5, 5, 1]} // ზომები: სიგანე 4, სიმაღლე 1.5 (შეცვალე თუ გაწელილია)
+          scale={[5, 5]} // ზომები: სიგანე 4, სიმაღლე 1.5 (შეცვალე თუ გაწელილია)
           toneMapped={false}
         />
       </Float>
