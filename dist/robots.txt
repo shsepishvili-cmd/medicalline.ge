@@ -1,0 +1,13 @@
+# Google-ისთვის და ყველა სხვა ბოტისთვის
+User-agent: *
+
+# ნებადართულია მთლიანი საიტის სკანირება
+Allow: /
+
+# აკრძალულია პირადი კაბინეტის და ლოგინის გვერდების დაინდექსება (უსაფრთხოებისთვის)
+Disallow: /dashboard
+Disallow: /login
+Disallow: /signup
+
+# მიუთითე შენი საიტის რუკა (Sitemap)
+Sitemap: https://medicalline.ge/sitemap.xml
