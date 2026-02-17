@@ -20,10 +20,11 @@ export default function AirpexContent() {
   }, []);
 
   useEffect(() => {
-    if (window.FB) {
-      window.FB.XFBML.parse();
-    }
-  });
+  // window-ს "ვატყუებთ", რომ ნებისმიერი (any) ტიპის ობიექტია
+  if ((window as any).FB) {
+    (window as any).FB.XFBML.parse();
+  }
+}, []);
 
   return (
     <main className="min-h-screen bg-white font-sans pb-24 relative">
