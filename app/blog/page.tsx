@@ -1,13 +1,14 @@
-"use client";
-
-import React, { useEffect } from 'react'; // 👈 დაემატა useEffect
-import Link from 'next/link';
-import Image from 'next/image';
-import Script from 'next/script';
 import { blogArticles } from './blogData';
-import { ChevronRight, Clock, Calendar, ArrowLeft } from 'lucide-react';
+import BlogClient from './BlogClient';
+
+export const metadata = {
+  title: 'ბლოგი | Medical Line Georgia',
+  description: 'სიახლეები და სტატიები თანამედროვე სტომატოლოგიისთვის.',
+};
 
 export default function BlogPage() {
+  return <BlogClient blogArticles={blogArticles} />;
+}
 
   // ❗️ ეს არის მთავარი ჯადოქრობა! ამის გარეშე Next.js ფეისბუქს არ აჩვენებს
   useEffect(() => {
