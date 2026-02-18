@@ -49,7 +49,7 @@ function CarouselItem({ url, position, rotation, title }: any) {
           side={THREE.DoubleSide}
           onPointerOver={() => setHover(true)}
           onPointerOut={() => setHover(false)}
-          scale={hovered ? [2.4, 1.8, 1] : [2.2, 1.65, 1]}
+          scale={hovered ? [2.4, 1.8] : [2.2, 1.65]}
           toneMapped={false}
         />
         <Text
