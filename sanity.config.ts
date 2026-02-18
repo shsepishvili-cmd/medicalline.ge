@@ -6,7 +6,7 @@ import { schema } from './sanity/schema';
 export default defineConfig({
   name: 'default',
   title: 'Medical Line Admin',
-  projectId: '6ikh5d8u', // შენი პროექტის ID
+  projectId: '6ikh5d8u', // შენი ID პირდაპირ კოდში
   dataset: 'production',
   basePath: '/studio',
   plugins: [structureTool(), visionTool()],
