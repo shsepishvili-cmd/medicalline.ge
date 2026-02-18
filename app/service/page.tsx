@@ -9,7 +9,7 @@ export default function ServicePage() {
     {
       title: "მონტაჟი და ინსტალაცია",
       desc: "ჩვენი სერტიფიცირებული ინჟინრები უზრუნველყოფენ აპარატურის სრულყოფილ მონტაჟს საერთაშორისო სტანდარტების დაცვით.",
-      icon: <Settings className="w-8 h-8 text-blue-600" />
+      icon: <Wrench className="w-8 h-8 text-blue-600" />
     },
     {
       title: "პერსონალის ტრენინგი",
