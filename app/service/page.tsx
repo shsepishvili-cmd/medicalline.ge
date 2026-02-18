@@ -1,7 +1,7 @@
 ﻿"use client";
 
 import React from 'react';
-import { Settings, Tool, GraduationCap, ShieldCheck, CheckCircle2 } from 'lucide-react';
+import { Settings, Tools, GraduationCap, ShieldCheck, CheckCircle2 } from 'lucide-react';
 import Image from 'next/image';
 
 export default function ServicePage() {
