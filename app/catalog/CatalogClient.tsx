@@ -5,27 +5,27 @@ import { ArrowLeft, Search, CreditCard } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 
-// ⚠️ ყურადღება: აქ აღარ გვჭირდება part1 და part2 იმპორტი, 
-// რადგან ისინი უკვე მოყვება initialProducts-ს page.tsx-დან
-
 export default function CatalogClient({ initialProducts }: { initialProducts: any[] }) {
   const [filter, setFilter] = useState('ყველა');
   const [searchQuery, setSearchQuery] = useState('');
 
-  // ვიყენებთ page.tsx-დან მოწოდებულ გაერთიანებულ სიას
   const products = initialProducts || [];
 
   const categories = ['ყველა', 'ენდოდონტია', 'რადიოლოგია', 'ციფრული სკანერები', 'ქირურგია', 'ოპტიკა', 'ჰიგიენა', 'სხვა პარტნიორი ბრენდები', 'სხვა'];
 
-  // ფილტრაციის ლოგიკა
+  // 🔥 გაუმჯობესებული ფილტრაციის ლოგიკა
   const filteredProducts = products.filter(p => {
-    // კატეგორიის ფილტრი
+    // 1. კატეგორიის ფილტრი
     const matchesFilter = filter === 'ყველა' || p.cat === filter;
     
-    // ძებნის ლოგიკა
-    const searchLower = searchQuery.toLowerCase();
+    // 2. ძებნის ლოგიკა (ქართული სიმბოლოების მხარდაჭერით)
+    const searchLower = searchQuery.toLowerCase().trim();
+    
+    // თუ საძიებო ველი ცარიელია, ვაჩვენებთ ყველაფერს
+    if (!searchLower) return matchesFilter;
+
     const matchesSearch = 
-      p.name.toLowerCase().includes(searchLower) || 
+      (p.name && p.name.toLowerCase().includes(searchLower)) || 
       (p.cat && p.cat.toLowerCase().includes(searchLower)) || 
       (p.description && p.description.toLowerCase().includes(searchLower));
 
@@ -34,7 +34,7 @@ export default function CatalogClient({ initialProducts }: { initialProducts: an
 
   return (
     <div className="max-w-7xl mx-auto">
-      {/* Header & Search სექცია - უცვლელი რჩება */}
+      {/* Header & Search სექცია */}
       <div className="flex flex-col md:flex-row justify-between items-center mb-12 gap-6 sticky top-0 bg-slate-50/95 backdrop-blur-sm z-40 py-4">
         <Link href="/" className="flex items-center gap-2 text-slate-500 font-bold hover:text-blue-600 transition underline decoration-2">
           <ArrowLeft size={20}/> მთავარზე
@@ -44,18 +44,22 @@ export default function CatalogClient({ initialProducts }: { initialProducts: an
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
           <input 
             type="text" 
-            placeholder="მოძებნე..." 
-            className="w-full pl-12 pr-4 py-4 rounded-2xl bg-white shadow-xl focus:ring-2 focus:ring-blue-500 font-bold text-sm outline-none"
+            placeholder="მოძებნე (მაგ: ენდომოტორი)..." 
+            className="w-full pl-12 pr-4 py-4 rounded-2xl bg-white shadow-xl focus:ring-2 focus:ring-blue-500 font-bold text-sm outline-none text-slate-900"
+            value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
         </div>
       </div>
 
-      {/* Categories - უცვლელი რჩება */}
+      {/* Categories */}
       <div className="flex flex-wrap justify-center gap-3 mb-16">
         {categories.map((c) => (
-          <button key={c} onClick={() => setFilter(c)}
-            className={`px-6 py-2 rounded-full font-black text-[10px] tracking-widest transition-all ${filter === c ? 'bg-blue-600 text-white shadow-lg' : 'bg-white text-slate-500 border border-slate-100 hover:bg-slate-50'}`}>
+          <button 
+            key={c} 
+            onClick={() => setFilter(c)}
+            className={`px-6 py-2 rounded-full font-black text-[10px] tracking-widest transition-all ${filter === c ? 'bg-blue-600 text-white shadow-lg' : 'bg-white text-slate-500 border border-slate-100 hover:bg-slate-50'}`}
+          >
             {c}
           </button>
         ))}
@@ -63,41 +67,46 @@ export default function CatalogClient({ initialProducts }: { initialProducts: an
 
       {/* Product Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-        {filteredProducts.map((item) => (
-          <div key={item.id || item.slug} className="group bg-white rounded-[2.5rem] p-6 border border-slate-100 hover:shadow-2xl transition-all flex flex-col items-center overflow-hidden relative">
-            
-            <Link href={`/catalog/${item.slug}`} className="cursor-pointer w-full flex flex-col items-center h-full">
-              <div className="relative w-full h-48 mb-6 flex items-center justify-center bg-slate-50 rounded-[2rem] p-4 overflow-hidden">
-                <Image 
-                  src={item.img} 
-                  alt={item.name} 
-                  fill
-                  sizes="(max-width: 768px) 100vw, 25vw"
-                  className="object-contain group-hover:scale-110 transition-transform duration-700 p-4" 
-                />
-              </div>
-              <div className="w-full text-center mb-6 px-2 flex-grow">
-                <span className="text-[9px] font-black text-blue-600 block mb-3 bg-blue-50 border border-blue-100 w-max mx-auto px-3 py-1.5 rounded-full tracking-widest">
-                  {item.cat || 'პროდუქცია'}
-                </span>
-                <h3 className="text-lg font-black text-slate-900 leading-none h-10 flex items-center justify-center text-center">
-                  {item.name}
-                </h3>
-                {/* ფასი მხოლოდ იმ პროდუქტებისთვის, რომლებსაც აქვთ (Sanity-ს პროდუქტები) */}
-                {item.price && <p className="text-blue-600 font-black mt-2">{item.price} ₾</p>}
-              </div>
-            </Link>
-
-            <div className="w-full grid grid-cols-2 gap-2 mt-auto relative z-10">
-              <Link href={`/catalog/${item.slug}`} className="flex items-center justify-center py-3 bg-slate-900 text-white rounded-xl font-black text-[9px] hover:bg-blue-600 transition uppercase text-center">
-                ნახვა
+        {filteredProducts.length > 0 ? (
+          filteredProducts.map((item) => (
+            <div key={item.id || item.slug} className="group bg-white rounded-[2.5rem] p-6 border border-slate-100 hover:shadow-2xl transition-all flex flex-col items-center overflow-hidden relative">
+              
+              <Link href={`/catalog/${item.slug}`} className="cursor-pointer w-full flex flex-col items-center h-full">
+                <div className="relative w-full h-48 mb-6 flex items-center justify-center bg-slate-50 rounded-[2rem] p-4 overflow-hidden">
+                  <Image 
+                    src={item.img} 
+                    alt={item.name} 
+                    fill
+                    sizes="(max-width: 768px) 100vw, 25vw"
+                    className="object-contain group-hover:scale-110 transition-transform duration-700 p-4" 
+                  />
+                </div>
+                <div className="w-full text-center mb-6 px-2 flex-grow">
+                  <span className="text-[9px] font-black text-blue-600 block mb-3 bg-blue-50 border border-blue-100 w-max mx-auto px-3 py-1.5 rounded-full tracking-widest uppercase">
+                    {item.cat || 'პროდუქცია'}
+                  </span>
+                  <h3 className="text-lg font-black text-slate-900 leading-none h-10 flex items-center justify-center text-center uppercase">
+                    {item.name}
+                  </h3>
+                  {item.price && <p className="text-blue-600 font-black mt-2">{item.price} ₾</p>}
+                </div>
               </Link>
-              <a href="https://ganvadeba.credo.ge/account/landing/authorization" target="_blank" className="flex items-center justify-center py-3 bg-orange-500 text-white rounded-xl font-black text-[9px] shadow-lg hover:bg-orange-600 transition uppercase text-center">
-                <CreditCard size={12} className="mr-1"/> განვადება
-              </a>
+
+              <div className="w-full grid grid-cols-2 gap-2 mt-auto relative z-10">
+                <Link href={`/catalog/${item.slug}`} className="flex items-center justify-center py-3 bg-slate-900 text-white rounded-xl font-black text-[9px] hover:bg-blue-600 transition uppercase text-center">
+                  ნახვა
+                </Link>
+                <a href="https://ganvadeba.credo.ge/account/landing/authorization" target="_blank" rel="noopener noreferrer" className="flex items-center justify-center py-3 bg-orange-500 text-white rounded-xl font-black text-[9px] shadow-lg hover:bg-orange-600 transition uppercase text-center">
+                  <CreditCard size={12} className="mr-1"/> განვადება
+                </a>
+              </div>
             </div>
+          ))
+        ) : (
+          <div className="col-span-full py-20 text-center">
+            <p className="text-slate-400 font-bold uppercase tracking-widest">პროდუქტი ვერ მოიძებნა</p>
           </div>
-        ))}
+        )}
       </div>
     </div>
   );

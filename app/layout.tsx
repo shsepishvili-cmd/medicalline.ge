@@ -8,28 +8,20 @@ const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://medicalline.ge'), 
-
-  // 1. სათაური და გაუმჯობესებული აღწერა (SEO აუდიტის მიხედვით)
   title: {
     default: 'Medical Line Georgia | Eighteeth-ის ექსკლუზიური დისტრიბუტორი',
     template: '%s | Medical Line'
   },
   description: 'Eighteeth-ის ოფიციალური წარმომადგენელი და წამყვანი სტომატოლოგიური ბრენდების (Hager, Philden...) პარტნიორი საქართველოში. შეიძინეთ აპარატურა და სავარძლები გარანტიით.',
   keywords: ['სტომატოლოგიური აპარატურა', 'Eighteeth Georgia', 'Hager', 'Philden', 'ენდომოტორი', 'სტომატოლოგიური სავარძელი', 'Medical Line', 'ენდომოტორი', 'ინტრაორალური სკანერი', 'რენტგენი', 'სამედიცინო ტექნიკა', 'Medical Line'],
-
-  // 2. ლოგოები
   icons: {
     icon: '/favicon.ico',
     shortcut: '/icon.png',
     apple: '/icon.png',
   },
-
-  // 3. კანონიკური ბმული
   alternates: {
     canonical: '/',
   },
-
-  // 4. რობოტები
   robots: {
     index: true,
     follow: true,
@@ -41,8 +33,6 @@ export const metadata: Metadata = {
       'max-snippet': -1,
     },
   },
-
-  // 5. Open Graph (Facebook/Social-ისთვის სურათით)
   openGraph: {
     title: 'Medical Line - ციფრული სტომატოლოგია',
     description: 'Eighteeth-ის ოფიციალური წარმომადგენელი და სერვის ცენტრი საქართველოში. ყველაფერი თქვენი კლინიკისთვის.',
@@ -50,7 +40,7 @@ export const metadata: Metadata = {
     siteName: 'Medical Line Georgia',
     images: [
       {
-        url: '/images/cover.png', // დარწმუნდი რომ ეს სურათი არსებობს
+        url: '/images/cover.png', 
         width: 1200,
         height: 630,
         alt: 'Medical Line Georgia - Eighteeth Equipment',
@@ -61,15 +51,10 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="ka" className="scroll-smooth">
       <head>
-        {/* Identity Schema - Google-ს ეუბნება ვინ ხარ (SEO პრიორიტეტი) */}
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
@@ -92,16 +77,45 @@ export default function RootLayout({
         />
       </head>
       <body className={inter.className}>
+        
+        {/* 🚀 Meta Pixel Code (Safely Injected) */}
+        <Script id="fb-pixel" strategy="afterInteractive" dangerouslySetInnerHTML={{
+          __html: `
+            !function(f,b,e,v,n,t,s)
+            {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+            n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+            if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+            n.queue=[];t=b.createElement(e);t.async=!0;
+            t.src=v;s=b.getElementsByTagName(e)[0];
+            s.parentNode.insertBefore(t,s)}(window, document,'script',
+            'https://connect.facebook.net/en_US/fbevents.js');
+            fbq('init', '805898554494944');
+            fbq('track', 'PageView');
+          `
+        }} />
+        <noscript>
+          <img 
+            height="1" 
+            width="1" 
+            style={{ display: 'none' }} 
+            src="https://www.facebook.com/tr?id=805898554494944&ev=PageView&noscript=1" 
+            alt="" 
+          />
+        </noscript>
+
         {children}
+        
+        {/* 🚀 Google Translate Component */}
         <GoogleTranslate />
+
+        {/* 🚀 Chatbot Scripts (Lazy Loaded for Speed) */}
         <Script 
           src="https://cdn.botpress.cloud/webchat/v3.5/inject.js" 
-          strategy="afterInteractive" 
+          strategy="lazyOnload" 
         />
         <Script 
           src="https://files.bpcontent.cloud/2026/01/30/20/20260130205533-KAMUYRZQ.js" 
-          strategy="afterInteractive"
-          defer
+          strategy="lazyOnload"
         />
       </body>
     </html>

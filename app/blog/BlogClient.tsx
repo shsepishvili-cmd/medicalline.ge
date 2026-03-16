@@ -15,9 +15,7 @@ export default function BlogClient({ blogArticles }: { blogArticles: any[] }) {
 
   return (
     <main className="min-h-screen bg-slate-50 font-sans text-slate-900 pb-24">
-      {/* ... აქ ჩასვი შენი მთლიანი JSX (Navigation, Hero, Grid და ა.შ.) ... */}
-      {/* უბრალოდ დარწმუნდი, რომ blogArticles-ს იყენებ, როგორც prop-ს */}
-      <nav className="py-6 px-6 bg-white border-b border-slate-200 sticky top-0 z-50 shadow-sm">
+      <nav className="py-6 px-6 bg-white border-b border-slate-200 sticky top-0 z-50">
         <div className="max-w-7xl mx-auto flex justify-between items-center">
           <Link href="/" className="flex items-center gap-2 font-bold text-blue-600 hover:text-blue-800 transition-colors">
             <ArrowLeft size={20} /> მთავარი გვერდი
@@ -28,7 +26,7 @@ export default function BlogClient({ blogArticles }: { blogArticles: any[] }) {
 
       <header className="py-16 px-6 bg-white border-b border-slate-200">
         <div className="max-w-7xl mx-auto text-center">
-          <h2 className="text-4xl md:text-6xl font-black mb-6 text-slate-900">სიახლეები და სტატიები</h2>
+          <h2 className="text-4xl md:text-6xl font-black mb-6 text-slate-900 uppercase italic">სიახლეები და სტატიები</h2>
           <p className="text-slate-500 text-lg max-w-2xl mx-auto">
             პროფესიული რჩევები, ტექნოლოგიური მიმოხილვები და სიახლეები თანამედროვე სტომატოლოგიისთვის.
           </p>
@@ -57,10 +55,10 @@ export default function BlogClient({ blogArticles }: { blogArticles: any[] }) {
                   <span className="flex items-center gap-1"><Calendar size={14}/> {post.date}</span>
                   <span className="flex items-center gap-1"><Clock size={14}/> {post.readTime}</span>
                 </div>
-                <h3 className="text-xl font-bold mb-3 text-slate-800 group-hover:text-blue-600 transition-colors line-clamp-2 leading-snug">
+                <h3 className="text-xl font-bold mb-3 text-slate-800 group-hover:text-blue-600 transition-colors line-clamp-2">
                   {post.title}
                 </h3>
-                <p className="text-slate-500 text-sm mb-6 line-clamp-3 flex-grow">
+                <p className="text-slate-500 text-sm mb-6 line-clamp-3">
                   {post.excerpt || post.description || ""}
                 </p>
                 <div className="flex items-center gap-1 text-blue-600 font-bold text-sm mt-auto">
@@ -72,11 +70,9 @@ export default function BlogClient({ blogArticles }: { blogArticles: any[] }) {
         </div>
       </section>
 
-      <section className="py-24 bg-slate-50 px-6 border-t border-slate-200 mt-16 relative overflow-hidden">
-        <div className="max-w-4xl mx-auto bg-white p-8 md:p-12 rounded-[2.5rem] shadow-xl shadow-blue-900/5 border border-slate-100">
-          <h3 className="text-3xl md:text-4xl font-black mb-10 text-center text-slate-900 underline decoration-blue-600 decoration-4 underline-offset-8">
-            დისკუსია / გამოხმაურება
-          </h3>
+      <section className="py-24 bg-slate-50 px-6 border-t border-slate-200 mt-16">
+        <div className="max-w-4xl mx-auto bg-white p-8 md:p-12 rounded-[2.5rem] shadow-xl">
+          <h3 className="text-3xl font-black mb-10 text-center">დისკუსია / გამოხმაურება</h3>
           <div id="fb-root"></div>
           <Script 
             id="facebook-jssdk"
@@ -86,18 +82,11 @@ export default function BlogClient({ blogArticles }: { blogArticles: any[] }) {
             src="https://connect.facebook.net/ka_GE/sdk.js#xfbml=1&version=v18.0" 
             strategy="lazyOnload" 
           />
-          <div className="w-full overflow-hidden rounded-xl flex justify-center">
-            <div 
-              className="fb-comments" 
-              data-href="https://medicalline.ge/blog" 
-              data-width="100%" 
-              data-numposts="10"
-            ></div>
-          </div>
+          <div className="fb-comments" data-href="https://medicalline.ge/blog" data-width="100%" data-numposts="10"></div>
         </div>
       </section>
 
-      <footer className="py-8 flex justify-center bg-slate-50 border-t border-slate-200">
+      <footer className="py-8 flex justify-center border-t">
         <div id="top-ge-counter-container" data-site-id="118515"></div>
         <Script src="https://counter.top.ge/counter.js" strategy="afterInteractive" />
       </footer>
