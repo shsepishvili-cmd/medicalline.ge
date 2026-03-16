@@ -5,7 +5,7 @@ export async function GET(request) {
   const id = searchParams.get('id');
   
   // აქ ჩასვი ის ბმული, რომელიც Publish-ის შემდეგ მიიღე
-  const SHEETS_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vS7p.../pub?output=csv";
+  const SHEETS_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vR0-yqc2AoRKGkRKpATKYYfLYliAsKa8D3i2wwumGG4MtLYQEyoaj8cfnDUQEQmNKn5QhVoJdP0TR5U/pub?output=csv";
 
   try {
     // cache: 'no-store' აუცილებელია, რომ ყოველთვის ახალი მონაცემი წამოიღოს
