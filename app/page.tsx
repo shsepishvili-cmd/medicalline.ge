@@ -2,10 +2,9 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import Script from 'next/script';
-import { 
-  Phone, Facebook, Instagram, Youtube, 
-  Home, Grid, MapPin, 
+import {
+  Phone, Facebook, Instagram, Youtube,
+  Home, Grid, MapPin,
   ChevronRight, MessageCircle, CheckCircle2, Mail, ArrowRight, Star, Camera, BookOpen
 } from 'lucide-react';
 
@@ -34,24 +33,6 @@ const TopGe = () => {
   );
 };
 
-// --- Soro Blog სექცია ---
-const SoroBlogSection = () => {
-  return (
-    <section className="py-24 bg-white px-6 border-t border-slate-100">
-      <div className="max-w-7xl mx-auto">
-        <h2 className="text-4xl font-black uppercase italic mb-12 underline decoration-blue-600 underline-offset-8">
-          რჩევები კლინიკებს
-        </h2>
-        <div id="soro-blog" className="min-h-[400px]"></div>
-        <Script 
-          src="https://app.trysoro.com/api/embed/d2061d8a-816f-4b03-8f75-b11203d59f5d" 
-          strategy="lazyOnload"
-        />
-      </div>
-    </section>
-  );
-};
-
 // --- Custom Icons ---
 const TiktokIcon = ({ size = 22, color = "currentColor" }: { size?: number, color?: string }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill={color} xmlns="http://www.w3.org/2000/svg">
@@ -59,7 +40,6 @@ const TiktokIcon = ({ size = 22, color = "currentColor" }: { size?: number, colo
   </svg>
 );
 
-// ❗️ ნამდვილი WhatsApp ლოგო ❗️
 const WhatsappIcon = ({ size = 28, color = "currentColor" }: { size?: number, color?: string }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill={color} xmlns="http://www.w3.org/2000/svg">
     <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.888-.788-1.489-1.761-1.663-2.06-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51a5.8 5.8 0 0 0-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.015-1.04 2.476 0 1.46 1.065 2.871 1.213 3.07.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z"/>
@@ -100,7 +80,7 @@ export default function MedicalLineHome() {
 
   return (
     <main className="min-h-screen bg-white font-sans text-slate-900 pb-24 md:pb-0 overflow-x-hidden selection:bg-blue-100 uppercase tracking-tighter relative">
-      
+
       {/* --- SIDEBARS --- */}
       <div className="fixed left-0 top-1/2 -translate-y-1/2 z-[100] hidden md:flex flex-col">
         <button onClick={() => window.open('https://ganvadeba.credo.ge/account/landing/authorization', '_blank')} className="w-12 h-44 bg-orange-500 text-white flex flex-col items-center justify-center rounded-r-2xl hover:w-16 transition-all shadow-lg shadow-orange-500/20 group">
@@ -243,8 +223,43 @@ export default function MedicalLineHome() {
         </div>
       </section>
 
-      {/* --- SORO BLOG SECTION --- */}
-      <SoroBlogSection />
+      {/* --- საინტერესო რჩევები BANNER (SORO-ს ნაცვლად) --- */}
+      <section className="py-12 bg-white px-6 border-t border-slate-100">
+        <div className="max-w-7xl mx-auto">
+          <Link
+            href="/rchevebi"
+            className="group relative flex flex-col md:flex-row items-center justify-between gap-8 bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 rounded-[3rem] px-10 md:px-16 py-12 md:py-16 overflow-hidden shadow-2xl border border-blue-900/30 hover:shadow-blue-900/30 transition-all duration-500"
+          >
+            {/* Background glow */}
+            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_rgba(59,130,246,0.15)_0%,_transparent_60%)] pointer-events-none" />
+            <div className="absolute -bottom-10 -left-10 w-64 h-64 bg-blue-600/10 rounded-full blur-3xl pointer-events-none group-hover:bg-blue-600/20 transition-all duration-700" />
+
+            {/* Left: Icon + Text */}
+            <div className="flex flex-col md:flex-row items-center md:items-start gap-6 z-10 text-center md:text-left">
+              <div className="w-20 h-20 bg-blue-600/20 border border-blue-500/30 rounded-3xl flex items-center justify-center flex-shrink-0 group-hover:bg-blue-600/30 transition-all duration-300">
+                <BookOpen size={36} className="text-blue-400" />
+              </div>
+              <div>
+                <p className="text-blue-400 font-bold text-[10px] uppercase tracking-[0.4em] mb-2">კლინიკებისთვის</p>
+                <h2 className="text-3xl md:text-5xl font-black text-white uppercase italic tracking-tighter leading-none">
+                  საინტერესო <br className="hidden md:block"/> რჩევები
+                </h2>
+                <p className="text-slate-400 font-bold text-sm normal-case tracking-normal mt-3">
+                  სასარგებლო სტატიები, ინსტრუქციები და პროფესიული რჩევები
+                </p>
+              </div>
+            </div>
+
+            {/* Right: CTA Button */}
+            <div className="z-10 flex-shrink-0">
+              <span className="inline-flex items-center gap-3 bg-blue-600 text-white px-10 py-5 rounded-2xl font-black uppercase text-[11px] tracking-widest group-hover:bg-blue-500 transition-all duration-300 shadow-xl shadow-blue-900/40 group-hover:shadow-blue-600/40 group-hover:scale-105 active:scale-95">
+                წაიკითხე
+                <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
+              </span>
+            </div>
+          </Link>
+        </div>
+      </section>
 
       {/* --- GALLERY BANNER --- */}
       <section className="py-12 bg-white px-6">
@@ -283,7 +298,7 @@ export default function MedicalLineHome() {
                 </div>
              ))}
            </div>
-           <button 
+           <button
              onClick={() => window.open('https://www.facebook.com/medicalline.ge/reviews', '_blank')}
              className="mt-8 bg-[#1877F2] text-white px-10 py-4 rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-blue-700 transition-all shadow-xl shadow-blue-500/30 flex items-center justify-center gap-3 mx-auto active:scale-95"
            >
@@ -305,13 +320,13 @@ export default function MedicalLineHome() {
             </form>
           </div>
           <div className="h-[400px] lg:h-[500px] rounded-[3.5rem] overflow-hidden shadow-2xl border-4 border-white grayscale hover:grayscale-0 transition-all duration-700">
-             <iframe 
-               src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2974.237495918335!2d44.83381831214001!3d41.80164397113052!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x40446d697dced4bf%3A0xfd8f7a5b9f3bae56!2sMedical%20Line%20Georgia%20LTD!5e0!3m2!1sen!2sge!4v1771001679314!5m2!1sen!2sge" 
-               width="100%" 
-               height="100%" 
-               style={{ border: 0 }} 
-               allowFullScreen 
-               loading="lazy" 
+             <iframe
+               src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2974.237495918335!2d44.83381831214001!3d41.80164397113052!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x40446d697dced4bf%3A0xfd8f7a5b9f3bae56!2sMedical%20Line%20Georgia%20LTD!5e0!3m2!1sen!2sge!4v1771001679314!5m2!1sen!2sge"
+               width="100%"
+               height="100%"
+               style={{ border: 0 }}
+               allowFullScreen
+               loading="lazy"
                referrerPolicy="no-referrer-when-downgrade">
              </iframe>
           </div>
@@ -340,18 +355,17 @@ export default function MedicalLineHome() {
          <p className="text-slate-500 text-[10px] uppercase font-bold tracking-[0.4em]">© 2026 MEDICAL LINE GEORGIA | DESINGED BY SHOTA SEPISHVILI</p>
       </footer>
 
-      {/* 🟢 FLOATING WHATSAPP BUTTON (Mobile) 🟢 */}
-      {/* ეს არის ის მცურავი ღილაკი, რომელიც Google Translate-თან ერთად იჯდება ქვედა მარჯვენა კუთხეში */}
-      <a 
-        href={socialLinks.whatsapp} 
-        target="_blank" 
+      {/* 🟢 FLOATING WHATSAPP BUTTON (Mobile) */}
+      <a
+        href={socialLinks.whatsapp}
+        target="_blank"
         rel="noreferrer"
         className="md:hidden fixed bottom-24 right-4 z-[100] bg-[#25D366] text-white w-14 h-14 rounded-full flex items-center justify-center shadow-[0_4px_14px_0_rgba(37,211,102,0.39)] border-[3px] border-white hover:scale-110 transition-transform"
       >
         <WhatsappIcon size={26} color="white" />
       </a>
 
-      {/* --- MOBILE NAV (სუფთა, 5 ღილაკიანი ვერსია) --- */}
+      {/* --- MOBILE NAV --- */}
       <div className="fixed bottom-0 left-0 w-full bg-white/95 backdrop-blur-lg border-t border-slate-200 z-[90] flex justify-around px-2 items-center py-3 pb-8 md:hidden shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.1)]">
         <Link href="/" className="flex flex-col items-center gap-1 text-blue-600 hover:text-blue-800 transition w-14">
           <Home size={22} />
@@ -374,7 +388,7 @@ export default function MedicalLineHome() {
           <span className="text-[9px] font-black uppercase tracking-wider text-center">კონტაქტი</span>
         </Link>
       </div>
-      
+
     </main>
   );
 }
