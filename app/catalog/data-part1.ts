@@ -236,13 +236,35 @@ export const products = [
     description: "ულტრაბგერითი აქტივატორი ირიგაციისთვის.", 
     specs: ["45 kHz სიხშირე", "უსადენო მუშაობა"] 
   },
-  { 
-    id: 27, 
+  {
+    id: 27,
     slug: "e-flow",
-    name: "E-FLOW საანესთეზიო აპარატი", 
-    img: "/images/eflow.png", 
-    cat: "ენდოდონტია", 
-    description: "საანესთეზიო ხსნარების უმტკივნეულო შეყვანა.", 
-    specs: ["ტემპერატურის კონტროლი", "სწრაფი გაცხელება"] 
+    name: "E-FLOW საანესთეზიო აპარატი",
+    img: "/images/eflow.png",
+    cat: "ენდოდონტია",
+    description: "საანესთეზიო ხსნარების უმტკივნეულო შეყვანა.",
+    specs: ["ტემპერატურის კონტროლი", "სწრაფი გაცხელება"]
+  },
+  {
+    id: 28,
+    slug: "nanomotor",
+    name: "Eighteeth Nanomotor ენდომოტორი",
+    img: "/images/nanomotor1.png",
+    cat: "ენდოდონტია",
+    description: "3-ინ-1 მულტიფუნქციური ენდომოტორი: ენდოდონტია, ირიგაციის აქტივაცია და პოლირება — 100 გრამიან Brushless კორპუსში.",
+    specs: [
+      "სიჩქარე: 50–3000 ბრ/წთ",
+      "რეჟიმები: Endo / Activation / Prophy",
+      "ATC (Adaptive Torque Control)",
+      "Super Mini თავი — 9.7 მმ სიმაღლე",
+      "360° ბრუნვადი თავი",
+      "USB Type-C დატენვა",
+      "OLED დისპლეი",
+      "წონა: 100 გ"
+    ],
+    aiFeatures: [
+      { icon: 'zap', title: 'Brushless Motor', desc: 'ნულოვანი ვიბრაცია, 10× გაზრდილი რესურსი სტანდარტულ მოდელებთან შედარებით.' },
+      { icon: 'shield', title: 'ATC რეჟიმი', desc: 'ავტომატური torque კონტროლი — გამორიცხავს ფაილის გადატეხვას.' }
+    ]
   }
 ];

@@ -5,28 +5,41 @@ import { ArrowLeft, Search, CreditCard } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 
-export default function CatalogClient({ initialProducts }: { initialProducts: any[] }) {
+interface AiFeature {
+  icon: string;
+  title: string;
+  desc: string;
+}
+
+interface Product {
+  id: number;
+  slug: string;
+  name: string;
+  img: string;
+  cat: string;
+  description: string;
+  specs?: string[];
+  aiFeatures?: AiFeature[];
+  price?: number | string;
+}
+
+export default function CatalogClient({ initialProducts }: { initialProducts: Product[] }) {
   const [filter, setFilter] = useState('ყველა');
   const [searchQuery, setSearchQuery] = useState('');
 
   const products = initialProducts || [];
 
-  const categories = ['ყველა', 'ენდოდონტია', 'რადიოლოგია', 'ციფრული სკანერები', 'ქირურგია', 'ოპტიკა', 'ჰიგიენა', 'სხვა პარტნიორი ბრენდები', 'სხვა'];
+  const categories = ['ყველა', ...Array.from(new Set(products.map(p => p.cat).filter(Boolean)))];
 
-  // 🔥 გაუმჯობესებული ფილტრაციის ლოგიკა
   const filteredProducts = products.filter(p => {
-    // 1. კატეგორიის ფილტრი
     const matchesFilter = filter === 'ყველა' || p.cat === filter;
-    
-    // 2. ძებნის ლოგიკა (ქართული სიმბოლოების მხარდაჭერით)
+
     const searchLower = searchQuery.toLowerCase().trim();
-    
-    // თუ საძიებო ველი ცარიელია, ვაჩვენებთ ყველაფერს
     if (!searchLower) return matchesFilter;
 
-    const matchesSearch = 
-      (p.name && p.name.toLowerCase().includes(searchLower)) || 
-      (p.cat && p.cat.toLowerCase().includes(searchLower)) || 
+    const matchesSearch =
+      (p.name && p.name.toLowerCase().includes(searchLower)) ||
+      (p.cat && p.cat.toLowerCase().includes(searchLower)) ||
       (p.description && p.description.toLowerCase().includes(searchLower));
 
     return matchesFilter && matchesSearch;
@@ -39,12 +52,12 @@ export default function CatalogClient({ initialProducts }: { initialProducts: an
         <Link href="/" className="flex items-center gap-2 text-slate-500 font-bold hover:text-blue-600 transition underline decoration-2">
           <ArrowLeft size={20}/> მთავარზე
         </Link>
-        <h1 className="text-4xl md:text-5xl font-black italic tracking-tighter">კატალოგი</h1>
+        <h1 className="text-4xl md:text-5xl font-black italic tracking-tighter uppercase">კატალოგი</h1>
         <div className="relative w-full md:w-80">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
-          <input 
-            type="text" 
-            placeholder="მოძებნე (მაგ: ენდომოტორი)..." 
+          <input
+            type="text"
+            placeholder="მოძებნე (მაგ: ენდომოტორი)..."
             className="w-full pl-12 pr-4 py-4 rounded-2xl bg-white shadow-xl focus:ring-2 focus:ring-blue-500 font-bold text-sm outline-none text-slate-900"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
@@ -55,10 +68,10 @@ export default function CatalogClient({ initialProducts }: { initialProducts: an
       {/* Categories */}
       <div className="flex flex-wrap justify-center gap-3 mb-16">
         {categories.map((c) => (
-          <button 
-            key={c} 
+          <button
+            key={c}
             onClick={() => setFilter(c)}
-            className={`px-6 py-2 rounded-full font-black text-[10px] tracking-widest transition-all ${filter === c ? 'bg-blue-600 text-white shadow-lg' : 'bg-white text-slate-500 border border-slate-100 hover:bg-slate-50'}`}
+            className={`px-6 py-2 rounded-full font-black text-[10px] tracking-widest uppercase transition-all ${filter === c ? 'bg-blue-600 text-white shadow-lg' : 'bg-white text-slate-500 border border-slate-100 hover:bg-slate-50'}`}
           >
             {c}
           </button>
@@ -70,22 +83,22 @@ export default function CatalogClient({ initialProducts }: { initialProducts: an
         {filteredProducts.length > 0 ? (
           filteredProducts.map((item) => (
             <div key={item.id || item.slug} className="group bg-white rounded-[2.5rem] p-6 border border-slate-100 hover:shadow-2xl transition-all flex flex-col items-center overflow-hidden relative">
-              
+
               <Link href={`/catalog/${item.slug}`} className="cursor-pointer w-full flex flex-col items-center h-full">
                 <div className="relative w-full h-48 mb-6 flex items-center justify-center bg-slate-50 rounded-[2rem] p-4 overflow-hidden">
-                  <Image 
-                    src={item.img} 
-                    alt={item.name} 
+                  <Image
+                    src={item.img}
+                    alt={item.name}
                     fill
                     sizes="(max-width: 768px) 100vw, 25vw"
-                    className="object-contain group-hover:scale-110 transition-transform duration-700 p-4" 
+                    className="object-contain group-hover:scale-110 transition-transform duration-700 p-4"
                   />
                 </div>
                 <div className="w-full text-center mb-6 px-2 flex-grow">
                   <span className="text-[9px] font-black text-blue-600 block mb-3 bg-blue-50 border border-blue-100 w-max mx-auto px-3 py-1.5 rounded-full tracking-widest uppercase">
                     {item.cat || 'პროდუქცია'}
                   </span>
-                  <h3 className="text-lg font-black text-slate-900 leading-none h-10 flex items-center justify-center text-center uppercase">
+                  <h3 className="text-base font-black text-slate-900 leading-snug min-h-[2.5rem] flex items-center justify-center text-center">
                     {item.name}
                   </h3>
                   {item.price && <p className="text-blue-600 font-black mt-2">{item.price} ₾</p>}

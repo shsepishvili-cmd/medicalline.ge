@@ -11,7 +11,7 @@ function getAllProducts() {
 }
 
 // 2. SEO და Metadata გენერაცია
-export async function generateMetadata({ searchParams }: { searchParams: any }): Promise<Metadata> {
+export async function generateMetadata({ searchParams }: { searchParams: Promise<{ [key: string]: string | string[] | undefined }> }): Promise<Metadata> {
   const sp = await searchParams;
   const productSlug = sp.product;
   
@@ -40,7 +40,7 @@ export default async function CatalogPage() {
   const allProducts = getAllProducts();
 
   return (
-    <main className="min-h-screen bg-slate-50 py-24 px-6 font-sans text-slate-900 uppercase">
+    <main className="min-h-screen bg-slate-50 py-24 px-6 font-sans text-slate-900">
       <Suspense fallback={<div className="h-screen flex items-center justify-center font-bold text-slate-400">იტვირთება...</div>}>
         <CatalogClient initialProducts={allProducts} />
       </Suspense>

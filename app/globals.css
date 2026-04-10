@@ -35,3 +35,17 @@ body {
 .animate-progress {
   animation: progress 4s linear infinite;
 }
+
+/* Blog article content styles */
+.blog-content p { margin-bottom: 1.25rem; color: #475569; line-height: 1.8; }
+.blog-content h2 { font-size: 1.5rem; font-weight: 900; color: #0f172a; margin: 2rem 0 1rem; }
+.blog-content h3 { font-size: 1.25rem; font-weight: 800; color: #0f172a; margin: 1.75rem 0 0.75rem; }
+.blog-content ul { list-style: disc; padding-left: 1.5rem; margin-bottom: 1.25rem; }
+.blog-content ol { list-style: decimal; padding-left: 1.5rem; margin-bottom: 1.25rem; }
+.blog-content li { color: #475569; margin-bottom: 0.5rem; line-height: 1.7; }
+.blog-content strong { font-weight: 700; color: #1e293b; }
+.blog-content blockquote { border-left: 4px solid #3b82f6; padding: 1rem 1.5rem; margin: 1.5rem 0; background: #eff6ff; border-radius: 0 0.75rem 0.75rem 0; color: #1e40af; font-style: italic; }
+.blog-content table { width: 100%; border-collapse: collapse; margin-bottom: 1.5rem; }
+.blog-content th { background: #1e293b; color: white; padding: 0.75rem 1rem; text-align: left; font-weight: 700; }
+.blog-content td { padding: 0.75rem 1rem; border-bottom: 1px solid #e2e8f0; color: #475569; }
+.blog-content tr:nth-child(even) td { background: #f8fafc; }
