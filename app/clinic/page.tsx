@@ -1,11 +1,6 @@
 'use client'
 import { useEffect, useState, useCallback } from 'react'
-import { createClient } from '@supabase/supabase-js'
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-)
+import { supabase } from '../lib/supabase'
 
 type Screen = 'login' | 'register' | 'catalog' | 'product' | 'service' | 'academy' | 'profile'
 type User = { id: string; full_name: string; clinic_name: string; city: string; phone: string; role: string; status: string }
@@ -110,9 +105,23 @@ export default function ClinicApp() {
       email, password,
       options: { data: { full_name: fullName, clinic_name: clinicName, city, phone, role: 'doctor' } }
     })
+    if (error) { setAuthErr(error.message === 'User already registered' ? 'ეს ელ.ფოსტა უკვე დარეგისტრირებულია' : 'რეგისტრაცია ვერ მოხერხდა: ' + error.message); setLoading(false); return }
+    if (!data.user) { setAuthErr('რეგისტრაცია ვერ მოხერხდა'); setLoading(false); return }
+
+    // Create profile record (in case DB trigger doesn't exist)
+    const { error: profErr } = await supabase.from('profiles').upsert({
+      id: data.user.id,
+      full_name: fullName,
+      clinic_name: clinicName,
+      city,
+      phone,
+      email,
+      role: 'doctor',
+      status: 'pending',
+    })
     setLoading(false)
-    if (error) { setAuthErr('რეგისტრაცია ვერ მოხერხდა'); return }
-    if (data.user) loadProfile(data.user.id)
+    if (profErr) { setAuthErr('პროფილი ვერ შეიქმნა: ' + profErr.message); return }
+    loadProfile(data.user.id)
   }
 
   async function doLogout() {
