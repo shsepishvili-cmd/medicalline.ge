@@ -729,6 +729,7 @@ export default function ClinicApp() {
             </div>
             <div style={s.searchRow}>
               <input style={s.searchInput} placeholder="🔍 პროდუქტის ძიება..." value={search} onChange={e => setSearch(e.target.value)} />
+              <button onClick={() => loadProducts()} style={{ padding: '8px 12px', background: GL, color: G, border: `0.5px solid #5DCAA5`, borderRadius: 10, fontSize: 12, cursor: 'pointer', fontWeight: 600, flexShrink: 0 }}>↻ განახლება</button>
             </div>
             <div style={{ ...s.catRow, msOverflowStyle: 'none' }}>
               {CATS.map(c => (
