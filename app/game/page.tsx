@@ -189,120 +189,156 @@ export default function Page() {
     ctx.fillStyle="rgba(255,255,255,0.9)"; ctx.font="bold 8px Arial"
     ctx.fillText(p.lbl,sx+4,p.y+14)
 
-    // Draw cartoon device on top of platform
+    // Draw cartoon device on top of platform — large and visible
     const mx=sx+p.w/2, my=p.y
     if(p.lbl==="E-Connect Pro"){
-      // Black box endomotor cartoon — friendly version (on platform = ally)
-      ctx.fillStyle="#1a1a1a"
-      ctx.strokeStyle="#333"; ctx.lineWidth=1
-      ctx.beginPath(); ctx.roundRect(mx-16,my-32,32,28,4); ctx.fill(); ctx.stroke()
-      // Screen
-      ctx.fillStyle="#003322"
-      ctx.beginPath(); ctx.roundRect(mx-12,my-30,24,14,2); ctx.fill()
-      ctx.fillStyle="#00ffaa"; ctx.font="bold 7px Arial"
-      ctx.fillText("250rpm",mx-10,my-20)
-      // Buttons
-      ctx.fillStyle="#1E88E5"; ctx.beginPath(); ctx.arc(mx-7,my-10,3,0,Math.PI*2); ctx.fill()
-      ctx.fillStyle="#43A047"; ctx.beginPath(); ctx.arc(mx,my-10,3,0,Math.PI*2); ctx.fill()
-      ctx.fillStyle="#E53935"; ctx.beginPath(); ctx.arc(mx+7,my-10,3,0,Math.PI*2); ctx.fill()
-      // Handpiece cord coming down
-      ctx.strokeStyle="#555"; ctx.lineWidth=2
-      ctx.beginPath(); ctx.moveTo(mx+16,my-20); ctx.bezierCurveTo(mx+26,my-20,mx+24,my-6,mx+20,my-4); ctx.stroke()
-      // Handpiece tip
-      ctx.fillStyle="#888"
-      ctx.beginPath(); ctx.roundRect(mx+18,my-6,4,8,2); ctx.fill()
+      // ── E-Connect Pro endomotor ──
+      // Base/stand
+      ctx.fillStyle="#222"
+      ctx.fillRect(mx-22,my-70,44,65)
+      ctx.fillStyle="#333"
+      ctx.fillRect(mx-18,my-68,40,4)
+      // Big screen
+      ctx.fillStyle="#001a10"
+      ctx.fillRect(mx-18,my-63,36,30)
+      ctx.fillStyle="#00ff88"; ctx.font="bold 9px monospace"
+      ctx.fillText("250 rpm",mx-14,my-48)
+      ctx.fillStyle="#00cc66"; ctx.font="7px monospace"
+      ctx.fillText("1.5 N·cm",mx-13,my-38)
+      // Animated green bar
+      ctx.fillStyle="#00ff44"
+      ctx.fillRect(mx-16,my-34,32,4)
+      ctx.fillStyle="#004400"
+      ctx.fillRect(mx-16,my-34,10,4)
+      // Brand bar
       ctx.fillStyle="#1E88E5"
-      ctx.beginPath(); ctx.roundRect(mx+19,my,2,5,1); ctx.fill()
-      // Cute face on screen
-      ctx.fillStyle="#00ffaa"
-      ctx.beginPath(); ctx.arc(mx-5,my-24,2,0,Math.PI*2); ctx.fill()
-      ctx.beginPath(); ctx.arc(mx+5,my-24,2,0,Math.PI*2); ctx.fill()
-      ctx.beginPath(); ctx.arc(mx,my-20,3,0,Math.PI); ctx.stroke()
+      ctx.fillRect(mx-22,my-10,44,6)
+      ctx.fillStyle="#fff"; ctx.font="bold 6px Arial"
+      ctx.fillText("Eighteeth",mx-14,my-5)
+      // Control buttons row
+      ctx.fillStyle="#E53935"; ctx.beginPath(); ctx.arc(mx-12,my-17,4,0,Math.PI*2); ctx.fill()
+      ctx.fillStyle="#43A047"; ctx.beginPath(); ctx.arc(mx,my-17,4,0,Math.PI*2); ctx.fill()
+      ctx.fillStyle="#1E88E5"; ctx.beginPath(); ctx.arc(mx+12,my-17,4,0,Math.PI*2); ctx.fill()
+      // Handpiece cable + tip
+      ctx.strokeStyle="#666"; ctx.lineWidth=3
+      ctx.beginPath(); ctx.moveTo(mx+22,my-45); ctx.bezierCurveTo(mx+40,my-45,mx+38,my-10,mx+34,my-5); ctx.stroke()
+      ctx.fillStyle="#aaa"; ctx.fillRect(mx+32,my-8,6,14)
+      ctx.fillStyle="#1E88E5"; ctx.fillRect(mx+34,my+6,2,8)
     } else if(p.lbl==="RODIN NiTi"){
-      // Eflex Blue endofile cartoon — the blue rotating file
-      // File holder/stand
-      ctx.fillStyle="#37474F"
-      ctx.beginPath(); ctx.roundRect(mx-14,my-22,28,18,4); ctx.fill()
-      // File slots
-      for(let i=0;i<5;i++){
-        const fx=mx-10+i*5
-        // File shaft
-        ctx.strokeStyle="#90CAF9"; ctx.lineWidth=2
-        ctx.beginPath(); ctx.moveTo(fx,my-22); ctx.lineTo(fx,my-38); ctx.stroke()
-        // File tip (tapered)
-        ctx.strokeStyle="#1565C0"; ctx.lineWidth=1
-        ctx.beginPath(); ctx.moveTo(fx,my-38); ctx.lineTo(fx,my-46); ctx.stroke()
-        // Blue glow tip
-        ctx.fillStyle="#1E88E5"
-        ctx.beginPath(); ctx.arc(fx,my-46,2,0,Math.PI*2); ctx.fill()
-        ctx.fillStyle="rgba(30,136,229,0.3)"
-        ctx.beginPath(); ctx.arc(fx,my-46,5,0,Math.PI*2); ctx.fill()
-      }
-      // Label on box
-      ctx.fillStyle="#90CAF9"; ctx.font="bold 6px Arial"
-      ctx.fillText("RODIN",mx-10,my-11)
-      ctx.fillStyle="#fff"; ctx.font="5px Arial"
-      ctx.fillText("NiTi",mx-6,my-5)
-    } else if(p.lbl==="3D Scanner"){
-      // Intraoral scanner cartoon
-      ctx.fillStyle="#E3F2FD"
-      ctx.strokeStyle="#90CAF9"; ctx.lineWidth=1.5
-      ctx.beginPath(); ctx.roundRect(mx-10,my-28,20,14,4); ctx.fill(); ctx.stroke()
-      // Scanner handle
-      ctx.fillStyle="#1565C0"
-      ctx.beginPath(); ctx.roundRect(mx-5,my-14,10,14,3); ctx.fill()
-      // Scanning beam
-      ctx.fillStyle="rgba(30,136,229,0.15)"
-      ctx.beginPath()
-      ctx.moveTo(mx-14,my-28)
-      ctx.lineTo(mx-22,my-42)
-      ctx.lineTo(mx+22,my-42)
-      ctx.lineTo(mx+14,my-28)
-      ctx.closePath(); ctx.fill()
-      ctx.strokeStyle="rgba(30,136,229,0.5)"; ctx.lineWidth=1
-      ctx.stroke()
-      // Scan lines
-      ctx.strokeStyle="#1E88E5"; ctx.lineWidth=0.5
-      for(let i=0;i<4;i++){
-        const ly=my-42+i*4
-        ctx.beginPath(); ctx.moveTo(mx-18,ly); ctx.lineTo(mx+18,ly); ctx.stroke()
-      }
-      // Lens
-      ctx.fillStyle="#0D47A1"
-      ctx.beginPath(); ctx.ellipse(mx,my-24,4,3,0,0,Math.PI*2); ctx.fill()
-      ctx.fillStyle="rgba(255,255,255,0.5)"
-      ctx.beginPath(); ctx.arc(mx-1,my-25,1.5,0,Math.PI*2); ctx.fill()
-    } else if(p.lbl==="X-Ray Pro"){
-      // X-Ray machine cartoon
-      ctx.fillStyle="#37474F"
-      ctx.strokeStyle="#546E7A"; ctx.lineWidth=1
-      ctx.beginPath(); ctx.roundRect(mx-12,my-34,24,20,4); ctx.fill(); ctx.stroke()
-      // X-Ray indicator
-      ctx.fillStyle="#FFF9C4"
-      ctx.fillRect(mx-8,my-30,16,8)
-      ctx.fillStyle="#F57F17"; ctx.font="bold 7px Arial"
-      ctx.fillText("X-RAY",mx-9,my-24)
-      // Arm
-      ctx.strokeStyle="#455A64"; ctx.lineWidth=3
-      ctx.beginPath(); ctx.moveTo(mx,my-14); ctx.lineTo(mx,my-6); ctx.stroke()
-      // Emitter cone
+      // ── RODIN NiTi file kit box ──
+      // Box body
       ctx.fillStyle="#263238"
+      ctx.fillRect(mx-28,my-55,56,52)
+      ctx.fillStyle="#37474F"
+      ctx.fillRect(mx-28,my-55,56,6)
+      // Box label
+      ctx.fillStyle="#90CAF9"; ctx.font="bold 9px Arial"
+      ctx.fillText("RODIN",mx-14,my-44)
+      ctx.fillStyle="#fff"; ctx.font="7px Arial"
+      ctx.fillText("NiTi System",mx-16,my-34)
+      // 6 files standing in box
+      const fileColors=["#FFD700","#9B59B6","#95A5A6","#F1C40F","#E74C3C","#3498DB"]
+      for(let i=0;i<6;i++){
+        const fx=mx-22+i*9
+        ctx.strokeStyle=fileColors[i]; ctx.lineWidth=3
+        ctx.beginPath(); ctx.moveTo(fx,my-22); ctx.lineTo(fx,my-58); ctx.stroke()
+        ctx.strokeStyle="rgba(255,255,255,0.5)"; ctx.lineWidth=1
+        ctx.beginPath(); ctx.moveTo(fx,my-22); ctx.lineTo(fx,my-58); ctx.stroke()
+        // Glowing tip
+        ctx.fillStyle=fileColors[i]
+        ctx.beginPath(); ctx.arc(fx,my-58,3,0,Math.PI*2); ctx.fill()
+        ctx.fillStyle="rgba(255,255,255,0.4)"
+        ctx.beginPath(); ctx.arc(fx,my-58,5,0,Math.PI*2); ctx.fill()
+      }
+      // File labels
+      const lbls=["GP","S1","S2","F1","F2","F3"]
+      for(let i=0;i<6;i++){
+        ctx.fillStyle=fileColors[i]; ctx.font="bold 5px Arial"
+        ctx.fillText(lbls[i],mx-24+i*9,my-24)
+      }
+    } else if(p.lbl==="3D Scanner"){
+      // ── Intraoral 3D Scanner ──
+      // Handle
+      ctx.fillStyle="#E3F2FD"
+      ctx.strokeStyle="#90CAF9"; ctx.lineWidth=2
+      ctx.fillRect(mx-8,my-60,16,45)
+      ctx.strokeRect(mx-8,my-60,16,45)
+      // Head/tip
+      ctx.fillStyle="#1565C0"
+      ctx.fillRect(mx-14,my-72,28,14)
+      ctx.strokeStyle="#90CAF9"; ctx.lineWidth=1
+      ctx.strokeRect(mx-14,my-72,28,14)
+      // Scan window
+      ctx.fillStyle="#000d1a"
+      ctx.fillRect(mx-11,my-70,22,10)
+      // Scanning beam animation
+      ctx.fillStyle="rgba(30,136,229,0.2)"
       ctx.beginPath()
-      ctx.moveTo(mx-10,my-6)
-      ctx.lineTo(mx+10,my-6)
-      ctx.lineTo(mx+14,my)
-      ctx.lineTo(mx-14,my)
+      ctx.moveTo(mx-14,my-72)
+      ctx.lineTo(mx-28,my-95)
+      ctx.lineTo(mx+28,my-95)
+      ctx.lineTo(mx+14,my-72)
       ctx.closePath(); ctx.fill()
-      // X-Ray beam (yellow glow)
-      ctx.fillStyle="rgba(255,238,0,0.12)"
-      ctx.beginPath()
-      ctx.moveTo(mx-14,my)
-      ctx.lineTo(mx-22,my+20)
-      ctx.lineTo(mx+22,my+20)
-      ctx.lineTo(mx+14,my)
-      ctx.closePath(); ctx.fill()
-      ctx.strokeStyle="rgba(255,238,0,0.3)"; ctx.lineWidth=0.5
+      ctx.strokeStyle="rgba(100,180,255,0.7)"; ctx.lineWidth=1
       ctx.stroke()
+      for(let i=0;i<5;i++){
+        ctx.strokeStyle=`rgba(30,136,229,${0.6-i*0.1})`; ctx.lineWidth=0.8
+        ctx.beginPath(); ctx.moveTo(mx-26,my-74-i*4); ctx.lineTo(mx+26,my-74-i*4); ctx.stroke()
+      }
+      // Logo on handle
+      ctx.fillStyle="#1E88E5"; ctx.font="bold 6px Arial"
+      ctx.fillText("3D",mx-4,my-36)
+      ctx.fillStyle="#fff"; ctx.font="5px Arial"
+      ctx.fillText("SCAN",mx-6,my-28)
+      // Cord
+      ctx.strokeStyle="#555"; ctx.lineWidth=3
+      ctx.beginPath(); ctx.moveTo(mx,my-15); ctx.bezierCurveTo(mx+20,my-5,mx+18,my+10,mx+14,my+12); ctx.stroke()
+    } else if(p.lbl==="X-Ray Pro"){
+      // ── X-Ray machine ──
+      // Wall mount / column
+      ctx.fillStyle="#455A64"
+      ctx.fillRect(mx-5,my-90,10,90)
+      // Horizontal arm
+      ctx.fillStyle="#546E7A"
+      ctx.fillRect(mx-5,my-75,35,8)
+      // Head unit box
+      ctx.fillStyle="#37474F"
+      ctx.fillRect(mx+20,my-80,28,22)
+      ctx.fillStyle="#263238"
+      ctx.fillRect(mx+23,my-77,22,12)
+      // Warning label (yellow)
+      ctx.fillStyle="#FFF176"
+      ctx.fillRect(mx+23,my-63,22,6)
+      ctx.fillStyle="#E65100"; ctx.font="bold 5px Arial"
+      ctx.fillText("X-RAY",mx+25,my-59)
+      // Emitter cone pointing down-left
+      ctx.fillStyle="#1a1a1a"
+      ctx.beginPath()
+      ctx.moveTo(mx+22,my-58)
+      ctx.lineTo(mx+46,my-58)
+      ctx.lineTo(mx+52,my-45)
+      ctx.lineTo(mx+16,my-45)
+      ctx.closePath(); ctx.fill()
+      ctx.strokeStyle="#555"; ctx.lineWidth=1; ctx.stroke()
+      // X-Ray beam (yellow cone glow)
+      ctx.fillStyle="rgba(255,230,0,0.18)"
+      ctx.beginPath()
+      ctx.moveTo(mx+16,my-45)
+      ctx.lineTo(mx+52,my-45)
+      ctx.lineTo(mx+70,my-10)
+      ctx.lineTo(mx-4,my-10)
+      ctx.closePath(); ctx.fill()
+      ctx.strokeStyle="rgba(255,230,0,0.4)"; ctx.lineWidth=1
+      ctx.stroke()
+      // Scan lines in beam
+      for(let i=0;i<4;i++){
+        ctx.strokeStyle=`rgba(255,220,0,${0.3-i*0.06})`; ctx.lineWidth=0.7
+        const ly=my-42+i*8
+        ctx.beginPath(); ctx.moveTo(mx-2+i*4,ly); ctx.lineTo(mx+50-i*4,ly); ctx.stroke()
+      }
+      // Brand text
+      ctx.fillStyle="#90CAF9"; ctx.font="bold 7px Arial"
+      ctx.fillText("Eighteeth",mx+21,my-82)
     }
   }
 
