@@ -196,60 +196,170 @@ export default function Page() {
   }
 
   function drawChar(ctx:CanvasRenderingContext2D, px:number, py:number, pw:number, ph:number, onG:boolean, right:boolean, fr:number){
-    const leg=onG?Math.sin(fr*0.35)*7:0
+    const cx=px+pw*0.5, bob=onG?Math.sin(fr*0.3)*2:0
     ctx.save()
-    if(!right){ ctx.translate(px*2+pw,0); ctx.scale(-1,1) }
-    // Chokha body (dark red Georgian coat)
-    ctx.fillStyle="#8B0000"
+    if(!right){ ctx.translate(cx*2,0); ctx.scale(-1,1) }
+
+    // ══ LEGS (white pants) ══
+    ctx.fillStyle="#E8E8F0"
     ctx.beginPath()
-    ctx.moveTo(px+pw*0.5,py+18)
-    ctx.lineTo(px+pw-2,py+22)
-    ctx.lineTo(px+pw,py+ph-14)
-    ctx.lineTo(px,py+ph-14)
-    ctx.lineTo(px+2,py+22)
-    ctx.closePath()
+    ctx.roundRect(cx-10,py+ph-18,9,18,4)
     ctx.fill()
-    // Chokha chest cartridges (gaziri)
-    ctx.fillStyle="#FFD700"
-    for(let i=0;i<5;i++){
-      ctx.fillRect(px+5+i*4.5,py+24,3,10)
+    ctx.beginPath()
+    ctx.roundRect(cx+1,py+ph-18,9,18,4)
+    ctx.fill()
+    // Walking animation
+    if(onG){
+      ctx.fillStyle="#E8E8F0"
+      ctx.save()
+      ctx.translate(cx-5,py+ph-18)
+      ctx.rotate(Math.sin(fr*0.35)*0.35)
+      ctx.fillRect(-4.5,0,9,18)
+      ctx.restore()
+      ctx.save()
+      ctx.translate(cx+5,py+ph-18)
+      ctx.rotate(-Math.sin(fr*0.35)*0.35)
+      ctx.fillRect(-4.5,0,9,18)
+      ctx.restore()
     }
-    for(let i=0;i<5;i++){
-      ctx.fillRect(px+pw-8-i*4.5,py+24,3,10)
+    // White shoes
+    ctx.fillStyle="#F0F0F8"
+    ctx.strokeStyle="#D0D0E0"; ctx.lineWidth=1
+    ctx.beginPath(); ctx.ellipse(cx-6,py+ph-1,9,5,0,0,Math.PI*2); ctx.fill(); ctx.stroke()
+    ctx.beginPath(); ctx.ellipse(cx+6,py+ph-1,9,5,0,0,Math.PI*2); ctx.fill(); ctx.stroke()
+
+    // ══ LAB COAT BODY ══
+    const by=py+20+bob
+    ctx.fillStyle="#FFFFFF"
+    ctx.strokeStyle="#D8D8E8"; ctx.lineWidth=1.5
+    ctx.beginPath()
+    ctx.moveTo(cx-14,by)
+    ctx.lineTo(cx-16,py+ph-16)
+    ctx.lineTo(cx+16,py+ph-16)
+    ctx.lineTo(cx+14,by)
+    ctx.closePath()
+    ctx.fill(); ctx.stroke()
+    // Coat lapels
+    ctx.fillStyle="#F5F5FF"
+    ctx.beginPath()
+    ctx.moveTo(cx,by+2); ctx.lineTo(cx-8,by+4); ctx.lineTo(cx-10,by+16); ctx.lineTo(cx,by+10)
+    ctx.closePath(); ctx.fill()
+    ctx.beginPath()
+    ctx.moveTo(cx,by+2); ctx.lineTo(cx+8,by+4); ctx.lineTo(cx+10,by+16); ctx.lineTo(cx,by+10)
+    ctx.closePath(); ctx.fill()
+    // Buttons
+    ctx.fillStyle="#D0D0E8"
+    for(let i=0;i<3;i++) { ctx.beginPath(); ctx.arc(cx,by+14+i*8,2,0,Math.PI*2); ctx.fill() }
+    // Pocket
+    ctx.strokeStyle="#D0D0E0"; ctx.lineWidth=1
+    ctx.strokeRect(cx-14,by+20,10,9)
+    // Eighteeth logo on pocket
+    ctx.fillStyle="#1E88E5"; ctx.font="bold 5px Arial"
+    ctx.fillText("18",cx-12,by+28)
+
+    // ══ ARMS ══
+    const armSwing=onG?Math.sin(fr*0.35)*0.4:0
+    // Left arm
+    ctx.save()
+    ctx.translate(cx-13,by+4)
+    ctx.rotate(-0.3+armSwing)
+    ctx.fillStyle="#FFFFFF"
+    ctx.strokeStyle="#D8D8E8"; ctx.lineWidth=1
+    ctx.beginPath(); ctx.roundRect(-5,0,10,16,5); ctx.fill(); ctx.stroke()
+    // White glove/hand
+    ctx.fillStyle="#F5F5F5"
+    ctx.beginPath(); ctx.arc(0,17,6,0,Math.PI*2); ctx.fill()
+    ctx.restore()
+    // Right arm
+    ctx.save()
+    ctx.translate(cx+13,by+4)
+    ctx.rotate(0.3-armSwing)
+    ctx.fillStyle="#FFFFFF"
+    ctx.strokeStyle="#D8D8E8"; ctx.lineWidth=1
+    ctx.beginPath(); ctx.roundRect(-5,0,10,16,5); ctx.fill(); ctx.stroke()
+    ctx.fillStyle="#F5F5F5"
+    ctx.beginPath(); ctx.arc(0,17,6,0,Math.PI*2); ctx.fill()
+    ctx.restore()
+
+    // ══ HEAD ══
+    const hy=py+10+bob
+    // Head base (big round cute head)
+    ctx.fillStyle="#F8F8FF"
+    ctx.strokeStyle="#E0E0F0"; ctx.lineWidth=1.5
+    ctx.beginPath(); ctx.arc(cx,hy,16,0,Math.PI*2); ctx.fill(); ctx.stroke()
+    // Fluffy cheeks
+    ctx.fillStyle="rgba(255,182,193,0.45)"
+    ctx.beginPath(); ctx.arc(cx-11,hy+5,6,0,Math.PI*2); ctx.fill()
+    ctx.beginPath(); ctx.arc(cx+11,hy+5,6,0,Math.PI*2); ctx.fill()
+    // Unicorn ears
+    ctx.fillStyle="#F0F0FF"
+    ctx.strokeStyle="#D8D8F0"; ctx.lineWidth=1
+    ctx.beginPath()
+    ctx.moveTo(cx-10,hy-12); ctx.lineTo(cx-16,hy-24); ctx.lineTo(cx-4,hy-18)
+    ctx.closePath(); ctx.fill(); ctx.stroke()
+    ctx.beginPath()
+    ctx.moveTo(cx+10,hy-12); ctx.lineTo(cx+16,hy-24); ctx.lineTo(cx+4,hy-18)
+    ctx.closePath(); ctx.fill(); ctx.stroke()
+    // Inner ear pink
+    ctx.fillStyle="rgba(255,150,170,0.5)"
+    ctx.beginPath()
+    ctx.moveTo(cx-10,hy-13); ctx.lineTo(cx-14,hy-22); ctx.lineTo(cx-6,hy-18)
+    ctx.closePath(); ctx.fill()
+    ctx.beginPath()
+    ctx.moveTo(cx+10,hy-13); ctx.lineTo(cx+14,hy-22); ctx.lineTo(cx+6,hy-18)
+    ctx.closePath(); ctx.fill()
+    // Unicorn horn
+    const hornGrad=ctx.createLinearGradient(cx,hy-38,cx+3,hy-18)
+    hornGrad.addColorStop(0,"#C0C0D8"); hornGrad.addColorStop(1,"#9090B8")
+    ctx.fillStyle=hornGrad
+    ctx.strokeStyle="#A0A0C8"; ctx.lineWidth=1
+    ctx.beginPath()
+    ctx.moveTo(cx,hy-38); ctx.lineTo(cx-4,hy-18); ctx.lineTo(cx+4,hy-18)
+    ctx.closePath(); ctx.fill(); ctx.stroke()
+    // Horn spiral lines
+    ctx.strokeStyle="rgba(255,255,255,0.6)"; ctx.lineWidth=1
+    for(let i=0;i<4;i++){
+      const t2=i/4; const y2=hy-18-t2*20
+      ctx.beginPath(); ctx.moveTo(cx-3+t2*3,y2); ctx.lineTo(cx+1,y2-3); ctx.stroke()
     }
-    // Sash/belt
-    ctx.fillStyle="#1A237E"
-    ctx.fillRect(px+3,py+ph-18,pw-6,5)
-    // Collar
-    ctx.fillStyle="#B71C1C"
-    ctx.fillRect(px+pw*0.5-5,py+18,10,6)
-    // Head
-    ctx.fillStyle="#FFCC80"
-    ctx.beginPath(); ctx.arc(px+pw*0.5,py+12,11,0,Math.PI*2); ctx.fill()
-    // Papakhi (Georgian fur hat)
-    ctx.fillStyle="#333"
-    ctx.fillRect(px+pw*0.5-11,py+3,22,10)
-    ctx.fillStyle="#555"
-    ctx.beginPath(); ctx.arc(px+pw*0.5,py+3,11,Math.PI,0); ctx.fill()
-    // Hat trim
-    ctx.fillStyle="#888"
-    ctx.fillRect(px+pw*0.5-12,py+5,24,4)
-    // Eyes
-    ctx.fillStyle="#333"
-    ctx.fillRect(px+pw*0.5-4,py+11,3,3)
-    ctx.fillRect(px+pw*0.5+1,py+11,3,3)
-    // Mustache
-    ctx.fillStyle="#5D4037"
-    ctx.fillRect(px+pw*0.5-4,py+16,3,2)
-    ctx.fillRect(px+pw*0.5+1,py+16,3,2)
-    // Legs
-    ctx.fillStyle="#1A237E"
-    ctx.fillRect(px+4,py+ph-14,10,14+(onG?leg:0))
-    ctx.fillRect(px+pw-14,py+ph-14,10,14-(onG?leg:0))
-    // Shoes
-    ctx.fillStyle="#212121"
-    ctx.fillRect(px+2,py+ph-3,13,5)
-    ctx.fillRect(px+pw-15,py+ph-3,13,5)
+    // Hair tuft on forehead
+    ctx.fillStyle="#F0F0FA"
+    ctx.beginPath()
+    ctx.arc(cx-3,hy-14,5,Math.PI,0); ctx.fill()
+    ctx.beginPath()
+    ctx.arc(cx+3,hy-14,4,Math.PI,0); ctx.fill()
+
+    // ══ HEADPHONES ══
+    // Band over head
+    ctx.strokeStyle="#5BC8DC"; ctx.lineWidth=3
+    ctx.beginPath(); ctx.arc(cx,hy-4,17,Math.PI*1.1,Math.PI*0.1,false); ctx.stroke()
+    // Ear cups
+    ctx.fillStyle="#5BC8DC"
+    ctx.strokeStyle="#4AB8CC"; ctx.lineWidth=1.5
+    ctx.beginPath(); ctx.ellipse(cx-16,hy-2,6,8,0,0,Math.PI*2); ctx.fill(); ctx.stroke()
+    ctx.beginPath(); ctx.ellipse(cx+16,hy-2,6,8,0,0,Math.PI*2); ctx.fill(); ctx.stroke()
+    // Cup shine
+    ctx.fillStyle="rgba(255,255,255,0.4)"
+    ctx.beginPath(); ctx.ellipse(cx-17,hy-4,2.5,4,0,0,Math.PI*2); ctx.fill()
+    ctx.beginPath(); ctx.ellipse(cx+15,hy-4,2.5,4,0,0,Math.PI*2); ctx.fill()
+
+    // ══ EYES ══
+    // Big cute anime eyes
+    ctx.fillStyle="#1a1a2e"
+    ctx.beginPath(); ctx.ellipse(cx-5,hy+1,5,6,0,0,Math.PI*2); ctx.fill()
+    ctx.beginPath(); ctx.ellipse(cx+5,hy+1,5,6,0,0,Math.PI*2); ctx.fill()
+    // Eye shine
+    ctx.fillStyle="#fff"
+    ctx.beginPath(); ctx.arc(cx-3,hy-2,2,0,Math.PI*2); ctx.fill()
+    ctx.beginPath(); ctx.arc(cx+7,hy-2,2,0,Math.PI*2); ctx.fill()
+    ctx.beginPath(); ctx.arc(cx-6,hy+2,1,0,Math.PI*2); ctx.fill()
+    ctx.beginPath(); ctx.arc(cx+4,hy+2,1,0,Math.PI*2); ctx.fill()
+    // Happy mouth (open smile)
+    ctx.fillStyle="#FF6B8A"
+    ctx.beginPath(); ctx.arc(cx,hy+8,4,0,Math.PI); ctx.fill()
+    ctx.fillStyle="#fff"
+    ctx.beginPath(); ctx.arc(cx,hy+9,2.5,0,Math.PI); ctx.fill()
+
     ctx.restore()
   }
 
