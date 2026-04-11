@@ -1,585 +1,489 @@
 "use client"
-import { useState, useRef, useEffect, useCallback } from "react"
+import { useEffect, useRef, useState } from "react"
 
-type Phase = "start" | "cases" | "brief" | "file_pick" | "device" | "canal" | "rinse" | "result"
+const CW = 800, CH = 500
+const GRAV = 0.55
+const JUMP = -13
+const SPD = 5
+const LW = 4200
+const GY = 420
 
-interface NiTiFile {
-  id: string
-  name: string
-  taper: string
-  size: number
-  maxTorque: number
-  rpm: number
-  color: string
-  order: number
+interface Plt { x:number;y:number;w:number;h:number;col:string;lbl:string }
+interface Mob { x:number;y:number;w:number;h:number;vx:number;alive:boolean }
+interface Gem { x:number;y:number;got:boolean }
+
+const PLATS: Plt[] = [
+  {x:0,   y:GY,  w:LW, h:80, col:"#5D4037",lbl:""},
+  {x:200, y:355, w:120,h:20, col:"#1565C0",lbl:"E-Connect Pro"},
+  {x:380, y:310, w:110,h:20, col:"#6A1B9A",lbl:"RODIN NiTi"},
+  {x:550, y:345, w:100,h:20, col:"#2E7D32",lbl:"3D Scanner"},
+  {x:710, y:295, w:130,h:20, col:"#BF360C",lbl:"X-Ray Pro"},
+  {x:900, y:330, w:110,h:20, col:"#1565C0",lbl:"E-Connect Pro"},
+  {x:1070,y:280, w:120,h:20, col:"#6A1B9A",lbl:"RODIN NiTi"},
+  {x:1250,y:315, w:100,h:20, col:"#2E7D32",lbl:"3D Scanner"},
+  {x:1400,y:270, w:130,h:20, col:"#BF360C",lbl:"X-Ray Pro"},
+  {x:1590,y:300, w:110,h:20, col:"#1565C0",lbl:"E-Connect Pro"},
+  {x:1760,y:255, w:120,h:20, col:"#6A1B9A",lbl:"RODIN NiTi"},
+  {x:1940,y:295, w:100,h:20, col:"#2E7D32",lbl:"3D Scanner"},
+  {x:2100,y:340, w:130,h:20, col:"#BF360C",lbl:"X-Ray Pro"},
+  {x:2290,y:285, w:110,h:20, col:"#1565C0",lbl:"E-Connect Pro"},
+  {x:2460,y:325, w:120,h:20, col:"#6A1B9A",lbl:"RODIN NiTi"},
+  {x:2640,y:270, w:100,h:20, col:"#2E7D32",lbl:"3D Scanner"},
+  {x:2800,y:310, w:130,h:20, col:"#BF360C",lbl:"X-Ray Pro"},
+  {x:2990,y:260, w:110,h:20, col:"#1565C0",lbl:"E-Connect Pro"},
+  {x:3170,y:300, w:120,h:20, col:"#6A1B9A",lbl:"RODIN NiTi"},
+  {x:3350,y:345, w:100,h:20, col:"#2E7D32",lbl:"3D Scanner"},
+  {x:3510,y:290, w:130,h:20, col:"#BF360C",lbl:"X-Ray Pro"},
+  {x:3700,y:330, w:110,h:20, col:"#1565C0",lbl:"E-Connect Pro"},
+  {x:3870,y:370, w:220,h:20, col:"#F9A825",lbl:"FINISH"},
+]
+
+const INIT_MOBS: Mob[] = [
+  {x:350, y:GY-32,w:32,h:32,vx:-1.2,alive:true},
+  {x:620, y:GY-32,w:32,h:32,vx:1.2, alive:true},
+  {x:950, y:GY-32,w:32,h:32,vx:-1.5,alive:true},
+  {x:1300,y:GY-32,w:32,h:32,vx:1.2, alive:true},
+  {x:1650,y:GY-32,w:32,h:32,vx:-1.3,alive:true},
+  {x:2000,y:GY-32,w:32,h:32,vx:1.5, alive:true},
+  {x:2350,y:GY-32,w:32,h:32,vx:-1.2,alive:true},
+  {x:2700,y:GY-32,w:32,h:32,vx:1.3, alive:true},
+  {x:3050,y:GY-32,w:32,h:32,vx:-1.5,alive:true},
+  {x:3400,y:GY-32,w:32,h:32,vx:1.2, alive:true},
+]
+
+function makeGems(): Gem[] {
+  const arr: Gem[] = []
+  const xs = [260,310,420,460,600,640,760,800,960,1010,1130,1180,1310,1360,1460,1510,1650,1700,1820,1870,2010,2060,2160,2200,2350,2400,2520,2560,2700,2750,2860,2900,3050,3100,3230,3280,3410,3460,3570,3620,3770,3820]
+  for (const x of xs) arr.push({x, y:330, got:false})
+  return arr
 }
 
-interface ClinicalCase {
-  id: string
-  tooth: string
-  diagnosis: string
-  wl: number
-  canals: number
-  curvature: "straight" | "moderate" | "severe"
-  desc: string
-  difficulty: number
+function overlap(ax:number,ay:number,aw:number,ah:number,bx:number,by:number,bw:number,bh:number){
+  return ax<bx+bw&&ax+aw>bx&&ay<by+bh&&ay+ah>by
 }
 
-const FILES: NiTiFile[] = [
-  { id: "gp", name: "GP",  taper: ".03", size: 15, maxTorque: 1.0, rpm: 350, color: "#FFD700", order: 1 },
-  { id: "s1", name: "S1",  taper: ".04", size: 19, maxTorque: 2.0, rpm: 300, color: "#9B59B6", order: 2 },
-  { id: "s2", name: "S2",  taper: ".06", size: 21, maxTorque: 2.0, rpm: 300, color: "#95A5A6", order: 3 },
-  { id: "f1", name: "F1",  taper: ".07", size: 20, maxTorque: 1.5, rpm: 250, color: "#F1C40F", order: 4 },
-  { id: "f2", name: "F2",  taper: ".08", size: 25, maxTorque: 1.5, rpm: 250, color: "#E74C3C", order: 5 },
-  { id: "f3", name: "F3",  taper: ".09", size: 30, maxTorque: 1.5, rpm: 250, color: "#3498DB", order: 6 },
-]
+export default function Page() {
+  const ref = useRef<HTMLCanvasElement>(null)
+  const anim = useRef(0)
+  const G = useRef({
+    px:60,py:100,pw:30,ph:50,pvx:0,pvy:0,
+    onG:false,right:true,fr:0,ft:0,
+    cam:0,score:0,lives:3,
+    mobs:INIT_MOBS.map(m=>({...m})),
+    gems:makeGems(),
+    keys:{} as Record<string,boolean>,
+    status:"play" as "play"|"over"|"win",
+    t:0,
+    stars:Array.from({length:60},()=>({x:Math.random()*CW,y:Math.random()*200,s:Math.random()*2+1})),
+  })
+  const [ui, setUi] = useState({score:0,lives:3,status:"play"})
 
-const CASES: ClinicalCase[] = [
-  { id: "c1", tooth: "#21", diagnosis: "Pulpitis Irreversibilis",  wl: 23, canals: 1, curvature: "straight", desc: "ზედა მარცხენა ცენტრალური საჭრელი. მწვავე ტკივილი. 23მმ სამუშაო სიგრძე.", difficulty: 1 },
-  { id: "c2", tooth: "#35", diagnosis: "Necrosis Pulpae",          wl: 20, canals: 2, curvature: "moderate", desc: "ქვედა მარცხენა პრემოლარი. 2 არხი. ზომიერი მოხრილობა. 20მმ.", difficulty: 2 },
-  { id: "c3", tooth: "#16", diagnosis: "Periodontitis Apicalis",   wl: 19, canals: 4, curvature: "moderate", desc: "ზედა მარჯვენა პირველი მოლარი. 4 არხი (MB1, MB2, DB, P). 19მმ.", difficulty: 3 },
-  { id: "c4", tooth: "#36", diagnosis: "Pulpitis Irreversibilis",  wl: 18, canals: 3, curvature: "severe",   desc: "ქვედა მარჯვენა პირველი მოლარი. 3 არხი. მძიმე მოხრილობა 45. 18მმ.", difficulty: 4 },
-  { id: "c5", tooth: "#45", diagnosis: "Retreatment",              wl: 21, canals: 1, curvature: "moderate", desc: "ქვედა მარჯვენა პრემოლარი. გადამუშავება. ძველი მასალის მოშორება. 21მმ.", difficulty: 5 },
-]
-
-const WRONG_CHOICES: NiTiFile[][] = [
-  [FILES[3], FILES[1], FILES[4], FILES[0]],
-  [FILES[2], FILES[0], FILES[5], FILES[3]],
-  [FILES[1], FILES[4], FILES[0], FILES[2]],
-  [FILES[5], FILES[2], FILES[3], FILES[1]],
-  [FILES[4], FILES[3], FILES[1], FILES[5]],
-  [FILES[0], FILES[5], FILES[2], FILES[4]],
-]
-
-export default function GamePage() {
-  const [phase, setPhase] = useState<Phase>("start")
-  const [selectedCase, setSelectedCase] = useState<ClinicalCase | null>(null)
-  const [fileIndex, setFileIndex] = useState(0)
-  const [torque, setTorque] = useState(1.5)
-  const [rpm, setRpm] = useState(300)
-  const [score, setScore] = useState(0)
-  const [mistakes, setMistakes] = useState(0)
-  const [fileChoices, setFileChoices] = useState<NiTiFile[]>([])
-  const [chosenFile, setChosenFile] = useState<NiTiFile | null>(null)
-  const [deviceOk, setDeviceOk] = useState(false)
-  const [canalProgress, setCanalProgress] = useState(0)
-  const [apexReached, setApexReached] = useState(false)
-  const [broken, setBroken] = useState(false)
-  const [fileScores, setFileScores] = useState<number[]>([])
-  const [shake, setShake] = useState(false)
-  const canvasRef = useRef<HTMLCanvasElement>(null)
-  const animRef = useRef<number>(0)
-  const progressRef = useRef(0)
-  const brokenRef = useRef(false)
-  const audioCtxRef = useRef<AudioContext | null>(null)
-
-  const currentFile = FILES[fileIndex]
-
-  function beep(freq: number, dur: number, type: OscillatorType = "sine", vol = 0.3) {
-    try {
-      if (!audioCtxRef.current) audioCtxRef.current = new AudioContext()
-      const ctx = audioCtxRef.current
-      const osc = ctx.createOscillator()
-      const gain = ctx.createGain()
-      osc.connect(gain); gain.connect(ctx.destination)
-      osc.type = type; osc.frequency.value = freq
-      gain.gain.setValueAtTime(vol, ctx.currentTime)
-      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + dur)
-      osc.start(); osc.stop(ctx.currentTime + dur)
-    } catch { /* ignore */ }
+  function sky(ctx:CanvasRenderingContext2D){
+    const g = ctx.createLinearGradient(0,0,0,CH)
+    g.addColorStop(0,"#87CEEB"); g.addColorStop(0.6,"#C8E6FF"); g.addColorStop(1,"#E8F5E9")
+    ctx.fillStyle=g; ctx.fillRect(0,0,CW,CH)
   }
 
-  function makeChoices(correct: NiTiFile) {
-    const wrongs = WRONG_CHOICES[correct.order - 1].filter(f => f.id !== correct.id).slice(0, 3)
-    const all = [correct, ...wrongs].sort(() => Math.random() - 0.5)
-    setFileChoices(all)
+  function sun(ctx:CanvasRenderingContext2D){
+    ctx.save()
+    ctx.shadowColor="#FFD700"; ctx.shadowBlur=30
+    ctx.fillStyle="#FFE082"
+    ctx.beginPath(); ctx.arc(700,65,38,0,Math.PI*2); ctx.fill()
+    ctx.restore()
+    ctx.fillStyle="rgba(255,220,80,0.18)"
+    ctx.beginPath(); ctx.arc(700,65,60,0,Math.PI*2); ctx.fill()
   }
 
-  function startCase(c: ClinicalCase) {
-    setSelectedCase(c)
-    setFileIndex(0)
-    setScore(0)
-    setMistakes(0)
-    setFileScores([])
-    setCanalProgress(0)
-    setApexReached(false)
-    setBroken(false)
-    brokenRef.current = false
-    progressRef.current = 0
-    setPhase("brief")
-  }
-
-  function goFilePick() {
-    makeChoices(FILES[fileIndex])
-    setChosenFile(null)
-    setDeviceOk(false)
-    setPhase("file_pick")
-  }
-
-  function pickFile(f: NiTiFile) {
-    setChosenFile(f)
-    if (f.id === FILES[fileIndex].id) {
-      beep(880, 0.15)
-    } else {
-      beep(200, 0.3, "square")
-      setMistakes(m => m + 1)
+  function clouds(ctx:CanvasRenderingContext2D, cam:number){
+    ctx.fillStyle="rgba(255,255,255,0.88)"
+    const offs=[0,280,550,800]
+    for(const o of offs){
+      const cx=((o-cam*0.08)%CW+CW)%CW
+      ctx.beginPath()
+      ctx.arc(cx,80,34,0,Math.PI*2)
+      ctx.arc(cx+30,70,26,0,Math.PI*2)
+      ctx.arc(cx-25,75,22,0,Math.PI*2)
+      ctx.fill()
     }
   }
 
-  function confirmFile() {
-    if (!chosenFile) return
-    if (chosenFile.id !== FILES[fileIndex].id) {
-      setShake(true); setTimeout(() => setShake(false), 500)
+  function mountains(ctx:CanvasRenderingContext2D, cam:number){
+    const pks=[220,160,280,130,240,180,200,150,260,120,200,170]
+    ctx.fillStyle="#A5D6A7"
+    ctx.beginPath()
+    const off=((cam*0.18)%240)
+    ctx.moveTo(0,380)
+    for(let i=0;i<20;i++){
+      const bx=i*240-off
+      const h=pks[i%pks.length]
+      ctx.lineTo(bx,380-h)
+      ctx.lineTo(bx+120,380)
+    }
+    ctx.lineTo(CW,CH); ctx.lineTo(0,CH); ctx.fill()
+
+    ctx.fillStyle="#8D6E63"
+    ctx.beginPath()
+    const off2=((cam*0.12)%320)
+    ctx.moveTo(0,395)
+    const pks2=[180,120,220,100,190,140]
+    for(let i=0;i<16;i++){
+      const bx=i*320-off2
+      const h=pks2[i%pks2.length]
+      ctx.lineTo(bx,395-h)
+      ctx.lineTo(bx+160,395)
+    }
+    ctx.lineTo(CW,CH); ctx.lineTo(0,CH); ctx.fill()
+  }
+
+  function church(ctx:CanvasRenderingContext2D, x:number, y:number, s:number){
+    ctx.fillStyle="rgba(80,55,40,0.28)"
+    ctx.fillRect(x-s*0.5,y,s,s*1.4)
+    ctx.beginPath(); ctx.arc(x,y,s*0.5,Math.PI,0); ctx.fill()
+    ctx.fillRect(x-s*0.06,y-s*0.7,s*0.12,s*0.6)
+    ctx.fillRect(x-s*0.2,y-s*0.45,s*0.4,s*0.08)
+    // Small dome on top of cross
+    ctx.beginPath(); ctx.arc(x,y-s*0.65,s*0.12,Math.PI,0); ctx.fill()
+  }
+
+  function churches(ctx:CanvasRenderingContext2D, cam:number){
+    const cxs=[200,560,870]
+    for(const b of cxs){
+      const x=((b-cam*0.25)%CW+CW)%CW
+      church(ctx,x,300,40)
+    }
+    church(ctx,((400-cam*0.25)%CW+CW)%CW,320,28)
+  }
+
+  function drawPlat(ctx:CanvasRenderingContext2D, p:Plt, cam:number){
+    const sx=p.x-cam
+    if(sx>CW+200||sx+p.w<-200) return
+    if(!p.lbl){
+      // Ground
+      const g=ctx.createLinearGradient(0,p.y,0,p.y+p.h)
+      g.addColorStop(0,"#6D4C41"); g.addColorStop(1,"#3E2723")
+      ctx.fillStyle=g; ctx.fillRect(sx,p.y,p.w,p.h)
+      ctx.fillStyle="#8D6E63"
+      for(let i=0;i<p.w;i+=50){ctx.fillRect(sx+i,p.y,1.5,p.h)}
+      ctx.fillStyle="#A1887F"; ctx.fillRect(sx,p.y,p.w,4)
       return
     }
-    setTorque(currentFile.maxTorque)
-    setRpm(currentFile.rpm)
-    setPhase("device")
-  }
-
-  function checkDevice() {
-    const correct = FILES[fileIndex]
-    const torqueOk = Math.abs(torque - correct.maxTorque) <= 0.3
-    const rpmOk = Math.abs(rpm - correct.rpm) <= 50
-    if (torqueOk && rpmOk) {
-      setDeviceOk(true)
-      beep(660, 0.2)
-    } else {
-      beep(220, 0.4, "sawtooth")
-      setMistakes(m => m + 1)
+    if(p.lbl==="FINISH"){
+      const g=ctx.createLinearGradient(sx,p.y,sx,p.y+p.h)
+      g.addColorStop(0,"#FFD600"); g.addColorStop(1,"#F57F17")
+      ctx.fillStyle=g; ctx.fillRect(sx,p.y,p.w,p.h)
+      ctx.fillStyle="#FFF"; ctx.font="bold 13px Arial"
+      ctx.fillText("FINISH!",sx+50,p.y+14)
+      // Flag pole
+      ctx.fillStyle="#555"; ctx.fillRect(sx+p.w-30,p.y-55,3,55)
+      ctx.fillStyle="#E53935"
+      ctx.beginPath(); ctx.moveTo(sx+p.w-27,p.y-55); ctx.lineTo(sx+p.w-5,p.y-43); ctx.lineTo(sx+p.w-27,p.y-31); ctx.fill()
+      return
     }
-    return torqueOk && rpmOk
+    // Equipment platform
+    const g=ctx.createLinearGradient(sx,p.y,sx,p.y+p.h)
+    g.addColorStop(0,p.col); g.addColorStop(1,"#111")
+    ctx.fillStyle=g; ctx.fillRect(sx,p.y,p.w,p.h)
+    ctx.strokeStyle="rgba(255,255,255,0.25)"; ctx.lineWidth=1
+    ctx.strokeRect(sx+0.5,p.y+0.5,p.w-1,p.h-1)
+    // Screen glow
+    ctx.fillStyle="rgba(255,255,255,0.08)"
+    ctx.fillRect(sx+4,p.y+3,p.w-8,10)
+    ctx.fillStyle="rgba(255,255,255,0.75)"; ctx.font="bold 8px Arial"
+    ctx.fillText(p.lbl,sx+5,p.y+13)
+    // 18teeth logo dot
+    ctx.fillStyle="#fff"
+    ctx.beginPath(); ctx.arc(sx+p.w-8,p.y+11,4,0,Math.PI*2); ctx.fill()
   }
 
-  function startCanal() {
-    if (!deviceOk) { checkDevice(); return }
-    progressRef.current = 0
-    brokenRef.current = false
-    setCanalProgress(0)
-    setApexReached(false)
-    setBroken(false)
-    setPhase("canal")
-  }
-
-  const drawCanal = useCallback(() => {
-    const cv = canvasRef.current
-    if (!cv) return
-    const ctxRaw = cv.getContext("2d")
-    if (!ctxRaw) return
-    const ctx = ctxRaw
-    const W = cv.width, H = cv.height
-    const prog = progressRef.current
-    const file = FILES[fileIndex]
-    const cas = selectedCase
-
-    ctx.fillStyle = "#0a0e1a"
-    ctx.fillRect(0, 0, W, H)
-
-    ctx.strokeStyle = "rgba(0,255,150,0.04)"
-    ctx.lineWidth = 1
-    for (let x = 0; x < W; x += 20) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke() }
-    for (let y = 0; y < H; y += 20) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke() }
-
-    if (!cas) return
-
-    const cx = W / 2, rootTop = 60, rootBot = H - 80
-    const rootH = rootBot - rootTop
-
-    const pts: [number, number][] = []
-    const steps = 40
-    for (let i = 0; i <= steps; i++) {
-      const t = i / steps
-      let x = cx
-      if (cas.curvature === "moderate") x += Math.sin(t * Math.PI) * 18
-      if (cas.curvature === "severe")   x += Math.sin(t * Math.PI * 1.5) * 28
-      const y = rootTop + t * rootH
-      pts.push([x, y])
-    }
-
+  function drawChar(ctx:CanvasRenderingContext2D, px:number, py:number, pw:number, ph:number, onG:boolean, right:boolean, fr:number){
+    const leg=onG?Math.sin(fr*0.35)*7:0
     ctx.save()
-    ctx.shadowColor = "rgba(0,255,150,0.3)"
-    ctx.shadowBlur = 12
-    ctx.strokeStyle = "rgba(150,220,180,0.6)"
-    ctx.lineWidth = 28
+    if(!right){ ctx.translate(px*2+pw,0); ctx.scale(-1,1) }
+    // Chokha body (dark red Georgian coat)
+    ctx.fillStyle="#8B0000"
     ctx.beginPath()
-    pts.forEach(([px, py], idx) => idx === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py))
-    ctx.stroke()
+    ctx.moveTo(px+pw*0.5,py+18)
+    ctx.lineTo(px+pw-2,py+22)
+    ctx.lineTo(px+pw,py+ph-14)
+    ctx.lineTo(px,py+ph-14)
+    ctx.lineTo(px+2,py+22)
+    ctx.closePath()
+    ctx.fill()
+    // Chokha chest cartridges (gaziri)
+    ctx.fillStyle="#FFD700"
+    for(let i=0;i<5;i++){
+      ctx.fillRect(px+5+i*4.5,py+24,3,10)
+    }
+    for(let i=0;i<5;i++){
+      ctx.fillRect(px+pw-8-i*4.5,py+24,3,10)
+    }
+    // Sash/belt
+    ctx.fillStyle="#1A237E"
+    ctx.fillRect(px+3,py+ph-18,pw-6,5)
+    // Collar
+    ctx.fillStyle="#B71C1C"
+    ctx.fillRect(px+pw*0.5-5,py+18,10,6)
+    // Head
+    ctx.fillStyle="#FFCC80"
+    ctx.beginPath(); ctx.arc(px+pw*0.5,py+12,11,0,Math.PI*2); ctx.fill()
+    // Papakhi (Georgian fur hat)
+    ctx.fillStyle="#333"
+    ctx.fillRect(px+pw*0.5-11,py+3,22,10)
+    ctx.fillStyle="#555"
+    ctx.beginPath(); ctx.arc(px+pw*0.5,py+3,11,Math.PI,0); ctx.fill()
+    // Hat trim
+    ctx.fillStyle="#888"
+    ctx.fillRect(px+pw*0.5-12,py+5,24,4)
+    // Eyes
+    ctx.fillStyle="#333"
+    ctx.fillRect(px+pw*0.5-4,py+11,3,3)
+    ctx.fillRect(px+pw*0.5+1,py+11,3,3)
+    // Mustache
+    ctx.fillStyle="#5D4037"
+    ctx.fillRect(px+pw*0.5-4,py+16,3,2)
+    ctx.fillRect(px+pw*0.5+1,py+16,3,2)
+    // Legs
+    ctx.fillStyle="#1A237E"
+    ctx.fillRect(px+4,py+ph-14,10,14+(onG?leg:0))
+    ctx.fillRect(px+pw-14,py+ph-14,10,14-(onG?leg:0))
+    // Shoes
+    ctx.fillStyle="#212121"
+    ctx.fillRect(px+2,py+ph-3,13,5)
+    ctx.fillRect(px+pw-15,py+ph-3,13,5)
     ctx.restore()
+  }
 
-    ctx.strokeStyle = "rgba(200,240,220,0.25)"
-    ctx.lineWidth = 8
-    ctx.beginPath()
-    pts.forEach(([px, py], idx) => idx === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py))
-    ctx.stroke()
-
-    ctx.strokeStyle = "#0a0e1a"
-    ctx.lineWidth = 6
-    ctx.beginPath()
-    pts.forEach(([px, py], idx) => idx === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py))
-    ctx.stroke()
-
-    const progSteps = Math.floor(prog * steps)
-    if (progSteps > 0) {
-      const grad = ctx.createLinearGradient(cx, rootTop, cx, rootTop + prog * rootH)
-      grad.addColorStop(0, "rgba(255,200,0,0.8)")
-      grad.addColorStop(1, "rgba(255,100,0,0.4)")
-      ctx.strokeStyle = grad
-      ctx.lineWidth = 3
+  function drawMob(ctx:CanvasRenderingContext2D, m:Mob, cam:number, t:number){
+    if(!m.alive) return
+    const sx=m.x-cam
+    if(sx<-60||sx>CW+60) return
+    const bob=Math.sin(t*0.06)*2
+    // Caries bacteria body
+    ctx.fillStyle="#C62828"
+    ctx.beginPath(); ctx.arc(sx+16,m.y+16+bob,16,0,Math.PI*2); ctx.fill()
+    // Rotating spikes
+    ctx.fillStyle="#B71C1C"
+    for(let i=0;i<8;i++){
+      const a=(i/8)*Math.PI*2+t*0.04
       ctx.beginPath()
-      for (let i = 0; i <= progSteps && i < pts.length; i++) {
-        if (i === 0) ctx.moveTo(pts[i][0], pts[i][1])
-        else ctx.lineTo(pts[i][0], pts[i][1])
-      }
-      ctx.stroke()
+      ctx.moveTo(sx+16+Math.cos(a)*13,m.y+16+bob+Math.sin(a)*13)
+      ctx.lineTo(sx+16+Math.cos(a+0.2)*20,m.y+16+bob+Math.sin(a+0.2)*20)
+      ctx.lineTo(sx+16+Math.cos(a-0.2)*20,m.y+16+bob+Math.sin(a-0.2)*20)
+      ctx.fill()
     }
-
-    if (!brokenRef.current && progSteps < pts.length) {
-      const tip = pts[Math.min(progSteps, pts.length - 1)]
-      const angle = Date.now() / 50
-      ctx.save()
-      ctx.translate(tip[0], tip[1])
-      ctx.rotate(angle)
-      ctx.strokeStyle = file.color
-      ctx.lineWidth = 2
-      ctx.shadowColor = file.color
-      ctx.shadowBlur = 8
-      for (let i = 0; i < 3; i++) {
-        ctx.rotate(Math.PI * 2 / 3)
-        ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, -5); ctx.stroke()
-      }
-      ctx.restore()
-    }
-
-    if (brokenRef.current) {
-      ctx.fillStyle = "#ff0000"
-      ctx.font = "bold 16px monospace"
-      ctx.fillText("FILE SEPARATED!", W / 2 - 70, H / 2)
-    }
-
-    ctx.fillStyle = "rgba(0,0,0,0.5)"
-    ctx.fillRect(W - 30, rootTop, 16, rootH)
-    const depthH = prog * rootH
-    const depthGrad = ctx.createLinearGradient(0, rootTop, 0, rootTop + rootH)
-    depthGrad.addColorStop(0, "#00ff88")
-    depthGrad.addColorStop(0.8, "#ffcc00")
-    depthGrad.addColorStop(1, "#ff4400")
-    ctx.fillStyle = depthGrad
-    ctx.fillRect(W - 30, rootTop + rootH - depthH, 16, depthH)
-    ctx.strokeStyle = "rgba(0,255,150,0.4)"
-    ctx.lineWidth = 1
-    ctx.strokeRect(W - 30, rootTop, 16, rootH)
-
-    ctx.fillStyle = "rgba(0,20,10,0.85)"
-    ctx.strokeStyle = "rgba(0,255,100,0.4)"
-    ctx.lineWidth = 1
-    ctx.fillRect(8, 8, 140, 50)
-    ctx.strokeRect(8, 8, 140, 50)
-    ctx.fillStyle = "rgba(0,255,100,0.6)"
-    ctx.font = "10px monospace"
-    ctx.fillText("APEX LOCATOR", 16, 22)
-    ctx.font = "bold 18px monospace"
-    ctx.fillStyle = prog > 0.92 ? "#00ff44" : prog > 0.75 ? "#ffee00" : "#ff6600"
-    ctx.fillText((prog * cas.wl).toFixed(1) + " / " + cas.wl + "mm", 16, 46)
-  }, [fileIndex, selectedCase])
-
-  useEffect(() => {
-    if (phase !== "canal") { cancelAnimationFrame(animRef.current); return }
-
-    let lastTime = 0
-    function loop(ts: number) {
-      const dt = ts - lastTime; lastTime = ts
-      if (dt < 500 && !brokenRef.current) {
-        const riskFactor = torque > currentFile.maxTorque * 1.2 || rpm > currentFile.rpm * 1.3 ? 0.003 : 0
-        if (Math.random() < riskFactor) {
-          brokenRef.current = true
-          setBroken(true)
-          beep(100, 1, "sawtooth", 0.5)
-        }
-        progressRef.current = Math.min(progressRef.current + 0.0004 * dt, 1)
-        setCanalProgress(progressRef.current)
-        if (progressRef.current >= 1 && !apexReached) {
-          setApexReached(true)
-          beep(880, 0.1)
-          setTimeout(() => beep(1100, 0.15), 120)
-          setTimeout(() => beep(1320, 0.2), 260)
-        }
-      }
-      drawCanal()
-      animRef.current = requestAnimationFrame(loop)
-    }
-    animRef.current = requestAnimationFrame(loop)
-    return () => cancelAnimationFrame(animRef.current)
-  }, [phase, drawCanal, torque, rpm, currentFile, apexReached])
-
-  function finishCanal() {
-    cancelAnimationFrame(animRef.current)
-    if (broken) {
-      setMistakes(m => m + 2)
-      setFileScores(fs => [...fs, 0])
-    } else if (apexReached) {
-      const s = Math.max(10, 30 - mistakes * 5)
-      setScore(sc => sc + s)
-      setFileScores(fs => [...fs, s])
-    }
-    setPhase("rinse")
+    // Angry eyes
+    ctx.fillStyle="#FF5252"
+    ctx.beginPath(); ctx.arc(sx+10,m.y+13+bob,4,0,Math.PI*2); ctx.fill()
+    ctx.beginPath(); ctx.arc(sx+22,m.y+13+bob,4,0,Math.PI*2); ctx.fill()
+    ctx.fillStyle="#000"
+    ctx.beginPath(); ctx.arc(sx+11,m.y+14+bob,2,0,Math.PI*2); ctx.fill()
+    ctx.beginPath(); ctx.arc(sx+23,m.y+14+bob,2,0,Math.PI*2); ctx.fill()
+    // Angry brows
+    ctx.strokeStyle="#000"; ctx.lineWidth=2
+    ctx.beginPath(); ctx.moveTo(sx+7,m.y+9+bob); ctx.lineTo(sx+13,m.y+11+bob); ctx.stroke()
+    ctx.beginPath(); ctx.moveTo(sx+25,m.y+9+bob); ctx.lineTo(sx+19,m.y+11+bob); ctx.stroke()
+    // Mouth
+    ctx.beginPath(); ctx.arc(sx+16,m.y+20+bob,5,0.2,Math.PI-0.2); ctx.stroke()
   }
 
-  function nextFile() {
-    if (fileIndex + 1 >= FILES.length) {
-      setPhase("result")
+  function drawGem(ctx:CanvasRenderingContext2D, g:Gem, cam:number, t:number){
+    if(g.got) return
+    const sx=g.x-cam
+    if(sx<-20||sx>CW+20) return
+    const bob=Math.sin(t*0.06+g.x*0.01)*4
+    const y=g.y+bob
+    // Tooth shape
+    ctx.fillStyle="#FFFDE7"
+    ctx.strokeStyle="#F9A825"; ctx.lineWidth=1.5
+    ctx.beginPath()
+    ctx.arc(sx,y,9,Math.PI,0)
+    ctx.lineTo(sx+9,y+6)
+    ctx.lineTo(sx+5,y+14)
+    ctx.lineTo(sx-5,y+14)
+    ctx.lineTo(sx-9,y+6)
+    ctx.closePath()
+    ctx.fill(); ctx.stroke()
+    ctx.fillStyle="rgba(255,255,255,0.7)"
+    ctx.beginPath(); ctx.arc(sx-3,y-3,3,0,Math.PI*2); ctx.fill()
+  }
+
+  function drawHUD(ctx:CanvasRenderingContext2D, score:number, lives:number){
+    ctx.fillStyle="rgba(0,0,0,0.45)"
+    ctx.fillRect(8,8,180,36)
+    ctx.fillStyle="#FFD700"; ctx.font="bold 15px Arial"
+    ctx.fillText("კბილი x"+score,18,28)
+    ctx.fillStyle="#FF5252"; ctx.font="bold 15px Arial"
+    ctx.fillText("H:"+lives,150,28)
+  }
+
+  function drawOverlay(ctx:CanvasRenderingContext2D, status:string, score:number){
+    ctx.fillStyle="rgba(0,0,0,0.65)"
+    ctx.fillRect(0,0,CW,CH)
+    if(status==="win"){
+      ctx.fillStyle="#FFD700"; ctx.font="bold 46px Arial"; ctx.textAlign="center"
+      ctx.fillText("გამარჯვება!",CW/2,CH/2-40)
+      ctx.fillStyle="#fff"; ctx.font="bold 24px Arial"
+      ctx.fillText("ქულა: "+score+" კბილი",CW/2,CH/2+10)
+      ctx.fillStyle="#A5D6A7"; ctx.font="18px Arial"
+      ctx.fillText("სტომატოლოგი გმირია!",CW/2,CH/2+50)
     } else {
-      setFileIndex(i => i + 1)
-      progressRef.current = 0
-      brokenRef.current = false
-      setCanalProgress(0)
-      setApexReached(false)
-      setBroken(false)
-      goFilePick()
+      ctx.fillStyle="#EF5350"; ctx.font="bold 46px Arial"; ctx.textAlign="center"
+      ctx.fillText("თავიდან!",CW/2,CH/2-40)
+      ctx.fillStyle="#fff"; ctx.font="bold 24px Arial"
+      ctx.fillText("ქულა: "+score,CW/2,CH/2+10)
     }
+    ctx.fillStyle="rgba(255,255,255,0.7)"; ctx.font="18px Arial"
+    ctx.fillText("R — რესტარტი",CW/2,CH/2+85)
+    ctx.textAlign="left"
   }
 
-  const st: Record<string, React.CSSProperties> = {
-    page: { minHeight: "100vh", background: "#060a14", color: "#e0ffe0", fontFamily: "monospace", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "20px" },
-    card: { background: "rgba(0,20,10,0.9)", border: "1px solid rgba(0,255,100,0.3)", borderRadius: "12px", padding: "32px", maxWidth: "680px", width: "100%", boxShadow: "0 0 40px rgba(0,255,100,0.08)" },
-    title: { fontSize: "26px", fontWeight: "bold", color: "#00ff88", marginBottom: "8px", textShadow: "0 0 20px rgba(0,255,136,0.5)" },
-    sub: { fontSize: "13px", color: "rgba(0,255,100,0.6)", marginBottom: "24px" },
-    btn: { background: "linear-gradient(135deg,#00cc66,#008844)", color: "#fff", border: "none", borderRadius: "8px", padding: "12px 28px", fontSize: "15px", fontWeight: "bold", cursor: "pointer", fontFamily: "monospace" },
-    btnGray: { background: "rgba(50,80,60,0.6)", color: "#aaffcc", border: "1px solid rgba(0,255,100,0.2)", borderRadius: "8px", padding: "12px 28px", fontSize: "14px", cursor: "pointer", fontFamily: "monospace" },
-    row: { display: "flex", gap: "12px", flexWrap: "wrap" },
-    label: { fontSize: "12px", color: "rgba(0,255,100,0.5)", marginBottom: "4px" },
-    val: { fontSize: "22px", fontWeight: "bold", color: "#00ff88" },
-    sep: { height: "1px", background: "rgba(0,255,100,0.15)", margin: "20px 0" },
-  }
+  useEffect(()=>{
+    const canvas=ref.current; if(!canvas) return
+    const ctx=canvas.getContext("2d")!
 
-  if (phase === "start") return (
-    <div style={st.page}>
-      <div style={st.card}>
-        <div style={{ textAlign: "center", marginBottom: "32px" }}>
-          <div style={{ fontSize: "13px", color: "rgba(0,255,100,0.5)", marginBottom: "8px", letterSpacing: "3px" }}>EIGHTEETH</div>
-          <div style={{ ...st.title, fontSize: "32px" }}>E-Connect Pro</div>
-          <div style={{ fontSize: "14px", color: "rgba(0,255,100,0.6)", marginTop: "4px" }}>ენდოდონტიური სიმულატორი</div>
-          <div style={st.sep} />
-          <div style={{ display: "flex", justifyContent: "center", gap: "32px", marginBottom: "24px" }}>
-            {["RODIN NiTi", "Apex Locator", "Auto Torque"].map(f => (
-              <div key={f} style={{ textAlign: "center" }}>
-                <div style={{ width: "40px", height: "40px", borderRadius: "50%", background: "rgba(0,255,100,0.1)", border: "1px solid rgba(0,255,100,0.3)", margin: "0 auto 6px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "18px" }}>+</div>
-                <div style={{ fontSize: "11px", color: "rgba(0,255,100,0.6)" }}>{f}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-        <div style={{ fontSize: "13px", color: "rgba(0,255,100,0.6)", marginBottom: "24px", lineHeight: "1.8" }}>
-          სკოლა, პრაქტიკა, RODIN NiTi სისტემა. 5 კლინიკური ქეისი. სწორი ფაილი, სწორი პარამეტრი, სწორი ტექნიკა.
-        </div>
-        <div style={{ textAlign: "center" }}>
-          <button style={st.btn} onClick={() => setPhase("cases")}>დაწყება</button>
-        </div>
+    function onKey(e:KeyboardEvent,down:boolean){
+      G.current.keys[e.key]=down
+      if(down&&(e.key==="r"||e.key==="R")&&G.current.status!=="play") restart()
+      if([" ","ArrowUp","ArrowLeft","ArrowRight","ArrowDown"].includes(e.key)) e.preventDefault()
+    }
+
+    function restart(){
+      G.current.px=60; G.current.py=100; G.current.pvx=0; G.current.pvy=0
+      G.current.cam=0; G.current.score=0; G.current.lives=3; G.current.fr=0; G.current.ft=0
+      G.current.mobs=INIT_MOBS.map(m=>({...m}))
+      G.current.gems=makeGems()
+      G.current.status="play"
+      setUi({score:0,lives:3,status:"play"})
+      cancelAnimationFrame(anim.current)
+      anim.current=requestAnimationFrame(loop)
+    }
+
+    let lastT=0
+    function loop(ts:number){
+      const dt=Math.min(ts-lastT,33); lastT=ts
+      const s=G.current
+      if(s.status!=="play"){
+        const ctx2=canvas.getContext("2d")!
+        sky(ctx2); mountains(ctx2,s.cam); churches(ctx2,s.cam); clouds(ctx2,s.cam); sun(ctx2)
+        for(const p of PLATS) drawPlat(ctx2,p,s.cam)
+        for(const g of s.gems) drawGem(ctx2,g,s.cam,s.t)
+        for(const m of s.mobs) drawMob(ctx2,m,s.cam,s.t)
+        drawChar(ctx2,s.px-s.cam,s.py,s.pw,s.ph,s.onG,s.right,s.fr)
+        drawHUD(ctx2,s.score,s.lives)
+        drawOverlay(ctx2,s.status,s.score)
+        return
+      }
+
+      s.t++
+
+      // Input
+      const L=s.keys["ArrowLeft"]||s.keys["a"]||s.keys["A"]
+      const R=s.keys["ArrowRight"]||s.keys["d"]||s.keys["D"]
+      const J=s.keys["ArrowUp"]||s.keys[" "]||s.keys["w"]||s.keys["W"]
+
+      if(L){s.pvx=-SPD; s.right=false}
+      else if(R){s.pvx=SPD; s.right=true}
+      else s.pvx*=0.65
+
+      if(J&&s.onG){s.pvy=JUMP; s.onG=false}
+
+      s.pvy+=GRAV
+      s.px+=s.pvx
+      s.py+=s.pvy
+
+      if(s.px<0){s.px=0; s.pvx=0}
+      if(s.px>LW-s.pw){s.px=LW-s.pw}
+
+      // Platform collision
+      s.onG=false
+      for(const p of PLATS){
+        if(!overlap(s.px,s.py,s.pw,s.ph,p.x,p.y,p.w,p.h)) continue
+        const wasAbove=s.pvy>0&&s.py+s.ph-s.pvy<=p.y+8
+        if(wasAbove){
+          s.py=p.y-s.ph; s.pvy=0; s.onG=true
+          if(p.lbl==="FINISH"){s.status="win"; setUi(u=>({...u,status:"win"}))}
+        } else if(s.pvx>0&&s.px+s.pw-s.pvx<=p.x+6){s.px=p.x-s.pw; s.pvx=0}
+        else if(s.pvx<0&&s.px-s.pvx>=p.x+p.w-6){s.px=p.x+p.w; s.pvx=0}
+        else{s.py=p.y+p.h; s.pvy=0}
+      }
+
+      // Fall death
+      if(s.py>CH+120){
+        s.lives--; setUi(u=>({...u,lives:s.lives}))
+        if(s.lives<=0){s.status="over"; setUi(u=>({...u,status:"over"})); return}
+        s.px=Math.max(60,s.cam); s.py=100; s.pvx=0; s.pvy=0
+      }
+
+      // Mob update
+      for(const m of s.mobs){
+        if(!m.alive) continue
+        m.x+=m.vx
+        if(m.x<10||m.x>LW-50) m.vx*=-1
+        for(const p of PLATS){
+          if(!p.lbl) continue
+          if(overlap(m.x,m.y,m.w,m.h,p.x,p.y,p.w,p.h)) m.vx*=-1
+        }
+        // Stomp
+        const stomp=s.pvy>0&&overlap(s.px+2,s.py+s.ph-8,s.pw-4,12,m.x+4,m.y,m.w-8,8)
+        if(stomp){
+          m.alive=false; s.pvy=JUMP*0.55; s.score+=100
+          setUi(u=>({...u,score:s.score}))
+        } else if(overlap(s.px,s.py,s.pw,s.ph,m.x,m.y,m.w,m.h)){
+          s.lives--; setUi(u=>({...u,lives:s.lives}))
+          if(s.lives<=0){s.status="over"; setUi(u=>({...u,status:"over"})); return}
+          s.px=Math.max(60,s.cam); s.py=100; s.pvx=0; s.pvy=JUMP*0.4
+        }
+      }
+
+      // Gems
+      for(const g of s.gems){
+        if(!g.got&&overlap(s.px,s.py,s.pw,s.ph,g.x-10,g.y-2,20,18)){
+          g.got=true; s.score+=10; setUi(u=>({...u,score:s.score}))
+        }
+      }
+
+      // Camera
+      const tgt=s.px-CW/3
+      s.cam=Math.max(0,Math.min(tgt,LW-CW))
+
+      // Anim frame
+      s.ft++; if(s.ft>5){s.fr++; s.ft=0}
+
+      // Draw
+      sky(ctx); sun(ctx); clouds(ctx,s.cam); mountains(ctx,s.cam); churches(ctx,s.cam)
+      for(const p of PLATS) drawPlat(ctx,p,s.cam)
+      for(const g of s.gems) drawGem(ctx,g,s.cam,s.t)
+      for(const m of s.mobs) drawMob(ctx,m,s.cam,s.t)
+      drawChar(ctx,s.px-s.cam,s.py,s.pw,s.ph,s.onG,s.right,s.fr)
+      drawHUD(ctx,s.score,s.lives)
+
+      anim.current=requestAnimationFrame(loop)
+    }
+
+    window.addEventListener("keydown",e=>onKey(e,true))
+    window.addEventListener("keyup",e=>onKey(e,false))
+    anim.current=requestAnimationFrame(loop)
+    return()=>{
+      cancelAnimationFrame(anim.current)
+      window.removeEventListener("keydown",e=>onKey(e,true))
+      window.removeEventListener("keyup",e=>onKey(e,false))
+    }
+  },[])
+
+  return (
+    <div style={{minHeight:"100vh",background:"#1a1a2e",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",fontFamily:"monospace"}}>
+      <div style={{marginBottom:"10px",color:"#FFD700",fontSize:"18px",fontWeight:"bold",letterSpacing:"2px"}}>
+        EIGHTEETH GEORGIA — Medical Line
+      </div>
+      <div style={{position:"relative"}}>
+        <canvas ref={ref} width={CW} height={CH} style={{display:"block",borderRadius:"10px",border:"3px solid #333",boxShadow:"0 0 40px rgba(0,0,0,0.8)"}} />
+      </div>
+      <div style={{marginTop:"12px",color:"rgba(255,255,255,0.5)",fontSize:"12px",display:"flex",gap:"24px"}}>
+        <span>← → გადაადგილება</span>
+        <span>↑ / Space — ხტუნვა</span>
+        <span>ბაქტერიებზე დახტი!</span>
+        <span>კბილები — ქულები</span>
       </div>
     </div>
   )
-
-  if (phase === "cases") return (
-    <div style={st.page}>
-      <div style={st.card}>
-        <div style={st.title}>ქეისის არჩევა</div>
-        <div style={st.sub}>აირჩიეთ კლინიკური სიტუაცია</div>
-        <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-          {CASES.map(c => (
-            <button key={c.id} onClick={() => startCase(c)} style={{ background: "rgba(0,30,15,0.8)", border: "1px solid rgba(0,255,100,0.2)", borderRadius: "10px", padding: "16px", cursor: "pointer", textAlign: "left", fontFamily: "monospace" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "6px" }}>
-                <span style={{ color: "#00ff88", fontWeight: "bold", fontSize: "16px" }}>{c.tooth} - {c.diagnosis}</span>
-                <span style={{ color: "rgba(0,255,100,0.5)", fontSize: "12px" }}>{"*".repeat(c.difficulty)}{".".repeat(5 - c.difficulty)}</span>
-              </div>
-              <div style={{ fontSize: "12px", color: "rgba(0,255,100,0.6)", lineHeight: "1.6" }}>{c.desc}</div>
-              <div style={{ fontSize: "11px", color: "rgba(0,255,100,0.4)", marginTop: "6px" }}>WL: {c.wl}mm | {c.canals} arxi | {c.curvature === "straight" ? "pirdapiri" : c.curvature === "moderate" ? "zomieri" : "mdzime"}</div>
-            </button>
-          ))}
-        </div>
-      </div>
-    </div>
-  )
-
-  if (phase === "brief" && selectedCase) return (
-    <div style={st.page}>
-      <div style={st.card}>
-        <div style={{ fontSize: "12px", color: "rgba(0,255,100,0.5)", marginBottom: "4px" }}>კლინიკური ბრიფინგი</div>
-        <div style={st.title}>{selectedCase.tooth} - {selectedCase.diagnosis}</div>
-        <div style={st.sep} />
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", marginBottom: "24px" }}>
-          {[
-            ["კბილი", selectedCase.tooth],
-            ["სამუშაო სიგრძე", selectedCase.wl + "mm"],
-            ["არხების რაოდენობა", selectedCase.canals.toString()],
-            ["მოხრილობა", selectedCase.curvature === "straight" ? "პირდაპირი" : selectedCase.curvature === "moderate" ? "ზომიერი" : "მძიმე"],
-            ["სირთულე", "*".repeat(selectedCase.difficulty)],
-            ["ფაილ სისტემა", "RODIN NiTi"],
-          ].map(([l, v]) => (
-            <div key={l} style={{ background: "rgba(0,20,10,0.6)", border: "1px solid rgba(0,255,100,0.15)", borderRadius: "8px", padding: "12px" }}>
-              <div style={st.label}>{l}</div>
-              <div style={{ ...st.val, fontSize: "16px" }}>{v}</div>
-            </div>
-          ))}
-        </div>
-        <div style={{ fontSize: "13px", color: "rgba(0,255,100,0.7)", lineHeight: "1.8", marginBottom: "24px" }}>{selectedCase.desc}</div>
-        <div style={{ fontSize: "12px", color: "rgba(0,255,100,0.5)", marginBottom: "20px" }}>
-          გამოიყენეთ RODIN NiTi სრული სეკვენცია: GP - S1 - S2 - F1 - F2 - F3
-        </div>
-        <div style={st.row}>
-          <button style={st.btn} onClick={goFilePick}>ოპერაციის დაწყება</button>
-          <button style={st.btnGray} onClick={() => setPhase("cases")}>უკან</button>
-        </div>
-      </div>
-    </div>
-  )
-
-  if (phase === "file_pick") return (
-    <div style={{ ...st.page, ...(shake ? { animation: "shake 0.4s" } : {}) }}>
-      <style>{"@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}"}</style>
-      <div style={st.card}>
-        <div style={{ fontSize: "12px", color: "rgba(0,255,100,0.5)", marginBottom: "4px" }}>ნაბიჯი {fileIndex + 1} / {FILES.length} - ფაილის არჩევა</div>
-        <div style={st.title}>რომელი ფაილია შემდეგი?</div>
-        <div style={st.sub}>RODIN NiTi - {currentFile.name} ({currentFile.size}/{currentFile.taper})</div>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px", marginBottom: "24px" }}>
-          {fileChoices.map(f => (
-            <button key={f.id} onClick={() => pickFile(f)} style={{
-              background: chosenFile?.id === f.id ? (f.id === FILES[fileIndex].id ? "rgba(0,80,40,0.9)" : "rgba(80,0,0,0.9)") : "rgba(0,20,10,0.8)",
-              border: `2px solid ${chosenFile?.id === f.id ? (f.id === FILES[fileIndex].id ? "#00ff88" : "#ff4444") : "rgba(0,255,100,0.2)"}`,
-              borderRadius: "10px", padding: "16px", cursor: "pointer", fontFamily: "monospace", textAlign: "left"
-            }}>
-              <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "8px" }}>
-                <div style={{ width: "14px", height: "14px", borderRadius: "50%", background: f.color, boxShadow: `0 0 8px ${f.color}` }} />
-                <span style={{ color: "#00ff88", fontWeight: "bold", fontSize: "18px" }}>{f.name}</span>
-              </div>
-              <div style={{ fontSize: "11px", color: "rgba(0,255,100,0.6)" }}>#{f.size} / {f.taper}</div>
-              <div style={{ fontSize: "11px", color: "rgba(0,255,100,0.5)" }}>{f.maxTorque}Ncm | {f.rpm}RPM</div>
-            </button>
-          ))}
-        </div>
-        <div style={st.row}>
-          <button style={st.btn} onClick={confirmFile}>დადასტურება</button>
-          {mistakes > 0 && <span style={{ color: "#ff6666", fontSize: "13px", alignSelf: "center" }}>შეცდომები: {mistakes}</span>}
-        </div>
-      </div>
-    </div>
-  )
-
-  if (phase === "device" && chosenFile) return (
-    <div style={st.page}>
-      <div style={st.card}>
-        <div style={{ fontSize: "12px", color: "rgba(0,255,100,0.5)", marginBottom: "4px" }}>E-Connect Pro - პარამეტრების დაყენება</div>
-        <div style={st.title}>{currentFile.name} - {currentFile.size}/{currentFile.taper}</div>
-        <div style={st.sep} />
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px", marginBottom: "28px" }}>
-          <div>
-            <div style={st.label}>TORQUE (Ncm)</div>
-            <div style={{ ...st.val, color: Math.abs(torque - currentFile.maxTorque) <= 0.3 ? "#00ff88" : "#ff6666" }}>{torque.toFixed(1)}</div>
-            <input type="range" min="0.5" max="4.0" step="0.1" value={torque} onChange={e => setTorque(Number(e.target.value))} style={{ width: "100%", marginTop: "8px", accentColor: "#00ff88" }} />
-            <div style={{ fontSize: "11px", color: "rgba(0,255,100,0.4)", marginTop: "4px" }}>სწორი: {currentFile.maxTorque.toFixed(1)} Ncm</div>
-          </div>
-          <div>
-            <div style={st.label}>SPEED (RPM)</div>
-            <div style={{ ...st.val, color: Math.abs(rpm - currentFile.rpm) <= 50 ? "#00ff88" : "#ff6666" }}>{rpm}</div>
-            <input type="range" min="100" max="600" step="10" value={rpm} onChange={e => setRpm(Number(e.target.value))} style={{ width: "100%", marginTop: "8px", accentColor: "#00ff88" }} />
-            <div style={{ fontSize: "11px", color: "rgba(0,255,100,0.4)", marginTop: "4px" }}>სწორი: {currentFile.rpm} RPM</div>
-          </div>
-        </div>
-        <div style={{ background: "rgba(0,20,10,0.6)", border: "1px solid rgba(0,255,100,0.15)", borderRadius: "8px", padding: "12px", marginBottom: "20px", fontSize: "12px", color: "rgba(0,255,100,0.6)" }}>
-          {deviceOk ? "პარამეტრები სწორია - მზადაა!" : "პარამეტრები დააყენეთ ფაილის სპეციფიკაციის მიხედვით"}
-        </div>
-        <div style={st.row}>
-          <button style={st.btn} onClick={deviceOk ? startCanal : checkDevice}>{deviceOk ? "არხის დამუშავება" : "შემოწმება"}</button>
-        </div>
-      </div>
-    </div>
-  )
-
-  if (phase === "canal") return (
-    <div style={st.page}>
-      <div style={st.card}>
-        <div style={{ fontSize: "12px", color: "rgba(0,255,100,0.5)", marginBottom: "8px" }}>
-          {currentFile.name} - კანალის ინსტრუმენტირება
-        </div>
-        <canvas ref={canvasRef} width={560} height={400} style={{ width: "100%", borderRadius: "8px", border: "1px solid rgba(0,255,100,0.2)", display: "block" }} />
-        <div style={{ display: "flex", gap: "16px", marginTop: "16px", fontSize: "13px" }}>
-          <span style={{ color: apexReached ? "#00ff88" : "rgba(0,255,100,0.5)" }}>
-            {apexReached ? "Apex მიღწეული!" : broken ? "ფაილი მოტყდა!" : `${(canalProgress * (selectedCase?.wl || 20)).toFixed(1)}mm / ${selectedCase?.wl}mm`}
-          </span>
-          <span style={{ marginLeft: "auto", color: broken ? "#ff4444" : "rgba(0,255,100,0.5)" }}>
-            {broken ? "FILE SEPARATED" : `${Math.round(canalProgress * 100)}%`}
-          </span>
-        </div>
-        {(apexReached || broken) && (
-          <div style={{ marginTop: "16px" }}>
-            <button style={st.btn} onClick={finishCanal}>
-              {broken ? "შემდეგი (ფაილი მოტყდა)" : "ზემრეცხვა"}
-            </button>
-          </div>
-        )}
-      </div>
-    </div>
-  )
-
-  if (phase === "rinse") return (
-    <div style={st.page}>
-      <div style={st.card}>
-        <div style={st.title}>ირიგაცია</div>
-        <div style={st.sep} />
-        <div style={{ fontSize: "13px", color: "rgba(0,255,100,0.7)", lineHeight: "2", marginBottom: "20px" }}>
-          <div>5.25% NaOCl - 2ml</div>
-          <div>17% EDTA - 1ml</div>
-          <div>გამოვლება - 2ml</div>
-          <div style={{ marginTop: "8px", fontSize: "11px", color: "rgba(0,255,100,0.4)" }}>
-            ფაილი: {currentFile.name} | {broken ? "მოტყდა" : apexReached ? "WL მიღწეული" : ""}
-          </div>
-        </div>
-        <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
-          {fileScores.map((s, i) => (
-            <div key={i} style={{ background: s > 0 ? "rgba(0,60,30,0.8)" : "rgba(60,0,0,0.8)", border: `1px solid ${s > 0 ? "rgba(0,255,100,0.3)" : "rgba(255,0,0,0.3)"}`, borderRadius: "6px", padding: "6px 12px", fontSize: "12px", color: s > 0 ? "#00ff88" : "#ff4444" }}>
-              {FILES[i].name}: {s > 0 ? "+" + s : "0"}
-            </div>
-          ))}
-        </div>
-        <div style={{ marginTop: "24px" }}>
-          <button style={st.btn} onClick={nextFile}>
-            {fileIndex + 1 >= FILES.length ? "შედეგები" : `${FILES[fileIndex + 1].name} ფაილი`}
-          </button>
-        </div>
-      </div>
-    </div>
-  )
-
-  if (phase === "result") return (
-    <div style={st.page}>
-      <div style={st.card}>
-        <div style={{ textAlign: "center" }}>
-          <div style={{ fontSize: "13px", color: "rgba(0,255,100,0.5)", marginBottom: "8px", letterSpacing: "2px" }}>EIGHTEETH E-CONNECT PRO</div>
-          <div style={st.title}>ოპერაცია დასრულდა</div>
-          <div style={{ fontSize: "48px", fontWeight: "bold", color: score >= 120 ? "#00ff88" : score >= 80 ? "#ffee00" : "#ff6666", margin: "20px 0" }}>
-            {score}
-          </div>
-          <div style={{ fontSize: "14px", color: score >= 120 ? "#00ff88" : score >= 80 ? "#ffee00" : "#ff6666", marginBottom: "24px" }}>
-            {score >= 120 ? "ენდოდონტისტი" : score >= 80 ? "კარგი პრაქტიკა" : "მეტი ვარჯიში საჭიროა"}
-          </div>
-        </div>
-        <div style={st.sep} />
-        <div style={{ marginBottom: "20px" }}>
-          {fileScores.map((s, i) => (
-            <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: "1px solid rgba(0,255,100,0.1)", fontSize: "13px" }}>
-              <span style={{ color: "rgba(0,255,100,0.7)" }}>{FILES[i].name} ({FILES[i].size}/{FILES[i].taper})</span>
-              <span style={{ color: s > 0 ? "#00ff88" : "#ff4444", fontWeight: "bold" }}>{s > 0 ? "+" + s : "0 (broken)"}</span>
-            </div>
-          ))}
-          <div style={{ display: "flex", justifyContent: "space-between", padding: "10px 0", fontSize: "14px", fontWeight: "bold" }}>
-            <span style={{ color: "rgba(0,255,100,0.7)" }}>შეცდომები</span>
-            <span style={{ color: mistakes > 3 ? "#ff4444" : "#ffee00" }}>-{mistakes * 3}</span>
-          </div>
-        </div>
-        <div style={{ textAlign: "center" }}>
-          <button style={st.btn} onClick={() => { setPhase("cases"); setScore(0); setMistakes(0); setFileScores([]); setFileIndex(0) }}>ახალი ქეისი</button>
-        </div>
-      </div>
-    </div>
-  )
-
-  return null
 }
