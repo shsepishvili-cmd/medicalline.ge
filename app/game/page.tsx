@@ -179,20 +179,131 @@ export default function Page() {
       ctx.beginPath(); ctx.moveTo(sx+p.w-27,p.y-55); ctx.lineTo(sx+p.w-5,p.y-43); ctx.lineTo(sx+p.w-27,p.y-31); ctx.fill()
       return
     }
-    // Equipment platform
+    // Equipment platform base
     const g=ctx.createLinearGradient(sx,p.y,sx,p.y+p.h)
-    g.addColorStop(0,p.col); g.addColorStop(1,"#111")
+    g.addColorStop(0,p.col+"cc"); g.addColorStop(1,"#111a")
     ctx.fillStyle=g; ctx.fillRect(sx,p.y,p.w,p.h)
-    ctx.strokeStyle="rgba(255,255,255,0.25)"; ctx.lineWidth=1
+    ctx.strokeStyle="rgba(255,255,255,0.3)"; ctx.lineWidth=1
     ctx.strokeRect(sx+0.5,p.y+0.5,p.w-1,p.h-1)
-    // Screen glow
-    ctx.fillStyle="rgba(255,255,255,0.08)"
-    ctx.fillRect(sx+4,p.y+3,p.w-8,10)
-    ctx.fillStyle="rgba(255,255,255,0.75)"; ctx.font="bold 8px Arial"
-    ctx.fillText(p.lbl,sx+5,p.y+13)
-    // 18teeth logo dot
-    ctx.fillStyle="#fff"
-    ctx.beginPath(); ctx.arc(sx+p.w-8,p.y+11,4,0,Math.PI*2); ctx.fill()
+    // Label
+    ctx.fillStyle="rgba(255,255,255,0.9)"; ctx.font="bold 8px Arial"
+    ctx.fillText(p.lbl,sx+4,p.y+14)
+
+    // Draw cartoon device on top of platform
+    const mx=sx+p.w/2, my=p.y
+    if(p.lbl==="E-Connect Pro"){
+      // Black box endomotor cartoon — friendly version (on platform = ally)
+      ctx.fillStyle="#1a1a1a"
+      ctx.strokeStyle="#333"; ctx.lineWidth=1
+      ctx.beginPath(); ctx.roundRect(mx-16,my-32,32,28,4); ctx.fill(); ctx.stroke()
+      // Screen
+      ctx.fillStyle="#003322"
+      ctx.beginPath(); ctx.roundRect(mx-12,my-30,24,14,2); ctx.fill()
+      ctx.fillStyle="#00ffaa"; ctx.font="bold 7px Arial"
+      ctx.fillText("250rpm",mx-10,my-20)
+      // Buttons
+      ctx.fillStyle="#1E88E5"; ctx.beginPath(); ctx.arc(mx-7,my-10,3,0,Math.PI*2); ctx.fill()
+      ctx.fillStyle="#43A047"; ctx.beginPath(); ctx.arc(mx,my-10,3,0,Math.PI*2); ctx.fill()
+      ctx.fillStyle="#E53935"; ctx.beginPath(); ctx.arc(mx+7,my-10,3,0,Math.PI*2); ctx.fill()
+      // Handpiece cord coming down
+      ctx.strokeStyle="#555"; ctx.lineWidth=2
+      ctx.beginPath(); ctx.moveTo(mx+16,my-20); ctx.bezierCurveTo(mx+26,my-20,mx+24,my-6,mx+20,my-4); ctx.stroke()
+      // Handpiece tip
+      ctx.fillStyle="#888"
+      ctx.beginPath(); ctx.roundRect(mx+18,my-6,4,8,2); ctx.fill()
+      ctx.fillStyle="#1E88E5"
+      ctx.beginPath(); ctx.roundRect(mx+19,my,2,5,1); ctx.fill()
+      // Cute face on screen
+      ctx.fillStyle="#00ffaa"
+      ctx.beginPath(); ctx.arc(mx-5,my-24,2,0,Math.PI*2); ctx.fill()
+      ctx.beginPath(); ctx.arc(mx+5,my-24,2,0,Math.PI*2); ctx.fill()
+      ctx.beginPath(); ctx.arc(mx,my-20,3,0,Math.PI); ctx.stroke()
+    } else if(p.lbl==="RODIN NiTi"){
+      // Eflex Blue endofile cartoon — the blue rotating file
+      // File holder/stand
+      ctx.fillStyle="#37474F"
+      ctx.beginPath(); ctx.roundRect(mx-14,my-22,28,18,4); ctx.fill()
+      // File slots
+      for(let i=0;i<5;i++){
+        const fx=mx-10+i*5
+        // File shaft
+        ctx.strokeStyle="#90CAF9"; ctx.lineWidth=2
+        ctx.beginPath(); ctx.moveTo(fx,my-22); ctx.lineTo(fx,my-38); ctx.stroke()
+        // File tip (tapered)
+        ctx.strokeStyle="#1565C0"; ctx.lineWidth=1
+        ctx.beginPath(); ctx.moveTo(fx,my-38); ctx.lineTo(fx,my-46); ctx.stroke()
+        // Blue glow tip
+        ctx.fillStyle="#1E88E5"
+        ctx.beginPath(); ctx.arc(fx,my-46,2,0,Math.PI*2); ctx.fill()
+        ctx.fillStyle="rgba(30,136,229,0.3)"
+        ctx.beginPath(); ctx.arc(fx,my-46,5,0,Math.PI*2); ctx.fill()
+      }
+      // Label on box
+      ctx.fillStyle="#90CAF9"; ctx.font="bold 6px Arial"
+      ctx.fillText("RODIN",mx-10,my-11)
+      ctx.fillStyle="#fff"; ctx.font="5px Arial"
+      ctx.fillText("NiTi",mx-6,my-5)
+    } else if(p.lbl==="3D Scanner"){
+      // Intraoral scanner cartoon
+      ctx.fillStyle="#E3F2FD"
+      ctx.strokeStyle="#90CAF9"; ctx.lineWidth=1.5
+      ctx.beginPath(); ctx.roundRect(mx-10,my-28,20,14,4); ctx.fill(); ctx.stroke()
+      // Scanner handle
+      ctx.fillStyle="#1565C0"
+      ctx.beginPath(); ctx.roundRect(mx-5,my-14,10,14,3); ctx.fill()
+      // Scanning beam
+      ctx.fillStyle="rgba(30,136,229,0.15)"
+      ctx.beginPath()
+      ctx.moveTo(mx-14,my-28)
+      ctx.lineTo(mx-22,my-42)
+      ctx.lineTo(mx+22,my-42)
+      ctx.lineTo(mx+14,my-28)
+      ctx.closePath(); ctx.fill()
+      ctx.strokeStyle="rgba(30,136,229,0.5)"; ctx.lineWidth=1
+      ctx.stroke()
+      // Scan lines
+      ctx.strokeStyle="#1E88E5"; ctx.lineWidth=0.5
+      for(let i=0;i<4;i++){
+        const ly=my-42+i*4
+        ctx.beginPath(); ctx.moveTo(mx-18,ly); ctx.lineTo(mx+18,ly); ctx.stroke()
+      }
+      // Lens
+      ctx.fillStyle="#0D47A1"
+      ctx.beginPath(); ctx.ellipse(mx,my-24,4,3,0,0,Math.PI*2); ctx.fill()
+      ctx.fillStyle="rgba(255,255,255,0.5)"
+      ctx.beginPath(); ctx.arc(mx-1,my-25,1.5,0,Math.PI*2); ctx.fill()
+    } else if(p.lbl==="X-Ray Pro"){
+      // X-Ray machine cartoon
+      ctx.fillStyle="#37474F"
+      ctx.strokeStyle="#546E7A"; ctx.lineWidth=1
+      ctx.beginPath(); ctx.roundRect(mx-12,my-34,24,20,4); ctx.fill(); ctx.stroke()
+      // X-Ray indicator
+      ctx.fillStyle="#FFF9C4"
+      ctx.fillRect(mx-8,my-30,16,8)
+      ctx.fillStyle="#F57F17"; ctx.font="bold 7px Arial"
+      ctx.fillText("X-RAY",mx-9,my-24)
+      // Arm
+      ctx.strokeStyle="#455A64"; ctx.lineWidth=3
+      ctx.beginPath(); ctx.moveTo(mx,my-14); ctx.lineTo(mx,my-6); ctx.stroke()
+      // Emitter cone
+      ctx.fillStyle="#263238"
+      ctx.beginPath()
+      ctx.moveTo(mx-10,my-6)
+      ctx.lineTo(mx+10,my-6)
+      ctx.lineTo(mx+14,my)
+      ctx.lineTo(mx-14,my)
+      ctx.closePath(); ctx.fill()
+      // X-Ray beam (yellow glow)
+      ctx.fillStyle="rgba(255,238,0,0.12)"
+      ctx.beginPath()
+      ctx.moveTo(mx-14,my)
+      ctx.lineTo(mx-22,my+20)
+      ctx.lineTo(mx+22,my+20)
+      ctx.lineTo(mx+14,my)
+      ctx.closePath(); ctx.fill()
+      ctx.strokeStyle="rgba(255,238,0,0.3)"; ctx.lineWidth=0.5
+      ctx.stroke()
+    }
   }
 
   function drawChar(ctx:CanvasRenderingContext2D, px:number, py:number, pw:number, ph:number, onG:boolean, right:boolean, fr:number){
@@ -367,83 +478,243 @@ export default function Page() {
     if(!m.alive) return
     const sx=m.x-cam
     if(sx<-60||sx>CW+60) return
-    const bob=Math.sin(t*0.06)*2
-    // Caries bacteria body
+    const bob=Math.sin(t*0.07)*3
+    const x=sx, y=m.y+bob
+
+    // ══ Eighteeth E-Connect Pro cartoon villain ══
+    // Little legs walking
+    const lw=Math.sin(t*0.12)*5
+    ctx.fillStyle="#1a1a1a"
+    ctx.save(); ctx.translate(x+9,y+30); ctx.rotate(lw*0.06)
+    ctx.beginPath(); ctx.roundRect(-4,0,8,10,3); ctx.fill()
+    ctx.restore()
+    ctx.save(); ctx.translate(x+23,y+30); ctx.rotate(-lw*0.06)
+    ctx.beginPath(); ctx.roundRect(-4,0,8,10,3); ctx.fill()
+    ctx.restore()
+    // Shoes (red angry)
     ctx.fillStyle="#C62828"
-    ctx.beginPath(); ctx.arc(sx+16,m.y+16+bob,16,0,Math.PI*2); ctx.fill()
-    // Rotating spikes
-    ctx.fillStyle="#B71C1C"
-    for(let i=0;i<8;i++){
-      const a=(i/8)*Math.PI*2+t*0.04
-      ctx.beginPath()
-      ctx.moveTo(sx+16+Math.cos(a)*13,m.y+16+bob+Math.sin(a)*13)
-      ctx.lineTo(sx+16+Math.cos(a+0.2)*20,m.y+16+bob+Math.sin(a+0.2)*20)
-      ctx.lineTo(sx+16+Math.cos(a-0.2)*20,m.y+16+bob+Math.sin(a-0.2)*20)
-      ctx.fill()
-    }
-    // Angry eyes
-    ctx.fillStyle="#FF5252"
-    ctx.beginPath(); ctx.arc(sx+10,m.y+13+bob,4,0,Math.PI*2); ctx.fill()
-    ctx.beginPath(); ctx.arc(sx+22,m.y+13+bob,4,0,Math.PI*2); ctx.fill()
+    ctx.beginPath(); ctx.ellipse(x+9,y+40,7,4,0,0,Math.PI*2); ctx.fill()
+    ctx.beginPath(); ctx.ellipse(x+23,y+40,7,4,0,0,Math.PI*2); ctx.fill()
+    // Little arms flailing
+    ctx.fillStyle="#222"
+    ctx.save(); ctx.translate(x+3,y+14); ctx.rotate(-0.5+Math.sin(t*0.1)*0.4)
+    ctx.beginPath(); ctx.roundRect(-3,0,6,12,3); ctx.fill()
+    ctx.restore()
+    ctx.save(); ctx.translate(x+29,y+14); ctx.rotate(0.5-Math.sin(t*0.1)*0.4)
+    ctx.beginPath(); ctx.roundRect(-3,0,6,12,3); ctx.fill()
+    ctx.restore()
+
+    // Main body — black box like E-Connect Pro
+    const bg=ctx.createLinearGradient(x+2,y,x+2,y+30)
+    bg.addColorStop(0,"#2a2a2a"); bg.addColorStop(1,"#111")
+    ctx.fillStyle=bg
+    ctx.strokeStyle="#444"; ctx.lineWidth=1.5
+    ctx.beginPath(); ctx.roundRect(x+2,y,28,30,5); ctx.fill(); ctx.stroke()
+    // Screen on body
+    ctx.fillStyle="#0a2a1a"
+    ctx.beginPath(); ctx.roundRect(x+6,y+4,20,12,3); ctx.fill()
+    ctx.fillStyle="#00ff88"; ctx.font="bold 6px Arial"
+    ctx.fillText("ERR!",x+8,y+13)
+    // Buttons
+    ctx.fillStyle="#E53935"
+    ctx.beginPath(); ctx.arc(x+10,y+21,3,0,Math.PI*2); ctx.fill()
+    ctx.fillStyle="#555"
+    ctx.beginPath(); ctx.arc(x+18,y+21,3,0,Math.PI*2); ctx.fill()
+    ctx.beginPath(); ctx.arc(x+24,y+21,3,0,Math.PI*2); ctx.fill()
+    // Brand stripe
+    ctx.fillStyle="#1E88E5"
+    ctx.fillRect(x+2,y+25,28,4)
+    ctx.fillStyle="#fff"; ctx.font="bold 5px Arial"
+    ctx.fillText("18teeth",x+5,y+29)
+
+    // HEAD — round angry cartoon head on top of box
+    ctx.fillStyle="#2a2a2a"
+    ctx.strokeStyle="#444"; ctx.lineWidth=1.5
+    ctx.beginPath(); ctx.arc(x+16,y-8,13,0,Math.PI*2); ctx.fill(); ctx.stroke()
+    // Antenna
+    ctx.strokeStyle="#555"; ctx.lineWidth=2
+    ctx.beginPath(); ctx.moveTo(x+16,y-21); ctx.lineTo(x+16,y-14); ctx.stroke()
+    ctx.fillStyle="#E53935"
+    ctx.beginPath(); ctx.arc(x+16,y-22,3,0,Math.PI*2); ctx.fill()
+    // Angry eyes (white sclera, red iris)
+    ctx.fillStyle="#fff"
+    ctx.beginPath(); ctx.ellipse(x+10,y-9,4.5,5,0,0,Math.PI*2); ctx.fill()
+    ctx.beginPath(); ctx.ellipse(x+22,y-9,4.5,5,0,0,Math.PI*2); ctx.fill()
+    ctx.fillStyle="#E53935"
+    ctx.beginPath(); ctx.arc(x+10,y-8,3,0,Math.PI*2); ctx.fill()
+    ctx.beginPath(); ctx.arc(x+22,y-8,3,0,Math.PI*2); ctx.fill()
     ctx.fillStyle="#000"
-    ctx.beginPath(); ctx.arc(sx+11,m.y+14+bob,2,0,Math.PI*2); ctx.fill()
-    ctx.beginPath(); ctx.arc(sx+23,m.y+14+bob,2,0,Math.PI*2); ctx.fill()
-    // Angry brows
-    ctx.strokeStyle="#000"; ctx.lineWidth=2
-    ctx.beginPath(); ctx.moveTo(sx+7,m.y+9+bob); ctx.lineTo(sx+13,m.y+11+bob); ctx.stroke()
-    ctx.beginPath(); ctx.moveTo(sx+25,m.y+9+bob); ctx.lineTo(sx+19,m.y+11+bob); ctx.stroke()
-    // Mouth
-    ctx.beginPath(); ctx.arc(sx+16,m.y+20+bob,5,0.2,Math.PI-0.2); ctx.stroke()
+    ctx.beginPath(); ctx.arc(x+11,y-8,1.5,0,Math.PI*2); ctx.fill()
+    ctx.beginPath(); ctx.arc(x+23,y-8,1.5,0,Math.PI*2); ctx.fill()
+    // Angry brows (thick, angled inward)
+    ctx.strokeStyle="#E53935"; ctx.lineWidth=2.5
+    ctx.lineCap="round"
+    ctx.beginPath(); ctx.moveTo(x+6,y-15); ctx.lineTo(x+14,y-12); ctx.stroke()
+    ctx.beginPath(); ctx.moveTo(x+26,y-15); ctx.lineTo(x+18,y-12); ctx.stroke()
+    // Angry mouth (sharp zigzag)
+    ctx.strokeStyle="#E53935"; ctx.lineWidth=1.5
+    ctx.beginPath()
+    ctx.moveTo(x+9,y-3)
+    ctx.lineTo(x+12,y-1); ctx.lineTo(x+14,y-4)
+    ctx.lineTo(x+16,y-1); ctx.lineTo(x+18,y-4)
+    ctx.lineTo(x+20,y-1); ctx.lineTo(x+23,y-3)
+    ctx.stroke()
+    ctx.lineCap="butt"
+  }
+
+  function drawMlLogo(ctx:CanvasRenderingContext2D, x:number, y:number, s:number){
+    // Medical Line Georgia logo — tooth with blue/red and ECG line
+    ctx.save()
+    ctx.translate(x,y)
+    ctx.scale(s,s)
+    // Outer tooth — red right curve
+    ctx.beginPath()
+    ctx.moveTo(0,-18)
+    ctx.bezierCurveTo(22,-18,28,0,24,12)
+    ctx.bezierCurveTo(20,22,10,28,0,26)
+    ctx.bezierCurveTo(-10,28,-20,22,-24,12)
+    ctx.bezierCurveTo(-28,0,-22,-18,0,-18)
+    ctx.closePath()
+    ctx.fillStyle="#fff"
+    ctx.fill()
+    // Blue left stroke
+    ctx.beginPath()
+    ctx.moveTo(-18,-14)
+    ctx.bezierCurveTo(-28,-10,-30,4,-26,14)
+    ctx.bezierCurveTo(-22,22,-12,28,0,26)
+    ctx.strokeStyle="#1D3C8F"; ctx.lineWidth=4; ctx.lineCap="round"
+    ctx.stroke()
+    // Red right/bottom stroke
+    ctx.beginPath()
+    ctx.moveTo(0,26)
+    ctx.bezierCurveTo(12,28,22,18,24,8)
+    ctx.bezierCurveTo(27,-2,20,-16,8,-18)
+    ctx.strokeStyle="#CC2229"; ctx.lineWidth=4; ctx.lineCap="round"
+    ctx.stroke()
+    // ECG / heartbeat line in centre
+    ctx.beginPath()
+    ctx.moveTo(-14,2)
+    ctx.lineTo(-8,2)
+    ctx.lineTo(-5,-8)
+    ctx.lineTo(-1,14)
+    ctx.lineTo(3,-4)
+    ctx.lineTo(6,2)
+    ctx.lineTo(14,2)
+    ctx.strokeStyle="#9E9E9E"; ctx.lineWidth=2.5; ctx.lineCap="round"; ctx.lineJoin="round"
+    ctx.stroke()
+    ctx.restore()
   }
 
   function drawGem(ctx:CanvasRenderingContext2D, g:Gem, cam:number, t:number){
     if(g.got) return
     const sx=g.x-cam
     if(sx<-20||sx>CW+20) return
-    const bob=Math.sin(t*0.06+g.x*0.01)*4
-    const y=g.y+bob
-    // Tooth shape
-    ctx.fillStyle="#FFFDE7"
-    ctx.strokeStyle="#F9A825"; ctx.lineWidth=1.5
+    const bob=Math.sin(t*0.07+g.x*0.01)*4
+    const spin=t*0.08
+
+    // Eflex Blue endofile collectible
+    ctx.save()
+    ctx.translate(sx,g.y+bob)
+    ctx.rotate(Math.sin(spin)*0.15)
+
+    // Glow
+    const glow=ctx.createRadialGradient(0,0,2,0,0,16)
+    glow.addColorStop(0,"rgba(30,136,229,0.35)")
+    glow.addColorStop(1,"rgba(30,136,229,0)")
+    ctx.fillStyle=glow
+    ctx.beginPath(); ctx.arc(0,0,16,0,Math.PI*2); ctx.fill()
+
+    // File shaft
+    const fileGrad=ctx.createLinearGradient(-2,-18,2,-18)
+    fileGrad.addColorStop(0,"#90CAF9")
+    fileGrad.addColorStop(0.5,"#fff")
+    fileGrad.addColorStop(1,"#1565C0")
+    ctx.fillStyle=fileGrad
     ctx.beginPath()
-    ctx.arc(sx,y,9,Math.PI,0)
-    ctx.lineTo(sx+9,y+6)
-    ctx.lineTo(sx+5,y+14)
-    ctx.lineTo(sx-5,y+14)
-    ctx.lineTo(sx-9,y+6)
+    ctx.moveTo(-2,-18); ctx.lineTo(2,-18)
+    ctx.lineTo(1,8); ctx.lineTo(-1,8)
+    ctx.closePath(); ctx.fill()
+
+    // Tapered tip
+    ctx.beginPath()
+    ctx.moveTo(-1,8); ctx.lineTo(1,8); ctx.lineTo(0,14)
     ctx.closePath()
-    ctx.fill(); ctx.stroke()
-    ctx.fillStyle="rgba(255,255,255,0.7)"
-    ctx.beginPath(); ctx.arc(sx-3,y-3,3,0,Math.PI*2); ctx.fill()
+    ctx.fillStyle="#1565C0"; ctx.fill()
+
+    // Spiral flutes on shaft
+    ctx.strokeStyle="rgba(255,255,255,0.6)"; ctx.lineWidth=0.8
+    for(let i=0;i<5;i++){
+      const fy=-14+i*4
+      ctx.beginPath()
+      ctx.moveTo(-2,fy); ctx.bezierCurveTo(-5,fy+1,5,fy+2,2,fy+3)
+      ctx.stroke()
+    }
+
+    // Handle/grip top
+    ctx.fillStyle="#1E88E5"
+    ctx.strokeStyle="#0D47A1"; ctx.lineWidth=1
+    ctx.beginPath(); ctx.roundRect(-5,-24,10,8,3); ctx.fill(); ctx.stroke()
+    ctx.fillStyle="rgba(255,255,255,0.4)"
+    ctx.fillRect(-3,-23,6,2)
+
+    // Stars sparkle
+    ctx.fillStyle="#FFD700"
+    const sparks=[[10,-16],[12,-8],[-12,-12],[-10,-4]]
+    for(const [sx2,sy] of sparks){
+      const sa=spin*2+sx2
+      ctx.save(); ctx.translate(sx2,sy); ctx.rotate(sa)
+      ctx.beginPath()
+      ctx.moveTo(0,-3); ctx.lineTo(0.7,-0.7); ctx.lineTo(3,0)
+      ctx.lineTo(0.7,0.7); ctx.lineTo(0,3)
+      ctx.lineTo(-0.7,0.7); ctx.lineTo(-3,0)
+      ctx.lineTo(-0.7,-0.7); ctx.closePath()
+      ctx.fill()
+      ctx.restore()
+    }
+
+    ctx.restore()
   }
 
   function drawHUD(ctx:CanvasRenderingContext2D, score:number, lives:number){
-    ctx.fillStyle="rgba(0,0,0,0.45)"
-    ctx.fillRect(8,8,180,36)
-    ctx.fillStyle="#FFD700"; ctx.font="bold 15px Arial"
-    ctx.fillText("კბილი x"+score,18,28)
-    ctx.fillStyle="#FF5252"; ctx.font="bold 15px Arial"
-    ctx.fillText("H:"+lives,150,28)
+    // ML Logo in top-left
+    drawMlLogo(ctx,28,28,0.7)
+    // Score panel
+    ctx.fillStyle="rgba(0,0,0,0.5)"
+    ctx.beginPath(); ctx.roundRect(56,8,160,36,8); ctx.fill()
+    // File icon in score
+    ctx.fillStyle="#90CAF9"; ctx.font="bold 12px Arial"
+    ctx.fillText("📁",62,30)
+    ctx.fillStyle="#FFD700"; ctx.font="bold 14px Arial"
+    ctx.fillText("×"+score,80,29)
+    ctx.fillStyle="rgba(255,255,255,0.5)"; ctx.font="10px Arial"
+    ctx.fillText("Medical Line Georgia",86,40)
+    // Lives
+    ctx.fillStyle="rgba(0,0,0,0.5)"
+    ctx.beginPath(); ctx.roundRect(CW-70,8,62,36,8); ctx.fill()
+    ctx.fillStyle="#FF5252"; ctx.font="bold 18px Arial"
+    ctx.fillText("♥ "+lives,CW-62,31)
   }
 
   function drawOverlay(ctx:CanvasRenderingContext2D, status:string, score:number){
-    ctx.fillStyle="rgba(0,0,0,0.65)"
+    ctx.fillStyle="rgba(0,0,0,0.72)"
     ctx.fillRect(0,0,CW,CH)
+    // Draw ML logo centered large
+    drawMlLogo(ctx,CW/2,CH/2-90,2.2)
     if(status==="win"){
-      ctx.fillStyle="#FFD700"; ctx.font="bold 46px Arial"; ctx.textAlign="center"
-      ctx.fillText("გამარჯვება!",CW/2,CH/2-40)
-      ctx.fillStyle="#fff"; ctx.font="bold 24px Arial"
-      ctx.fillText("ქულა: "+score+" კბილი",CW/2,CH/2+10)
-      ctx.fillStyle="#A5D6A7"; ctx.font="18px Arial"
-      ctx.fillText("სტომატოლოგი გმირია!",CW/2,CH/2+50)
+      ctx.fillStyle="#FFD700"; ctx.font="bold 48px Arial"; ctx.textAlign="center"
+      ctx.fillText("გამარჯვება!",CW/2,CH/2-20)
+      ctx.fillStyle="#90CAF9"; ctx.font="bold 22px Arial"
+      ctx.fillText("Eflex x"+score+" ფაილი შეგროვდა",CW/2,CH/2+18)
+      ctx.fillStyle="#A5D6A7"; ctx.font="16px Arial"
+      ctx.fillText("Medical Line Georgia — Eighteeth Official Partner",CW/2,CH/2+48)
     } else {
-      ctx.fillStyle="#EF5350"; ctx.font="bold 46px Arial"; ctx.textAlign="center"
-      ctx.fillText("თავიდან!",CW/2,CH/2-40)
-      ctx.fillStyle="#fff"; ctx.font="bold 24px Arial"
-      ctx.fillText("ქულა: "+score,CW/2,CH/2+10)
+      ctx.fillStyle="#EF5350"; ctx.font="bold 48px Arial"; ctx.textAlign="center"
+      ctx.fillText("კიდევ სცადე!",CW/2,CH/2-20)
+      ctx.fillStyle="#fff"; ctx.font="bold 22px Arial"
+      ctx.fillText("ქულა: "+score,CW/2,CH/2+18)
     }
-    ctx.fillStyle="rgba(255,255,255,0.7)"; ctx.font="18px Arial"
-    ctx.fillText("R — რესტარტი",CW/2,CH/2+85)
+    ctx.fillStyle="rgba(255,255,255,0.6)"; ctx.font="16px Arial"
+    ctx.fillText("R — რესტარტი",CW/2,CH/2+80)
     ctx.textAlign="left"
   }
 
