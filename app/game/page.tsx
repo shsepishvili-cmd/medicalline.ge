@@ -189,156 +189,181 @@ export default function Page() {
     ctx.fillStyle="rgba(255,255,255,0.9)"; ctx.font="bold 8px Arial"
     ctx.fillText(p.lbl,sx+4,p.y+14)
 
-    // Draw cartoon device on top of platform — large and visible
+    // ── Cartoon character on platform (Eighteeth ad style) ──
     const mx=sx+p.w/2, my=p.y
+
+    function cartoonEyes(ex:number,ey:number,s:number){
+      // White sclera
+      ctx.fillStyle="#fff"
+      ctx.strokeStyle="#222"; ctx.lineWidth=s*0.15
+      ctx.beginPath(); ctx.ellipse(ex-s*1.1,ey,s*0.9,s,0,0,Math.PI*2); ctx.fill(); ctx.stroke()
+      ctx.beginPath(); ctx.ellipse(ex+s*1.1,ey,s*0.9,s,0,0,Math.PI*2); ctx.fill(); ctx.stroke()
+      // Pupils
+      ctx.fillStyle="#111"
+      ctx.beginPath(); ctx.arc(ex-s*0.9,ey+s*0.1,s*0.55,0,Math.PI*2); ctx.fill()
+      ctx.beginPath(); ctx.arc(ex+s*1.3,ey+s*0.1,s*0.55,0,Math.PI*2); ctx.fill()
+      // Shine
+      ctx.fillStyle="#fff"
+      ctx.beginPath(); ctx.arc(ex-s*0.65,ey-s*0.2,s*0.2,0,Math.PI*2); ctx.fill()
+      ctx.beginPath(); ctx.arc(ex+s*1.55,ey-s*0.2,s*0.2,0,Math.PI*2); ctx.fill()
+    }
+    function cartoonSmile(sx2:number,sy:number,r:number){
+      ctx.strokeStyle="#222"; ctx.lineWidth=1.5; ctx.lineCap="round"
+      ctx.beginPath(); ctx.arc(sx2,sy,r,0.1,Math.PI-0.1); ctx.stroke()
+    }
+    function cartoonArm(ax:number,ay:number,angle:number,len:number,col:string){
+      ctx.save(); ctx.translate(ax,ay); ctx.rotate(angle)
+      ctx.fillStyle=col; ctx.strokeStyle="#ccc"; ctx.lineWidth=1
+      ctx.beginPath(); ctx.roundRect(-4,0,8,len,4); ctx.fill(); ctx.stroke()
+      // Hand
+      ctx.fillStyle="#f0f0f0"
+      ctx.beginPath(); ctx.arc(0,len+4,5,0,Math.PI*2); ctx.fill(); ctx.stroke()
+      ctx.restore()
+    }
+
     if(p.lbl==="E-Connect Pro"){
-      // ── E-Connect Pro endomotor ──
-      // Base/stand
-      ctx.fillStyle="#222"
-      ctx.fillRect(mx-22,my-70,44,65)
-      ctx.fillStyle="#333"
-      ctx.fillRect(mx-18,my-68,40,4)
-      // Big screen
-      ctx.fillStyle="#001a10"
-      ctx.fillRect(mx-18,my-63,36,30)
-      ctx.fillStyle="#00ff88"; ctx.font="bold 9px monospace"
-      ctx.fillText("250 rpm",mx-14,my-48)
-      ctx.fillStyle="#00cc66"; ctx.font="7px monospace"
-      ctx.fillText("1.5 N·cm",mx-13,my-38)
-      // Animated green bar
-      ctx.fillStyle="#00ff44"
-      ctx.fillRect(mx-16,my-34,32,4)
-      ctx.fillStyle="#004400"
-      ctx.fillRect(mx-16,my-34,10,4)
-      // Brand bar
+      // ── E-Connect Pro: tall white box with face ──
+      // Body
+      const bw=38,bh=62,bx=mx-bw/2,by=my-bh
+      ctx.fillStyle="#f0f0f0"; ctx.strokeStyle="#ccc"; ctx.lineWidth=2
+      ctx.beginPath(); ctx.roundRect(bx,by,bw,bh,8); ctx.fill(); ctx.stroke()
+      // Top stripe (brand color)
       ctx.fillStyle="#1E88E5"
-      ctx.fillRect(mx-22,my-10,44,6)
+      ctx.beginPath(); ctx.roundRect(bx,by,bw,12,[8,8,0,0]); ctx.fill()
       ctx.fillStyle="#fff"; ctx.font="bold 6px Arial"
-      ctx.fillText("Eighteeth",mx-14,my-5)
-      // Control buttons row
-      ctx.fillStyle="#E53935"; ctx.beginPath(); ctx.arc(mx-12,my-17,4,0,Math.PI*2); ctx.fill()
-      ctx.fillStyle="#43A047"; ctx.beginPath(); ctx.arc(mx,my-17,4,0,Math.PI*2); ctx.fill()
-      ctx.fillStyle="#1E88E5"; ctx.beginPath(); ctx.arc(mx+12,my-17,4,0,Math.PI*2); ctx.fill()
-      // Handpiece cable + tip
-      ctx.strokeStyle="#666"; ctx.lineWidth=3
-      ctx.beginPath(); ctx.moveTo(mx+22,my-45); ctx.bezierCurveTo(mx+40,my-45,mx+38,my-10,mx+34,my-5); ctx.stroke()
-      ctx.fillStyle="#aaa"; ctx.fillRect(mx+32,my-8,6,14)
-      ctx.fillStyle="#1E88E5"; ctx.fillRect(mx+34,my+6,2,8)
+      ctx.fillText("E-Connect",bx+3,by+9)
+      // Screen on body
+      ctx.fillStyle="#001a10"; ctx.strokeStyle="#00ff88"; ctx.lineWidth=1
+      ctx.beginPath(); ctx.roundRect(bx+5,by+15,bw-10,18,3); ctx.fill(); ctx.stroke()
+      ctx.fillStyle="#00ff88"; ctx.font="bold 7px monospace"
+      ctx.fillText("250rpm",bx+7,by+26)
+      ctx.fillStyle="#00cc66"; ctx.font="6px monospace"
+      ctx.fillText("1.5Ncm",bx+8,by+32)
+      // Eyes on lower body
+      cartoonEyes(mx,by+44,5)
+      cartoonSmile(mx,by+53,6)
+      // Arms
+      cartoonArm(bx-2,by+30,-0.5,14,"#e0e0e0")
+      cartoonArm(bx+bw+2,by+30,0.5,14,"#e0e0e0")
+      // Legs / feet
+      ctx.fillStyle="#ddd"; ctx.strokeStyle="#bbb"; ctx.lineWidth=1
+      ctx.beginPath(); ctx.roundRect(bx+6,my-4,10,8,3); ctx.fill(); ctx.stroke()
+      ctx.beginPath(); ctx.roundRect(bx+22,my-4,10,8,3); ctx.fill(); ctx.stroke()
+      // Handpiece dangling
+      ctx.strokeStyle="#888"; ctx.lineWidth=2
+      ctx.beginPath(); ctx.moveTo(bx+bw,by+20); ctx.bezierCurveTo(bx+bw+20,by+20,bx+bw+18,by+50,bx+bw+14,by+54); ctx.stroke()
+      ctx.fillStyle="#aaa"
+      ctx.beginPath(); ctx.roundRect(bx+bw+12,by+52,5,12,2); ctx.fill()
+
     } else if(p.lbl==="RODIN NiTi"){
-      // ── RODIN NiTi file kit box ──
-      // Box body
-      ctx.fillStyle="#263238"
-      ctx.fillRect(mx-28,my-55,56,52)
-      ctx.fillStyle="#37474F"
-      ctx.fillRect(mx-28,my-55,56,6)
-      // Box label
-      ctx.fillStyle="#90CAF9"; ctx.font="bold 9px Arial"
-      ctx.fillText("RODIN",mx-14,my-44)
-      ctx.fillStyle="#fff"; ctx.font="7px Arial"
-      ctx.fillText("NiTi System",mx-16,my-34)
-      // 6 files standing in box
-      const fileColors=["#FFD700","#9B59B6","#95A5A6","#F1C40F","#E74C3C","#3498DB"]
-      for(let i=0;i<6;i++){
-        const fx=mx-22+i*9
-        ctx.strokeStyle=fileColors[i]; ctx.lineWidth=3
-        ctx.beginPath(); ctx.moveTo(fx,my-22); ctx.lineTo(fx,my-58); ctx.stroke()
-        ctx.strokeStyle="rgba(255,255,255,0.5)"; ctx.lineWidth=1
-        ctx.beginPath(); ctx.moveTo(fx,my-22); ctx.lineTo(fx,my-58); ctx.stroke()
-        // Glowing tip
-        ctx.fillStyle=fileColors[i]
-        ctx.beginPath(); ctx.arc(fx,my-58,3,0,Math.PI*2); ctx.fill()
-        ctx.fillStyle="rgba(255,255,255,0.4)"
-        ctx.beginPath(); ctx.arc(fx,my-58,5,0,Math.PI*2); ctx.fill()
-      }
-      // File labels
-      const lbls=["GP","S1","S2","F1","F2","F3"]
-      for(let i=0;i<6;i++){
-        ctx.fillStyle=fileColors[i]; ctx.font="bold 5px Arial"
-        ctx.fillText(lbls[i],mx-24+i*9,my-24)
-      }
+      // ── RODIN NiTi: tall handpiece with face ──
+      // Grip body (long cylinder-like)
+      const bh=75,bx=mx-10,by=my-bh
+      ctx.fillStyle="#efefef"; ctx.strokeStyle="#ccc"; ctx.lineWidth=2
+      ctx.beginPath(); ctx.roundRect(bx,by,20,bh,10); ctx.fill(); ctx.stroke()
+      // Blue grip rings
+      ctx.fillStyle="#90CAF9"
+      for(let i=0;i<3;i++){ ctx.fillRect(bx,by+14+i*7,20,4) }
+      // Face in middle
+      cartoonEyes(mx,by+42,5)
+      cartoonSmile(mx,by+52,5)
+      // Rosy cheeks
+      ctx.fillStyle="rgba(255,150,150,0.35)"
+      ctx.beginPath(); ctx.arc(mx-9,by+49,5,0,Math.PI*2); ctx.fill()
+      ctx.beginPath(); ctx.arc(mx+9,by+49,5,0,Math.PI*2); ctx.fill()
+      // Arms tiny
+      cartoonArm(bx-2,by+36,-0.6,12,"#ddd")
+      cartoonArm(bx+22,by+36,0.6,12,"#ddd")
+      // Head = file tip top (tapered)
+      ctx.fillStyle="#bbb"; ctx.strokeStyle="#999"; ctx.lineWidth=1.5
+      ctx.beginPath()
+      ctx.moveTo(mx-6,by); ctx.lineTo(mx+6,by); ctx.lineTo(mx+2,by-22); ctx.lineTo(mx-2,by-22)
+      ctx.closePath(); ctx.fill(); ctx.stroke()
+      // Tip glow (Eflex Blue style)
+      ctx.fillStyle="rgba(30,136,229,0.8)"
+      ctx.beginPath(); ctx.arc(mx,by-22,3,0,Math.PI*2); ctx.fill()
+      ctx.fillStyle="rgba(30,136,229,0.25)"
+      ctx.beginPath(); ctx.arc(mx,by-22,9,0,Math.PI*2); ctx.fill()
+      // Hat = nurse cross
+      ctx.fillStyle="#fff"; ctx.strokeStyle="#E53935"; ctx.lineWidth=1.5
+      ctx.beginPath(); ctx.roundRect(mx-9,by-32,18,12,4); ctx.fill(); ctx.stroke()
+      ctx.fillStyle="#E53935"
+      ctx.fillRect(mx-1.5,by-31,3,10)
+      ctx.fillRect(mx-6,by-27,12,3)
+      // Brand label
+      ctx.fillStyle="#1565C0"; ctx.font="bold 5px Arial"
+      ctx.fillText("RODIN",bx+1,by+64)
+
     } else if(p.lbl==="3D Scanner"){
-      // ── Intraoral 3D Scanner ──
-      // Handle
-      ctx.fillStyle="#E3F2FD"
-      ctx.strokeStyle="#90CAF9"; ctx.lineWidth=2
-      ctx.fillRect(mx-8,my-60,16,45)
-      ctx.strokeRect(mx-8,my-60,16,45)
-      // Head/tip
-      ctx.fillStyle="#1565C0"
-      ctx.fillRect(mx-14,my-72,28,14)
-      ctx.strokeStyle="#90CAF9"; ctx.lineWidth=1
-      ctx.strokeRect(mx-14,my-72,28,14)
-      // Scan window
-      ctx.fillStyle="#000d1a"
-      ctx.fillRect(mx-11,my-70,22,10)
-      // Scanning beam animation
-      ctx.fillStyle="rgba(30,136,229,0.2)"
-      ctx.beginPath()
-      ctx.moveTo(mx-14,my-72)
-      ctx.lineTo(mx-28,my-95)
-      ctx.lineTo(mx+28,my-95)
-      ctx.lineTo(mx+14,my-72)
-      ctx.closePath(); ctx.fill()
-      ctx.strokeStyle="rgba(100,180,255,0.7)"; ctx.lineWidth=1
-      ctx.stroke()
+      // ── 3D Scanner: big-headed scanning instrument ──
+      // Neck/handle
+      const bx=mx-8,by=my-55
+      ctx.fillStyle="#e8e8e8"; ctx.strokeStyle="#ccc"; ctx.lineWidth=1.5
+      ctx.beginPath(); ctx.roundRect(bx,by+18,16,37,6); ctx.fill(); ctx.stroke()
+      // Blue stripe on handle
+      ctx.fillStyle="#1E88E5"; ctx.fillRect(bx+3,by+25,10,4)
+      // Scan head (big rounded rectangle)
+      ctx.fillStyle="#fff"; ctx.strokeStyle="#90CAF9"; ctx.lineWidth=2
+      ctx.beginPath(); ctx.roundRect(mx-20,by-4,40,24,8); ctx.fill(); ctx.stroke()
+      // Scan window (dark glass)
+      ctx.fillStyle="#001830"; ctx.strokeStyle="#1E88E5"; ctx.lineWidth=1
+      ctx.beginPath(); ctx.roundRect(mx-16,by-1,32,14,4); ctx.fill(); ctx.stroke()
+      // Scan beam lines from window
       for(let i=0;i<5;i++){
-        ctx.strokeStyle=`rgba(30,136,229,${0.6-i*0.1})`; ctx.lineWidth=0.8
-        ctx.beginPath(); ctx.moveTo(mx-26,my-74-i*4); ctx.lineTo(mx+26,my-74-i*4); ctx.stroke()
+        ctx.strokeStyle=`rgba(30,136,229,${0.5-i*0.08})`; ctx.lineWidth=1
+        ctx.beginPath(); ctx.moveTo(mx-16+i*2,by-1); ctx.lineTo(mx-28+i*3,by-12-i*3); ctx.stroke()
+        ctx.beginPath(); ctx.moveTo(mx+16-i*2,by-1); ctx.lineTo(mx+28-i*3,by-12-i*3); ctx.stroke()
       }
-      // Logo on handle
+      ctx.fillStyle="rgba(30,136,229,0.12)"
+      ctx.beginPath(); ctx.moveTo(mx-16,by-1); ctx.lineTo(mx-32,by-18); ctx.lineTo(mx+32,by-18); ctx.lineTo(mx+16,by-1); ctx.closePath(); ctx.fill()
+      // Face below window
+      cartoonEyes(mx,by+10,4.5)
+      cartoonSmile(mx,by+18,5)
+      // Arms
+      cartoonArm(mx-22,by+8,-0.4,13,"#e0e0e0")
+      cartoonArm(mx+22,by+8,0.4,13,"#e0e0e0")
+      // Feet
+      ctx.fillStyle="#ddd"; ctx.strokeStyle="#bbb"; ctx.lineWidth=1
+      ctx.beginPath(); ctx.ellipse(mx-5,my,7,4,0,0,Math.PI*2); ctx.fill(); ctx.stroke()
+      ctx.beginPath(); ctx.ellipse(mx+5,my,7,4,0,0,Math.PI*2); ctx.fill(); ctx.stroke()
+      // Label
       ctx.fillStyle="#1E88E5"; ctx.font="bold 6px Arial"
-      ctx.fillText("3D",mx-4,my-36)
-      ctx.fillStyle="#fff"; ctx.font="5px Arial"
-      ctx.fillText("SCAN",mx-6,my-28)
-      // Cord
-      ctx.strokeStyle="#555"; ctx.lineWidth=3
-      ctx.beginPath(); ctx.moveTo(mx,my-15); ctx.bezierCurveTo(mx+20,my-5,mx+18,my+10,mx+14,my+12); ctx.stroke()
+      ctx.fillText("3D Scan",bx-2,by+10)
+
     } else if(p.lbl==="X-Ray Pro"){
-      // ── X-Ray machine ──
-      // Wall mount / column
+      // ── X-Ray: boxy device with face and beam ──
+      const bx=mx-20,by=my-60
+      // Body box
+      ctx.fillStyle="#e8e8e8"; ctx.strokeStyle="#ccc"; ctx.lineWidth=2
+      ctx.beginPath(); ctx.roundRect(bx,by,40,55,8); ctx.fill(); ctx.stroke()
+      // Top brand stripe
       ctx.fillStyle="#455A64"
-      ctx.fillRect(mx-5,my-90,10,90)
-      // Horizontal arm
-      ctx.fillStyle="#546E7A"
-      ctx.fillRect(mx-5,my-75,35,8)
-      // Head unit box
-      ctx.fillStyle="#37474F"
-      ctx.fillRect(mx+20,my-80,28,22)
-      ctx.fillStyle="#263238"
-      ctx.fillRect(mx+23,my-77,22,12)
-      // Warning label (yellow)
-      ctx.fillStyle="#FFF176"
-      ctx.fillRect(mx+23,my-63,22,6)
-      ctx.fillStyle="#E65100"; ctx.font="bold 5px Arial"
-      ctx.fillText("X-RAY",mx+25,my-59)
-      // Emitter cone pointing down-left
-      ctx.fillStyle="#1a1a1a"
+      ctx.beginPath(); ctx.roundRect(bx,by,40,12,[8,8,0,0]); ctx.fill()
+      ctx.fillStyle="#FFF176"; ctx.font="bold 7px Arial"
+      ctx.fillText("X-RAY",bx+8,by+9)
+      // Screen
+      ctx.fillStyle="#002a00"; ctx.strokeStyle="#00ff44"; ctx.lineWidth=1
+      ctx.beginPath(); ctx.roundRect(bx+5,by+14,30,16,3); ctx.fill(); ctx.stroke()
+      ctx.fillStyle="#00ff44"; ctx.font="6px monospace"
+      ctx.fillText("READY",bx+8,by+24)
+      // Face
+      cartoonEyes(mx,by+38,5)
+      cartoonSmile(mx,by+47,6)
+      // Side beam emitter cone
+      ctx.fillStyle="#555"
       ctx.beginPath()
-      ctx.moveTo(mx+22,my-58)
-      ctx.lineTo(mx+46,my-58)
-      ctx.lineTo(mx+52,my-45)
-      ctx.lineTo(mx+16,my-45)
+      ctx.moveTo(bx+40,by+20); ctx.lineTo(bx+56,by+14); ctx.lineTo(bx+56,by+30); ctx.lineTo(bx+40,by+30)
       ctx.closePath(); ctx.fill()
-      ctx.strokeStyle="#555"; ctx.lineWidth=1; ctx.stroke()
-      // X-Ray beam (yellow cone glow)
-      ctx.fillStyle="rgba(255,230,0,0.18)"
+      // Yellow beam
+      ctx.fillStyle="rgba(255,230,0,0.25)"
       ctx.beginPath()
-      ctx.moveTo(mx+16,my-45)
-      ctx.lineTo(mx+52,my-45)
-      ctx.lineTo(mx+70,my-10)
-      ctx.lineTo(mx-4,my-10)
+      ctx.moveTo(bx+56,by+14); ctx.lineTo(bx+90,by+2); ctx.lineTo(bx+90,by+44); ctx.lineTo(bx+56,by+30)
       ctx.closePath(); ctx.fill()
-      ctx.strokeStyle="rgba(255,230,0,0.4)"; ctx.lineWidth=1
-      ctx.stroke()
-      // Scan lines in beam
-      for(let i=0;i<4;i++){
-        ctx.strokeStyle=`rgba(255,220,0,${0.3-i*0.06})`; ctx.lineWidth=0.7
-        const ly=my-42+i*8
-        ctx.beginPath(); ctx.moveTo(mx-2+i*4,ly); ctx.lineTo(mx+50-i*4,ly); ctx.stroke()
-      }
-      // Brand text
-      ctx.fillStyle="#90CAF9"; ctx.font="bold 7px Arial"
-      ctx.fillText("Eighteeth",mx+21,my-82)
+      ctx.strokeStyle="rgba(255,220,0,0.5)"; ctx.lineWidth=1; ctx.stroke()
+      // Legs
+      ctx.fillStyle="#ddd"; ctx.strokeStyle="#bbb"; ctx.lineWidth=1
+      ctx.beginPath(); ctx.roundRect(bx+6,my-6,12,10,3); ctx.fill(); ctx.stroke()
+      ctx.beginPath(); ctx.roundRect(bx+22,my-6,12,10,3); ctx.fill(); ctx.stroke()
     }
   }
 
