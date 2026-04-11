@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server';
 // ეს ხაზი უმნიშვნელოვანესია - ის ეუბნება Vercel-ს, რომ არ დააქეშიროს პასუხი
 export const revalidate = 0; 
 
-export async function GET(request) {
+export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const id = searchParams.get('id');
   
