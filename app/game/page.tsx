@@ -1,931 +1,768 @@
 "use client"
-import { useEffect, useRef, useState } from "react"
+import { useState, useRef, useEffect, useCallback } from "react"
 
-const CW = 800, CH = 500
-const GRAV = 0.55
-const JUMP = -13
-const SPD = 5
-const LW = 4200
-const GY = 420
+type Phase = "intro"|"cases"|"xray"|"plan"|"ultrax"|"retrieve"|"result"
 
-interface Plt { x:number;y:number;w:number;h:number;col:string;lbl:string }
-interface Mob { x:number;y:number;w:number;h:number;vx:number;alive:boolean }
-interface Gem { x:number;y:number;got:boolean }
-
-const PLATS: Plt[] = [
-  {x:0,   y:GY,  w:LW, h:80, col:"#5D4037",lbl:""},
-  {x:200, y:355, w:120,h:20, col:"#1565C0",lbl:"E-Connect Pro"},
-  {x:380, y:310, w:110,h:20, col:"#6A1B9A",lbl:"RODIN NiTi"},
-  {x:550, y:345, w:100,h:20, col:"#2E7D32",lbl:"3D Scanner"},
-  {x:710, y:295, w:130,h:20, col:"#BF360C",lbl:"X-Ray Pro"},
-  {x:900, y:330, w:110,h:20, col:"#1565C0",lbl:"E-Connect Pro"},
-  {x:1070,y:280, w:120,h:20, col:"#6A1B9A",lbl:"RODIN NiTi"},
-  {x:1250,y:315, w:100,h:20, col:"#2E7D32",lbl:"3D Scanner"},
-  {x:1400,y:270, w:130,h:20, col:"#BF360C",lbl:"X-Ray Pro"},
-  {x:1590,y:300, w:110,h:20, col:"#1565C0",lbl:"E-Connect Pro"},
-  {x:1760,y:255, w:120,h:20, col:"#6A1B9A",lbl:"RODIN NiTi"},
-  {x:1940,y:295, w:100,h:20, col:"#2E7D32",lbl:"3D Scanner"},
-  {x:2100,y:340, w:130,h:20, col:"#BF360C",lbl:"X-Ray Pro"},
-  {x:2290,y:285, w:110,h:20, col:"#1565C0",lbl:"E-Connect Pro"},
-  {x:2460,y:325, w:120,h:20, col:"#6A1B9A",lbl:"RODIN NiTi"},
-  {x:2640,y:270, w:100,h:20, col:"#2E7D32",lbl:"3D Scanner"},
-  {x:2800,y:310, w:130,h:20, col:"#BF360C",lbl:"X-Ray Pro"},
-  {x:2990,y:260, w:110,h:20, col:"#1565C0",lbl:"E-Connect Pro"},
-  {x:3170,y:300, w:120,h:20, col:"#6A1B9A",lbl:"RODIN NiTi"},
-  {x:3350,y:345, w:100,h:20, col:"#2E7D32",lbl:"3D Scanner"},
-  {x:3510,y:290, w:130,h:20, col:"#BF360C",lbl:"X-Ray Pro"},
-  {x:3700,y:330, w:110,h:20, col:"#1565C0",lbl:"E-Connect Pro"},
-  {x:3870,y:370, w:220,h:20, col:"#F9A825",lbl:"FINISH"},
-]
-
-const INIT_MOBS: Mob[] = [
-  {x:350, y:GY-32,w:32,h:32,vx:-1.2,alive:true},
-  {x:620, y:GY-32,w:32,h:32,vx:1.2, alive:true},
-  {x:950, y:GY-32,w:32,h:32,vx:-1.5,alive:true},
-  {x:1300,y:GY-32,w:32,h:32,vx:1.2, alive:true},
-  {x:1650,y:GY-32,w:32,h:32,vx:-1.3,alive:true},
-  {x:2000,y:GY-32,w:32,h:32,vx:1.5, alive:true},
-  {x:2350,y:GY-32,w:32,h:32,vx:-1.2,alive:true},
-  {x:2700,y:GY-32,w:32,h:32,vx:1.3, alive:true},
-  {x:3050,y:GY-32,w:32,h:32,vx:-1.5,alive:true},
-  {x:3400,y:GY-32,w:32,h:32,vx:1.2, alive:true},
-]
-
-function makeGems(): Gem[] {
-  const arr: Gem[] = []
-  const xs = [260,310,420,460,600,640,760,800,960,1010,1130,1180,1310,1360,1460,1510,1650,1700,1820,1870,2010,2060,2160,2200,2350,2400,2520,2560,2700,2750,2860,2900,3050,3100,3230,3280,3410,3460,3570,3620,3770,3820]
-  for (const x of xs) arr.push({x, y:330, got:false})
-  return arr
+interface ClinicalCase {
+  id:string; tooth:string; wl:number; fragDepth:number; fragLen:number
+  curvature:number; difficulty:number; desc:string; canal:string; prognosis:string
 }
 
-function overlap(ax:number,ay:number,aw:number,ah:number,bx:number,by:number,bw:number,bh:number){
-  return ax<bx+bw&&ax+aw>bx&&ay<by+bh&&ay+ah>by
+const CASES:ClinicalCase[] = [
+  {id:"c1",tooth:"#21",wl:23,fragDepth:0.55,fragLen:0.13,curvature:0,difficulty:1,canal:"Single",
+   desc:"კბილი #21 — Pulpitis irreversibilis. ჩატეხილი ფაილი კორონარულ მესამედში. სწორი არხი.",prognosis:"კარგი"},
+  {id:"c2",tooth:"#35",wl:20,fragDepth:0.70,fragLen:0.10,curvature:18,difficulty:2,canal:"Mesial",
+   desc:"კბილი #35 — Necrosis pulpae. ჩატეხილი ფაილი შუა მესამედში. 18° მოხრილობა.",prognosis:"ზომიერი"},
+  {id:"c3",tooth:"#36",wl:18,fragDepth:0.80,fragLen:0.08,curvature:32,difficulty:3,canal:"MB1",
+   desc:"კბილი #36 — Periodontitis apicalis. MB1 არხი. 32° მოხრილობა. ღრმა ფრაგმენტი.",prognosis:"ფრთხილად"},
+  {id:"c4",tooth:"#16",wl:19,fragDepth:0.88,fragLen:0.07,curvature:28,difficulty:4,canal:"MB2",
+   desc:"კბილი #16 — MB2 არხი. ძნელი წვდომა. ფრაგმენტი აპიკალური მესამედის ზღვარზე.",prognosis:"სერიოზული"},
+]
+
+function mlLogo(ctx:CanvasRenderingContext2D,x:number,y:number,s:number){
+  ctx.save(); ctx.translate(x,y); ctx.scale(s,s)
+  ctx.beginPath()
+  ctx.moveTo(0,-20); ctx.bezierCurveTo(24,-20,30,0,26,14)
+  ctx.bezierCurveTo(22,24,10,30,0,28)
+  ctx.bezierCurveTo(-10,30,-22,24,-26,14)
+  ctx.bezierCurveTo(-30,0,-24,-20,0,-20); ctx.closePath()
+  ctx.fillStyle="rgba(255,255,255,0.06)"; ctx.fill()
+  ctx.strokeStyle="#1D3C8F"; ctx.lineWidth=4; ctx.lineCap="round"
+  ctx.beginPath(); ctx.moveTo(-20,-15); ctx.bezierCurveTo(-30,-8,-32,6,-28,16)
+  ctx.bezierCurveTo(-22,24,-10,30,0,28); ctx.stroke()
+  ctx.strokeStyle="#CC2229"; ctx.lineWidth=4
+  ctx.beginPath(); ctx.moveTo(0,28); ctx.bezierCurveTo(12,30,24,20,26,8)
+  ctx.bezierCurveTo(29,-4,22,-18,8,-20); ctx.stroke()
+  ctx.strokeStyle="#9E9E9E"; ctx.lineWidth=2.5; ctx.lineJoin="round"
+  ctx.beginPath()
+  ctx.moveTo(-15,3); ctx.lineTo(-8,3); ctx.lineTo(-5,-9)
+  ctx.lineTo(-1,15); ctx.lineTo(3,-5); ctx.lineTo(6,3); ctx.lineTo(15,3)
+  ctx.stroke()
+  ctx.restore()
 }
 
-export default function Page() {
-  const ref = useRef<HTMLCanvasElement>(null)
-  const anim = useRef(0)
-  const G = useRef({
-    px:60,py:100,pw:30,ph:50,pvx:0,pvy:0,
-    onG:false,right:true,fr:0,ft:0,
-    cam:0,score:0,lives:3,
-    mobs:INIT_MOBS.map(m=>({...m})),
-    gems:makeGems(),
-    keys:{} as Record<string,boolean>,
-    status:"play" as "play"|"over"|"win",
-    t:0,
-    stars:Array.from({length:60},()=>({x:Math.random()*CW,y:Math.random()*200,s:Math.random()*2+1})),
-  })
-  const [ui, setUi] = useState({score:0,lives:3,status:"play"})
+export default function GamePage(){
+  const [phase,setPhase]=useState<Phase>("intro")
+  const [cas,setCas]=useState<ClinicalCase|null>(null)
+  const [ultraxPct,setUltraxPct]=useState(0)
+  const [ultraxClicks,setUltraxClicks]=useState(0)
+  const [retrievePct,setRetrievePct]=useState(0)
+  const [toolY,setToolY]=useState(0)
+  const [score,setScore]=useState(0)
+  const [mistakes,setMistakes]=useState(0)
+  const [success,setSuccess]=useState(false)
+  const [plan,setPlan]=useState<"bypass"|"retrieve"|null>(null)
+  const [shake,setShake]=useState(false)
+  const [pulse,setPulse]=useState(false)
 
-  function sky(ctx:CanvasRenderingContext2D){
-    const g = ctx.createLinearGradient(0,0,0,CH)
-    g.addColorStop(0,"#87CEEB"); g.addColorStop(0.6,"#C8E6FF"); g.addColorStop(1,"#E8F5E9")
-    ctx.fillStyle=g; ctx.fillRect(0,0,CW,CH)
+  const xrayRef=useRef<HTMLCanvasElement>(null)
+  const ultraxRef=useRef<HTMLCanvasElement>(null)
+  const retrieveRef=useRef<HTMLCanvasElement>(null)
+  const animRef=useRef(0)
+  const tRef=useRef(0)
+  const audioRef=useRef<AudioContext|null>(null)
+
+  function beep(f:number,d:number,type:OscillatorType="sine",v=0.2){
+    try{
+      if(!audioRef.current) audioRef.current=new AudioContext()
+      const a=audioRef.current
+      const o=a.createOscillator(),g=a.createGain()
+      o.connect(g);g.connect(a.destination)
+      o.type=type;o.frequency.value=f
+      g.gain.setValueAtTime(v,a.currentTime)
+      g.gain.exponentialRampToValueAtTime(0.001,a.currentTime+d)
+      o.start();o.stop(a.currentTime+d)
+    }catch{}
   }
 
-  function sun(ctx:CanvasRenderingContext2D){
-    ctx.save()
-    ctx.shadowColor="#FFD700"; ctx.shadowBlur=30
-    ctx.fillStyle="#FFE082"
-    ctx.beginPath(); ctx.arc(700,65,38,0,Math.PI*2); ctx.fill()
-    ctx.restore()
-    ctx.fillStyle="rgba(255,220,80,0.18)"
-    ctx.beginPath(); ctx.arc(700,65,60,0,Math.PI*2); ctx.fill()
+  function startCase(c:ClinicalCase){
+    setCas(c);setUltraxPct(0);setUltraxClicks(0)
+    setRetrievePct(0);setToolY(0);setScore(0);setMistakes(0)
+    setSuccess(false);setPlan(null)
+    setPhase("xray")
   }
 
-  function clouds(ctx:CanvasRenderingContext2D, cam:number){
-    ctx.fillStyle="rgba(255,255,255,0.88)"
-    const offs=[0,280,550,800]
-    for(const o of offs){
-      const cx=((o-cam*0.08)%CW+CW)%CW
-      ctx.beginPath()
-      ctx.arc(cx,80,34,0,Math.PI*2)
-      ctx.arc(cx+30,70,26,0,Math.PI*2)
-      ctx.arc(cx-25,75,22,0,Math.PI*2)
-      ctx.fill()
-    }
-  }
+  // ── XRAY CANVAS ──
+  const drawXray=useCallback(()=>{
+    const cv=xrayRef.current; if(!cv||!cas) return
+    const ctx=cv.getContext("2d")!
+    const W=cv.width,H=cv.height
+    const t=tRef.current
 
-  function mountains(ctx:CanvasRenderingContext2D, cam:number){
-    const pks=[220,160,280,130,240,180,200,150,260,120,200,170]
-    ctx.fillStyle="#A5D6A7"
-    ctx.beginPath()
-    const off=((cam*0.18)%240)
-    ctx.moveTo(0,380)
-    for(let i=0;i<20;i++){
-      const bx=i*240-off
-      const h=pks[i%pks.length]
-      ctx.lineTo(bx,380-h)
-      ctx.lineTo(bx+120,380)
-    }
-    ctx.lineTo(CW,CH); ctx.lineTo(0,CH); ctx.fill()
+    // X-ray background
+    ctx.fillStyle="#0d0d0d"; ctx.fillRect(0,0,W,H)
+    // Vignette
+    const vig=ctx.createRadialGradient(W/2,H/2,H*0.2,W/2,H/2,H*0.75)
+    vig.addColorStop(0,"transparent"); vig.addColorStop(1,"rgba(0,0,0,0.8)")
+    ctx.fillStyle=vig; ctx.fillRect(0,0,W,H)
 
-    ctx.fillStyle="#8D6E63"
-    ctx.beginPath()
-    const off2=((cam*0.12)%320)
-    ctx.moveTo(0,395)
-    const pks2=[180,120,220,100,190,140]
-    for(let i=0;i<16;i++){
-      const bx=i*320-off2
-      const h=pks2[i%pks2.length]
-      ctx.lineTo(bx,395-h)
-      ctx.lineTo(bx+160,395)
-    }
-    ctx.lineTo(CW,CH); ctx.lineTo(0,CH); ctx.fill()
-  }
+    // Tooth position
+    const tx=W/2,ty=60,tw=90,rootH=H-120
+    const curve=cas.curvature*(Math.PI/180)
 
-  function church(ctx:CanvasRenderingContext2D, x:number, y:number, s:number){
-    ctx.fillStyle="rgba(80,55,40,0.28)"
-    ctx.fillRect(x-s*0.5,y,s,s*1.4)
-    ctx.beginPath(); ctx.arc(x,y,s*0.5,Math.PI,0); ctx.fill()
-    ctx.fillRect(x-s*0.06,y-s*0.7,s*0.12,s*0.6)
-    ctx.fillRect(x-s*0.2,y-s*0.45,s*0.4,s*0.08)
-    // Small dome on top of cross
-    ctx.beginPath(); ctx.arc(x,y-s*0.65,s*0.12,Math.PI,0); ctx.fill()
-  }
-
-  function churches(ctx:CanvasRenderingContext2D, cam:number){
-    const cxs=[200,560,870]
-    for(const b of cxs){
-      const x=((b-cam*0.25)%CW+CW)%CW
-      church(ctx,x,300,40)
-    }
-    church(ctx,((400-cam*0.25)%CW+CW)%CW,320,28)
-  }
-
-  function drawPlat(ctx:CanvasRenderingContext2D, p:Plt, cam:number){
-    const sx=p.x-cam
-    if(sx>CW+200||sx+p.w<-200) return
-    if(!p.lbl){
-      // Ground
-      const g=ctx.createLinearGradient(0,p.y,0,p.y+p.h)
-      g.addColorStop(0,"#6D4C41"); g.addColorStop(1,"#3E2723")
-      ctx.fillStyle=g; ctx.fillRect(sx,p.y,p.w,p.h)
-      ctx.fillStyle="#8D6E63"
-      for(let i=0;i<p.w;i+=50){ctx.fillRect(sx+i,p.y,1.5,p.h)}
-      ctx.fillStyle="#A1887F"; ctx.fillRect(sx,p.y,p.w,4)
-      return
-    }
-    if(p.lbl==="FINISH"){
-      const g=ctx.createLinearGradient(sx,p.y,sx,p.y+p.h)
-      g.addColorStop(0,"#FFD600"); g.addColorStop(1,"#F57F17")
-      ctx.fillStyle=g; ctx.fillRect(sx,p.y,p.w,p.h)
-      ctx.fillStyle="#FFF"; ctx.font="bold 13px Arial"
-      ctx.fillText("FINISH!",sx+50,p.y+14)
-      // Flag pole
-      ctx.fillStyle="#555"; ctx.fillRect(sx+p.w-30,p.y-55,3,55)
-      ctx.fillStyle="#E53935"
-      ctx.beginPath(); ctx.moveTo(sx+p.w-27,p.y-55); ctx.lineTo(sx+p.w-5,p.y-43); ctx.lineTo(sx+p.w-27,p.y-31); ctx.fill()
-      return
-    }
-    // Equipment platform base
-    const g=ctx.createLinearGradient(sx,p.y,sx,p.y+p.h)
-    g.addColorStop(0,p.col+"cc"); g.addColorStop(1,"#111a")
-    ctx.fillStyle=g; ctx.fillRect(sx,p.y,p.w,p.h)
-    ctx.strokeStyle="rgba(255,255,255,0.3)"; ctx.lineWidth=1
-    ctx.strokeRect(sx+0.5,p.y+0.5,p.w-1,p.h-1)
-    // Label
-    ctx.fillStyle="rgba(255,255,255,0.9)"; ctx.font="bold 8px Arial"
-    ctx.fillText(p.lbl,sx+4,p.y+14)
-
-    // ── Cartoon character on platform (Eighteeth ad style) ──
-    const mx=sx+p.w/2, my=p.y
-
-    function cartoonEyes(ex:number,ey:number,s:number){
-      // White sclera
-      ctx.fillStyle="#fff"
-      ctx.strokeStyle="#222"; ctx.lineWidth=s*0.15
-      ctx.beginPath(); ctx.ellipse(ex-s*1.1,ey,s*0.9,s,0,0,Math.PI*2); ctx.fill(); ctx.stroke()
-      ctx.beginPath(); ctx.ellipse(ex+s*1.1,ey,s*0.9,s,0,0,Math.PI*2); ctx.fill(); ctx.stroke()
-      // Pupils
-      ctx.fillStyle="#111"
-      ctx.beginPath(); ctx.arc(ex-s*0.9,ey+s*0.1,s*0.55,0,Math.PI*2); ctx.fill()
-      ctx.beginPath(); ctx.arc(ex+s*1.3,ey+s*0.1,s*0.55,0,Math.PI*2); ctx.fill()
-      // Shine
-      ctx.fillStyle="#fff"
-      ctx.beginPath(); ctx.arc(ex-s*0.65,ey-s*0.2,s*0.2,0,Math.PI*2); ctx.fill()
-      ctx.beginPath(); ctx.arc(ex+s*1.55,ey-s*0.2,s*0.2,0,Math.PI*2); ctx.fill()
-    }
-    function cartoonSmile(sx2:number,sy:number,r:number){
-      ctx.strokeStyle="#222"; ctx.lineWidth=1.5; ctx.lineCap="round"
-      ctx.beginPath(); ctx.arc(sx2,sy,r,0.1,Math.PI-0.1); ctx.stroke()
-    }
-    function cartoonArm(ax:number,ay:number,angle:number,len:number,col:string){
-      ctx.save(); ctx.translate(ax,ay); ctx.rotate(angle)
-      ctx.fillStyle=col; ctx.strokeStyle="#ccc"; ctx.lineWidth=1
-      ctx.beginPath(); ctx.roundRect(-4,0,8,len,4); ctx.fill(); ctx.stroke()
-      // Hand
-      ctx.fillStyle="#f0f0f0"
-      ctx.beginPath(); ctx.arc(0,len+4,5,0,Math.PI*2); ctx.fill(); ctx.stroke()
-      ctx.restore()
-    }
-
-    if(p.lbl==="E-Connect Pro"){
-      // ── E-Connect Pro: tall white box with face ──
-      // Body
-      const bw=38,bh=62,bx=mx-bw/2,by=my-bh
-      ctx.fillStyle="#f0f0f0"; ctx.strokeStyle="#ccc"; ctx.lineWidth=2
-      ctx.beginPath(); ctx.roundRect(bx,by,bw,bh,8); ctx.fill(); ctx.stroke()
-      // Top stripe (brand color)
-      ctx.fillStyle="#1E88E5"
-      ctx.beginPath(); ctx.roundRect(bx,by,bw,12,[8,8,0,0]); ctx.fill()
-      ctx.fillStyle="#fff"; ctx.font="bold 6px Arial"
-      ctx.fillText("E-Connect",bx+3,by+9)
-      // Screen on body
-      ctx.fillStyle="#001a10"; ctx.strokeStyle="#00ff88"; ctx.lineWidth=1
-      ctx.beginPath(); ctx.roundRect(bx+5,by+15,bw-10,18,3); ctx.fill(); ctx.stroke()
-      ctx.fillStyle="#00ff88"; ctx.font="bold 7px monospace"
-      ctx.fillText("250rpm",bx+7,by+26)
-      ctx.fillStyle="#00cc66"; ctx.font="6px monospace"
-      ctx.fillText("1.5Ncm",bx+8,by+32)
-      // Eyes on lower body
-      cartoonEyes(mx,by+44,5)
-      cartoonSmile(mx,by+53,6)
-      // Arms
-      cartoonArm(bx-2,by+30,-0.5,14,"#e0e0e0")
-      cartoonArm(bx+bw+2,by+30,0.5,14,"#e0e0e0")
-      // Legs / feet
-      ctx.fillStyle="#ddd"; ctx.strokeStyle="#bbb"; ctx.lineWidth=1
-      ctx.beginPath(); ctx.roundRect(bx+6,my-4,10,8,3); ctx.fill(); ctx.stroke()
-      ctx.beginPath(); ctx.roundRect(bx+22,my-4,10,8,3); ctx.fill(); ctx.stroke()
-      // Handpiece dangling
-      ctx.strokeStyle="#888"; ctx.lineWidth=2
-      ctx.beginPath(); ctx.moveTo(bx+bw,by+20); ctx.bezierCurveTo(bx+bw+20,by+20,bx+bw+18,by+50,bx+bw+14,by+54); ctx.stroke()
-      ctx.fillStyle="#aaa"
-      ctx.beginPath(); ctx.roundRect(bx+bw+12,by+52,5,12,2); ctx.fill()
-
-    } else if(p.lbl==="RODIN NiTi"){
-      // ── RODIN NiTi: tall handpiece with face ──
-      // Grip body (long cylinder-like)
-      const bh=75,bx=mx-10,by=my-bh
-      ctx.fillStyle="#efefef"; ctx.strokeStyle="#ccc"; ctx.lineWidth=2
-      ctx.beginPath(); ctx.roundRect(bx,by,20,bh,10); ctx.fill(); ctx.stroke()
-      // Blue grip rings
-      ctx.fillStyle="#90CAF9"
-      for(let i=0;i<3;i++){ ctx.fillRect(bx,by+14+i*7,20,4) }
-      // Face in middle
-      cartoonEyes(mx,by+42,5)
-      cartoonSmile(mx,by+52,5)
-      // Rosy cheeks
-      ctx.fillStyle="rgba(255,150,150,0.35)"
-      ctx.beginPath(); ctx.arc(mx-9,by+49,5,0,Math.PI*2); ctx.fill()
-      ctx.beginPath(); ctx.arc(mx+9,by+49,5,0,Math.PI*2); ctx.fill()
-      // Arms tiny
-      cartoonArm(bx-2,by+36,-0.6,12,"#ddd")
-      cartoonArm(bx+22,by+36,0.6,12,"#ddd")
-      // Head = file tip top (tapered)
-      ctx.fillStyle="#bbb"; ctx.strokeStyle="#999"; ctx.lineWidth=1.5
-      ctx.beginPath()
-      ctx.moveTo(mx-6,by); ctx.lineTo(mx+6,by); ctx.lineTo(mx+2,by-22); ctx.lineTo(mx-2,by-22)
-      ctx.closePath(); ctx.fill(); ctx.stroke()
-      // Tip glow (Eflex Blue style)
-      ctx.fillStyle="rgba(30,136,229,0.8)"
-      ctx.beginPath(); ctx.arc(mx,by-22,3,0,Math.PI*2); ctx.fill()
-      ctx.fillStyle="rgba(30,136,229,0.25)"
-      ctx.beginPath(); ctx.arc(mx,by-22,9,0,Math.PI*2); ctx.fill()
-      // Hat = nurse cross
-      ctx.fillStyle="#fff"; ctx.strokeStyle="#E53935"; ctx.lineWidth=1.5
-      ctx.beginPath(); ctx.roundRect(mx-9,by-32,18,12,4); ctx.fill(); ctx.stroke()
-      ctx.fillStyle="#E53935"
-      ctx.fillRect(mx-1.5,by-31,3,10)
-      ctx.fillRect(mx-6,by-27,12,3)
-      // Brand label
-      ctx.fillStyle="#1565C0"; ctx.font="bold 5px Arial"
-      ctx.fillText("RODIN",bx+1,by+64)
-
-    } else if(p.lbl==="3D Scanner"){
-      // ── 3D Scanner: big-headed scanning instrument ──
-      // Neck/handle
-      const bx=mx-8,by=my-55
-      ctx.fillStyle="#e8e8e8"; ctx.strokeStyle="#ccc"; ctx.lineWidth=1.5
-      ctx.beginPath(); ctx.roundRect(bx,by+18,16,37,6); ctx.fill(); ctx.stroke()
-      // Blue stripe on handle
-      ctx.fillStyle="#1E88E5"; ctx.fillRect(bx+3,by+25,10,4)
-      // Scan head (big rounded rectangle)
-      ctx.fillStyle="#fff"; ctx.strokeStyle="#90CAF9"; ctx.lineWidth=2
-      ctx.beginPath(); ctx.roundRect(mx-20,by-4,40,24,8); ctx.fill(); ctx.stroke()
-      // Scan window (dark glass)
-      ctx.fillStyle="#001830"; ctx.strokeStyle="#1E88E5"; ctx.lineWidth=1
-      ctx.beginPath(); ctx.roundRect(mx-16,by-1,32,14,4); ctx.fill(); ctx.stroke()
-      // Scan beam lines from window
-      for(let i=0;i<5;i++){
-        ctx.strokeStyle=`rgba(30,136,229,${0.5-i*0.08})`; ctx.lineWidth=1
-        ctx.beginPath(); ctx.moveTo(mx-16+i*2,by-1); ctx.lineTo(mx-28+i*3,by-12-i*3); ctx.stroke()
-        ctx.beginPath(); ctx.moveTo(mx+16-i*2,by-1); ctx.lineTo(mx+28-i*3,by-12-i*3); ctx.stroke()
+    // Canal path
+    function canalPts(){
+      const pts:[number,number][]=[]
+      for(let i=0;i<=50;i++){
+        const t2=i/50
+        let cx=tx
+        if(cas.curvature>0) cx+=Math.sin(t2*Math.PI)*cas.curvature*0.9
+        pts.push([cx,ty+t2*rootH])
       }
-      ctx.fillStyle="rgba(30,136,229,0.12)"
-      ctx.beginPath(); ctx.moveTo(mx-16,by-1); ctx.lineTo(mx-32,by-18); ctx.lineTo(mx+32,by-18); ctx.lineTo(mx+16,by-1); ctx.closePath(); ctx.fill()
-      // Face below window
-      cartoonEyes(mx,by+10,4.5)
-      cartoonSmile(mx,by+18,5)
-      // Arms
-      cartoonArm(mx-22,by+8,-0.4,13,"#e0e0e0")
-      cartoonArm(mx+22,by+8,0.4,13,"#e0e0e0")
-      // Feet
-      ctx.fillStyle="#ddd"; ctx.strokeStyle="#bbb"; ctx.lineWidth=1
-      ctx.beginPath(); ctx.ellipse(mx-5,my,7,4,0,0,Math.PI*2); ctx.fill(); ctx.stroke()
-      ctx.beginPath(); ctx.ellipse(mx+5,my,7,4,0,0,Math.PI*2); ctx.fill(); ctx.stroke()
-      // Label
-      ctx.fillStyle="#1E88E5"; ctx.font="bold 6px Arial"
-      ctx.fillText("3D Scan",bx-2,by+10)
-
-    } else if(p.lbl==="X-Ray Pro"){
-      // ── X-Ray: boxy device with face and beam ──
-      const bx=mx-20,by=my-60
-      // Body box
-      ctx.fillStyle="#e8e8e8"; ctx.strokeStyle="#ccc"; ctx.lineWidth=2
-      ctx.beginPath(); ctx.roundRect(bx,by,40,55,8); ctx.fill(); ctx.stroke()
-      // Top brand stripe
-      ctx.fillStyle="#455A64"
-      ctx.beginPath(); ctx.roundRect(bx,by,40,12,[8,8,0,0]); ctx.fill()
-      ctx.fillStyle="#FFF176"; ctx.font="bold 7px Arial"
-      ctx.fillText("X-RAY",bx+8,by+9)
-      // Screen
-      ctx.fillStyle="#002a00"; ctx.strokeStyle="#00ff44"; ctx.lineWidth=1
-      ctx.beginPath(); ctx.roundRect(bx+5,by+14,30,16,3); ctx.fill(); ctx.stroke()
-      ctx.fillStyle="#00ff44"; ctx.font="6px monospace"
-      ctx.fillText("READY",bx+8,by+24)
-      // Face
-      cartoonEyes(mx,by+38,5)
-      cartoonSmile(mx,by+47,6)
-      // Side beam emitter cone
-      ctx.fillStyle="#555"
-      ctx.beginPath()
-      ctx.moveTo(bx+40,by+20); ctx.lineTo(bx+56,by+14); ctx.lineTo(bx+56,by+30); ctx.lineTo(bx+40,by+30)
-      ctx.closePath(); ctx.fill()
-      // Yellow beam
-      ctx.fillStyle="rgba(255,230,0,0.25)"
-      ctx.beginPath()
-      ctx.moveTo(bx+56,by+14); ctx.lineTo(bx+90,by+2); ctx.lineTo(bx+90,by+44); ctx.lineTo(bx+56,by+30)
-      ctx.closePath(); ctx.fill()
-      ctx.strokeStyle="rgba(255,220,0,0.5)"; ctx.lineWidth=1; ctx.stroke()
-      // Legs
-      ctx.fillStyle="#ddd"; ctx.strokeStyle="#bbb"; ctx.lineWidth=1
-      ctx.beginPath(); ctx.roundRect(bx+6,my-6,12,10,3); ctx.fill(); ctx.stroke()
-      ctx.beginPath(); ctx.roundRect(bx+22,my-6,12,10,3); ctx.fill(); ctx.stroke()
+      return pts
     }
-  }
+    const pts=canalPts()
 
-  function drawChar(ctx:CanvasRenderingContext2D, px:number, py:number, pw:number, ph:number, onG:boolean, right:boolean, fr:number){
-    const cx=px+pw*0.5, bob=onG?Math.sin(fr*0.3)*2:0
+    // Tooth outline (X-ray white)
     ctx.save()
-    if(!right){ ctx.translate(cx*2,0); ctx.scale(-1,1) }
-
-    // ══ LEGS (white pants) ══
-    ctx.fillStyle="#E8E8F0"
-    ctx.beginPath()
-    ctx.roundRect(cx-10,py+ph-18,9,18,4)
-    ctx.fill()
-    ctx.beginPath()
-    ctx.roundRect(cx+1,py+ph-18,9,18,4)
-    ctx.fill()
-    // Walking animation
-    if(onG){
-      ctx.fillStyle="#E8E8F0"
-      ctx.save()
-      ctx.translate(cx-5,py+ph-18)
-      ctx.rotate(Math.sin(fr*0.35)*0.35)
-      ctx.fillRect(-4.5,0,9,18)
-      ctx.restore()
-      ctx.save()
-      ctx.translate(cx+5,py+ph-18)
-      ctx.rotate(-Math.sin(fr*0.35)*0.35)
-      ctx.fillRect(-4.5,0,9,18)
-      ctx.restore()
-    }
-    // White shoes
-    ctx.fillStyle="#F0F0F8"
-    ctx.strokeStyle="#D0D0E0"; ctx.lineWidth=1
-    ctx.beginPath(); ctx.ellipse(cx-6,py+ph-1,9,5,0,0,Math.PI*2); ctx.fill(); ctx.stroke()
-    ctx.beginPath(); ctx.ellipse(cx+6,py+ph-1,9,5,0,0,Math.PI*2); ctx.fill(); ctx.stroke()
-
-    // ══ LAB COAT BODY ══
-    const by=py+20+bob
-    ctx.fillStyle="#FFFFFF"
-    ctx.strokeStyle="#D8D8E8"; ctx.lineWidth=1.5
-    ctx.beginPath()
-    ctx.moveTo(cx-14,by)
-    ctx.lineTo(cx-16,py+ph-16)
-    ctx.lineTo(cx+16,py+ph-16)
-    ctx.lineTo(cx+14,by)
-    ctx.closePath()
-    ctx.fill(); ctx.stroke()
-    // Coat lapels
-    ctx.fillStyle="#F5F5FF"
-    ctx.beginPath()
-    ctx.moveTo(cx,by+2); ctx.lineTo(cx-8,by+4); ctx.lineTo(cx-10,by+16); ctx.lineTo(cx,by+10)
-    ctx.closePath(); ctx.fill()
-    ctx.beginPath()
-    ctx.moveTo(cx,by+2); ctx.lineTo(cx+8,by+4); ctx.lineTo(cx+10,by+16); ctx.lineTo(cx,by+10)
-    ctx.closePath(); ctx.fill()
-    // Buttons
-    ctx.fillStyle="#D0D0E8"
-    for(let i=0;i<3;i++) { ctx.beginPath(); ctx.arc(cx,by+14+i*8,2,0,Math.PI*2); ctx.fill() }
-    // Pocket
-    ctx.strokeStyle="#D0D0E0"; ctx.lineWidth=1
-    ctx.strokeRect(cx-14,by+20,10,9)
-    // Eighteeth logo on pocket
-    ctx.fillStyle="#1E88E5"; ctx.font="bold 5px Arial"
-    ctx.fillText("18",cx-12,by+28)
-
-    // ══ ARMS ══
-    const armSwing=onG?Math.sin(fr*0.35)*0.4:0
-    // Left arm
-    ctx.save()
-    ctx.translate(cx-13,by+4)
-    ctx.rotate(-0.3+armSwing)
-    ctx.fillStyle="#FFFFFF"
-    ctx.strokeStyle="#D8D8E8"; ctx.lineWidth=1
-    ctx.beginPath(); ctx.roundRect(-5,0,10,16,5); ctx.fill(); ctx.stroke()
-    // White glove/hand
-    ctx.fillStyle="#F5F5F5"
-    ctx.beginPath(); ctx.arc(0,17,6,0,Math.PI*2); ctx.fill()
-    ctx.restore()
-    // Right arm
-    ctx.save()
-    ctx.translate(cx+13,by+4)
-    ctx.rotate(0.3-armSwing)
-    ctx.fillStyle="#FFFFFF"
-    ctx.strokeStyle="#D8D8E8"; ctx.lineWidth=1
-    ctx.beginPath(); ctx.roundRect(-5,0,10,16,5); ctx.fill(); ctx.stroke()
-    ctx.fillStyle="#F5F5F5"
-    ctx.beginPath(); ctx.arc(0,17,6,0,Math.PI*2); ctx.fill()
-    ctx.restore()
-
-    // ══ HEAD ══
-    const hy=py+10+bob
-    // Head base (big round cute head)
-    ctx.fillStyle="#F8F8FF"
-    ctx.strokeStyle="#E0E0F0"; ctx.lineWidth=1.5
-    ctx.beginPath(); ctx.arc(cx,hy,16,0,Math.PI*2); ctx.fill(); ctx.stroke()
-    // Fluffy cheeks
-    ctx.fillStyle="rgba(255,182,193,0.45)"
-    ctx.beginPath(); ctx.arc(cx-11,hy+5,6,0,Math.PI*2); ctx.fill()
-    ctx.beginPath(); ctx.arc(cx+11,hy+5,6,0,Math.PI*2); ctx.fill()
-    // Unicorn ears
-    ctx.fillStyle="#F0F0FF"
-    ctx.strokeStyle="#D8D8F0"; ctx.lineWidth=1
-    ctx.beginPath()
-    ctx.moveTo(cx-10,hy-12); ctx.lineTo(cx-16,hy-24); ctx.lineTo(cx-4,hy-18)
-    ctx.closePath(); ctx.fill(); ctx.stroke()
-    ctx.beginPath()
-    ctx.moveTo(cx+10,hy-12); ctx.lineTo(cx+16,hy-24); ctx.lineTo(cx+4,hy-18)
-    ctx.closePath(); ctx.fill(); ctx.stroke()
-    // Inner ear pink
-    ctx.fillStyle="rgba(255,150,170,0.5)"
-    ctx.beginPath()
-    ctx.moveTo(cx-10,hy-13); ctx.lineTo(cx-14,hy-22); ctx.lineTo(cx-6,hy-18)
-    ctx.closePath(); ctx.fill()
-    ctx.beginPath()
-    ctx.moveTo(cx+10,hy-13); ctx.lineTo(cx+14,hy-22); ctx.lineTo(cx+6,hy-18)
-    ctx.closePath(); ctx.fill()
-    // Unicorn horn
-    const hornGrad=ctx.createLinearGradient(cx,hy-38,cx+3,hy-18)
-    hornGrad.addColorStop(0,"#C0C0D8"); hornGrad.addColorStop(1,"#9090B8")
-    ctx.fillStyle=hornGrad
-    ctx.strokeStyle="#A0A0C8"; ctx.lineWidth=1
-    ctx.beginPath()
-    ctx.moveTo(cx,hy-38); ctx.lineTo(cx-4,hy-18); ctx.lineTo(cx+4,hy-18)
-    ctx.closePath(); ctx.fill(); ctx.stroke()
-    // Horn spiral lines
-    ctx.strokeStyle="rgba(255,255,255,0.6)"; ctx.lineWidth=1
-    for(let i=0;i<4;i++){
-      const t2=i/4; const y2=hy-18-t2*20
-      ctx.beginPath(); ctx.moveTo(cx-3+t2*3,y2); ctx.lineTo(cx+1,y2-3); ctx.stroke()
-    }
-    // Hair tuft on forehead
-    ctx.fillStyle="#F0F0FA"
-    ctx.beginPath()
-    ctx.arc(cx-3,hy-14,5,Math.PI,0); ctx.fill()
-    ctx.beginPath()
-    ctx.arc(cx+3,hy-14,4,Math.PI,0); ctx.fill()
-
-    // ══ HEADPHONES ══
-    // Band over head
-    ctx.strokeStyle="#5BC8DC"; ctx.lineWidth=3
-    ctx.beginPath(); ctx.arc(cx,hy-4,17,Math.PI*1.1,Math.PI*0.1,false); ctx.stroke()
-    // Ear cups
-    ctx.fillStyle="#5BC8DC"
-    ctx.strokeStyle="#4AB8CC"; ctx.lineWidth=1.5
-    ctx.beginPath(); ctx.ellipse(cx-16,hy-2,6,8,0,0,Math.PI*2); ctx.fill(); ctx.stroke()
-    ctx.beginPath(); ctx.ellipse(cx+16,hy-2,6,8,0,0,Math.PI*2); ctx.fill(); ctx.stroke()
-    // Cup shine
-    ctx.fillStyle="rgba(255,255,255,0.4)"
-    ctx.beginPath(); ctx.ellipse(cx-17,hy-4,2.5,4,0,0,Math.PI*2); ctx.fill()
-    ctx.beginPath(); ctx.ellipse(cx+15,hy-4,2.5,4,0,0,Math.PI*2); ctx.fill()
-
-    // ══ EYES ══
-    // Big cute anime eyes
-    ctx.fillStyle="#1a1a2e"
-    ctx.beginPath(); ctx.ellipse(cx-5,hy+1,5,6,0,0,Math.PI*2); ctx.fill()
-    ctx.beginPath(); ctx.ellipse(cx+5,hy+1,5,6,0,0,Math.PI*2); ctx.fill()
-    // Eye shine
-    ctx.fillStyle="#fff"
-    ctx.beginPath(); ctx.arc(cx-3,hy-2,2,0,Math.PI*2); ctx.fill()
-    ctx.beginPath(); ctx.arc(cx+7,hy-2,2,0,Math.PI*2); ctx.fill()
-    ctx.beginPath(); ctx.arc(cx-6,hy+2,1,0,Math.PI*2); ctx.fill()
-    ctx.beginPath(); ctx.arc(cx+4,hy+2,1,0,Math.PI*2); ctx.fill()
-    // Happy mouth (open smile)
-    ctx.fillStyle="#FF6B8A"
-    ctx.beginPath(); ctx.arc(cx,hy+8,4,0,Math.PI); ctx.fill()
-    ctx.fillStyle="#fff"
-    ctx.beginPath(); ctx.arc(cx,hy+9,2.5,0,Math.PI); ctx.fill()
-
-    ctx.restore()
-  }
-
-  function drawMob(ctx:CanvasRenderingContext2D, m:Mob, cam:number, t:number){
-    if(!m.alive) return
-    const sx=m.x-cam
-    if(sx<-60||sx>CW+60) return
-    const bob=Math.sin(t*0.07)*3
-    const x=sx, y=m.y+bob
-
-    // ══ Eighteeth E-Connect Pro cartoon villain ══
-    // Little legs walking
-    const lw=Math.sin(t*0.12)*5
-    ctx.fillStyle="#1a1a1a"
-    ctx.save(); ctx.translate(x+9,y+30); ctx.rotate(lw*0.06)
-    ctx.beginPath(); ctx.roundRect(-4,0,8,10,3); ctx.fill()
-    ctx.restore()
-    ctx.save(); ctx.translate(x+23,y+30); ctx.rotate(-lw*0.06)
-    ctx.beginPath(); ctx.roundRect(-4,0,8,10,3); ctx.fill()
-    ctx.restore()
-    // Shoes (red angry)
-    ctx.fillStyle="#C62828"
-    ctx.beginPath(); ctx.ellipse(x+9,y+40,7,4,0,0,Math.PI*2); ctx.fill()
-    ctx.beginPath(); ctx.ellipse(x+23,y+40,7,4,0,0,Math.PI*2); ctx.fill()
-    // Little arms flailing
-    ctx.fillStyle="#222"
-    ctx.save(); ctx.translate(x+3,y+14); ctx.rotate(-0.5+Math.sin(t*0.1)*0.4)
-    ctx.beginPath(); ctx.roundRect(-3,0,6,12,3); ctx.fill()
-    ctx.restore()
-    ctx.save(); ctx.translate(x+29,y+14); ctx.rotate(0.5-Math.sin(t*0.1)*0.4)
-    ctx.beginPath(); ctx.roundRect(-3,0,6,12,3); ctx.fill()
-    ctx.restore()
-
-    // Main body — black box like E-Connect Pro
-    const bg=ctx.createLinearGradient(x+2,y,x+2,y+30)
-    bg.addColorStop(0,"#2a2a2a"); bg.addColorStop(1,"#111")
-    ctx.fillStyle=bg
-    ctx.strokeStyle="#444"; ctx.lineWidth=1.5
-    ctx.beginPath(); ctx.roundRect(x+2,y,28,30,5); ctx.fill(); ctx.stroke()
-    // Screen on body
-    ctx.fillStyle="#0a2a1a"
-    ctx.beginPath(); ctx.roundRect(x+6,y+4,20,12,3); ctx.fill()
-    ctx.fillStyle="#00ff88"; ctx.font="bold 6px Arial"
-    ctx.fillText("ERR!",x+8,y+13)
-    // Buttons
-    ctx.fillStyle="#E53935"
-    ctx.beginPath(); ctx.arc(x+10,y+21,3,0,Math.PI*2); ctx.fill()
-    ctx.fillStyle="#555"
-    ctx.beginPath(); ctx.arc(x+18,y+21,3,0,Math.PI*2); ctx.fill()
-    ctx.beginPath(); ctx.arc(x+24,y+21,3,0,Math.PI*2); ctx.fill()
-    // Brand stripe
-    ctx.fillStyle="#1E88E5"
-    ctx.fillRect(x+2,y+25,28,4)
-    ctx.fillStyle="#fff"; ctx.font="bold 5px Arial"
-    ctx.fillText("18teeth",x+5,y+29)
-
-    // HEAD — round angry cartoon head on top of box
-    ctx.fillStyle="#2a2a2a"
-    ctx.strokeStyle="#444"; ctx.lineWidth=1.5
-    ctx.beginPath(); ctx.arc(x+16,y-8,13,0,Math.PI*2); ctx.fill(); ctx.stroke()
-    // Antenna
-    ctx.strokeStyle="#555"; ctx.lineWidth=2
-    ctx.beginPath(); ctx.moveTo(x+16,y-21); ctx.lineTo(x+16,y-14); ctx.stroke()
-    ctx.fillStyle="#E53935"
-    ctx.beginPath(); ctx.arc(x+16,y-22,3,0,Math.PI*2); ctx.fill()
-    // Angry eyes (white sclera, red iris)
-    ctx.fillStyle="#fff"
-    ctx.beginPath(); ctx.ellipse(x+10,y-9,4.5,5,0,0,Math.PI*2); ctx.fill()
-    ctx.beginPath(); ctx.ellipse(x+22,y-9,4.5,5,0,0,Math.PI*2); ctx.fill()
-    ctx.fillStyle="#E53935"
-    ctx.beginPath(); ctx.arc(x+10,y-8,3,0,Math.PI*2); ctx.fill()
-    ctx.beginPath(); ctx.arc(x+22,y-8,3,0,Math.PI*2); ctx.fill()
-    ctx.fillStyle="#000"
-    ctx.beginPath(); ctx.arc(x+11,y-8,1.5,0,Math.PI*2); ctx.fill()
-    ctx.beginPath(); ctx.arc(x+23,y-8,1.5,0,Math.PI*2); ctx.fill()
-    // Angry brows (thick, angled inward)
-    ctx.strokeStyle="#E53935"; ctx.lineWidth=2.5
+    ctx.shadowColor="rgba(200,200,200,0.3)"; ctx.shadowBlur=12
+    ctx.strokeStyle="rgba(180,180,170,0.75)"; ctx.lineWidth=tw
     ctx.lineCap="round"
-    ctx.beginPath(); ctx.moveTo(x+6,y-15); ctx.lineTo(x+14,y-12); ctx.stroke()
-    ctx.beginPath(); ctx.moveTo(x+26,y-15); ctx.lineTo(x+18,y-12); ctx.stroke()
-    // Angry mouth (sharp zigzag)
-    ctx.strokeStyle="#E53935"; ctx.lineWidth=1.5
-    ctx.beginPath()
-    ctx.moveTo(x+9,y-3)
-    ctx.lineTo(x+12,y-1); ctx.lineTo(x+14,y-4)
-    ctx.lineTo(x+16,y-1); ctx.lineTo(x+18,y-4)
-    ctx.lineTo(x+20,y-1); ctx.lineTo(x+23,y-3)
-    ctx.stroke()
-    ctx.lineCap="butt"
-  }
-
-  function drawMlLogo(ctx:CanvasRenderingContext2D, x:number, y:number, s:number){
-    // Medical Line Georgia logo — tooth with blue/red and ECG line
-    ctx.save()
-    ctx.translate(x,y)
-    ctx.scale(s,s)
-    // Outer tooth — red right curve
-    ctx.beginPath()
-    ctx.moveTo(0,-18)
-    ctx.bezierCurveTo(22,-18,28,0,24,12)
-    ctx.bezierCurveTo(20,22,10,28,0,26)
-    ctx.bezierCurveTo(-10,28,-20,22,-24,12)
-    ctx.bezierCurveTo(-28,0,-22,-18,0,-18)
-    ctx.closePath()
-    ctx.fillStyle="#fff"
-    ctx.fill()
-    // Blue left stroke
-    ctx.beginPath()
-    ctx.moveTo(-18,-14)
-    ctx.bezierCurveTo(-28,-10,-30,4,-26,14)
-    ctx.bezierCurveTo(-22,22,-12,28,0,26)
-    ctx.strokeStyle="#1D3C8F"; ctx.lineWidth=4; ctx.lineCap="round"
-    ctx.stroke()
-    // Red right/bottom stroke
-    ctx.beginPath()
-    ctx.moveTo(0,26)
-    ctx.bezierCurveTo(12,28,22,18,24,8)
-    ctx.bezierCurveTo(27,-2,20,-16,8,-18)
-    ctx.strokeStyle="#CC2229"; ctx.lineWidth=4; ctx.lineCap="round"
-    ctx.stroke()
-    // ECG / heartbeat line in centre
-    ctx.beginPath()
-    ctx.moveTo(-14,2)
-    ctx.lineTo(-8,2)
-    ctx.lineTo(-5,-8)
-    ctx.lineTo(-1,14)
-    ctx.lineTo(3,-4)
-    ctx.lineTo(6,2)
-    ctx.lineTo(14,2)
-    ctx.strokeStyle="#9E9E9E"; ctx.lineWidth=2.5; ctx.lineCap="round"; ctx.lineJoin="round"
+    ctx.beginPath(); ctx.moveTo(pts[0][0],pts[0][1])
+    pts.forEach(([px,py])=>ctx.lineTo(px,py))
     ctx.stroke()
     ctx.restore()
-  }
 
-  function drawGem(ctx:CanvasRenderingContext2D, g:Gem, cam:number, t:number){
-    if(g.got) return
-    const sx=g.x-cam
-    if(sx<-20||sx>CW+20) return
-    const bob=Math.sin(t*0.07+g.x*0.01)*4
-    const spin=t*0.08
+    // Bone/PDL darker surroundings
+    ctx.strokeStyle="rgba(60,55,50,0.9)"; ctx.lineWidth=tw+32
+    ctx.globalCompositeOperation="destination-over"
+    ctx.beginPath(); ctx.moveTo(pts[0][0],pts[0][1])
+    pts.forEach(([px,py])=>ctx.lineTo(px,py))
+    ctx.stroke()
+    ctx.globalCompositeOperation="source-over"
 
-    // Eflex Blue endofile collectible
+    // Pulp chamber (dark canal)
+    ctx.strokeStyle="rgba(20,20,18,0.95)"; ctx.lineWidth=14
+    ctx.lineCap="round"; ctx.lineJoin="round"
+    ctx.beginPath(); ctx.moveTo(pts[0][0],pts[0][1])
+    pts.forEach(([px,py])=>ctx.lineTo(px,py))
+    ctx.stroke()
+
+    // Trabecular bone texture
+    ctx.strokeStyle="rgba(100,95,85,0.18)"; ctx.lineWidth=1
+    for(let i=0;i<40;i++){
+      const bx=tx-tw*0.7+Math.random()*tw*1.4
+      const by=ty+Math.random()*rootH
+      ctx.beginPath(); ctx.moveTo(bx,by); ctx.lineTo(bx+8-Math.random()*16,by+6-Math.random()*12); ctx.stroke()
+    }
+
+    // Fragment position
+    const fragStart=Math.floor(cas.fragDepth*50)
+    const fragEnd=Math.floor((cas.fragDepth+cas.fragLen)*50)
+    const fp0=pts[Math.min(fragStart,49)]
+    const fp1=pts[Math.min(fragEnd,49)]
+
+    // Fragment — bright metallic piece
+    const fragGlow=Math.sin(t*0.08)*0.3+0.7
     ctx.save()
-    ctx.translate(sx,g.y+bob)
-    ctx.rotate(Math.sin(spin)*0.15)
-
-    // Glow
-    const glow=ctx.createRadialGradient(0,0,2,0,0,16)
-    glow.addColorStop(0,"rgba(30,136,229,0.35)")
-    glow.addColorStop(1,"rgba(30,136,229,0)")
-    ctx.fillStyle=glow
-    ctx.beginPath(); ctx.arc(0,0,16,0,Math.PI*2); ctx.fill()
-
-    // File shaft
-    const fileGrad=ctx.createLinearGradient(-2,-18,2,-18)
-    fileGrad.addColorStop(0,"#90CAF9")
-    fileGrad.addColorStop(0.5,"#fff")
-    fileGrad.addColorStop(1,"#1565C0")
-    ctx.fillStyle=fileGrad
-    ctx.beginPath()
-    ctx.moveTo(-2,-18); ctx.lineTo(2,-18)
-    ctx.lineTo(1,8); ctx.lineTo(-1,8)
-    ctx.closePath(); ctx.fill()
-
-    // Tapered tip
-    ctx.beginPath()
-    ctx.moveTo(-1,8); ctx.lineTo(1,8); ctx.lineTo(0,14)
-    ctx.closePath()
-    ctx.fillStyle="#1565C0"; ctx.fill()
-
-    // Spiral flutes on shaft
-    ctx.strokeStyle="rgba(255,255,255,0.6)"; ctx.lineWidth=0.8
-    for(let i=0;i<5;i++){
-      const fy=-14+i*4
+    ctx.shadowColor=`rgba(220,220,180,${fragGlow})`
+    ctx.shadowBlur=8
+    ctx.strokeStyle=`rgba(230,225,200,${0.85+fragGlow*0.15})`
+    ctx.lineWidth=5
+    ctx.lineCap="round"
+    ctx.beginPath(); ctx.moveTo(fp0[0],fp0[1]); ctx.lineTo(fp1[0],fp1[1]); ctx.stroke()
+    // Fragment cross-hatching (NiTi spiral visible)
+    ctx.strokeStyle=`rgba(160,155,130,${0.6})`; ctx.lineWidth=1.5
+    const flen=Math.sqrt((fp1[0]-fp0[0])**2+(fp1[1]-fp0[1])**2)
+    const fa=Math.atan2(fp1[1]-fp0[1],fp1[0]-fp0[0])
+    for(let i=0;i<flen;i+=3){
+      const px2=fp0[0]+Math.cos(fa)*i
+      const py2=fp0[1]+Math.sin(fa)*i
       ctx.beginPath()
-      ctx.moveTo(-2,fy); ctx.bezierCurveTo(-5,fy+1,5,fy+2,2,fy+3)
+      ctx.moveTo(px2+Math.cos(fa+Math.PI/2)*3,py2+Math.sin(fa+Math.PI/2)*3)
+      ctx.lineTo(px2-Math.cos(fa+Math.PI/2)*3,py2-Math.sin(fa+Math.PI/2)*3)
       ctx.stroke()
     }
-
-    // Handle/grip top
-    ctx.fillStyle="#1E88E5"
-    ctx.strokeStyle="#0D47A1"; ctx.lineWidth=1
-    ctx.beginPath(); ctx.roundRect(-5,-24,10,8,3); ctx.fill(); ctx.stroke()
-    ctx.fillStyle="rgba(255,255,255,0.4)"
-    ctx.fillRect(-3,-23,6,2)
-
-    // Stars sparkle
-    ctx.fillStyle="#FFD700"
-    const sparks=[[10,-16],[12,-8],[-12,-12],[-10,-4]]
-    for(const [sx2,sy] of sparks){
-      const sa=spin*2+sx2
-      ctx.save(); ctx.translate(sx2,sy); ctx.rotate(sa)
-      ctx.beginPath()
-      ctx.moveTo(0,-3); ctx.lineTo(0.7,-0.7); ctx.lineTo(3,0)
-      ctx.lineTo(0.7,0.7); ctx.lineTo(0,3)
-      ctx.lineTo(-0.7,0.7); ctx.lineTo(-3,0)
-      ctx.lineTo(-0.7,-0.7); ctx.closePath()
-      ctx.fill()
-      ctx.restore()
-    }
-
     ctx.restore()
-  }
 
-  function drawHUD(ctx:CanvasRenderingContext2D, score:number, lives:number){
-    // ML Logo in top-left
-    drawMlLogo(ctx,28,28,0.7)
-    // Score panel
-    ctx.fillStyle="rgba(0,0,0,0.5)"
-    ctx.beginPath(); ctx.roundRect(56,8,160,36,8); ctx.fill()
-    // File icon in score
-    ctx.fillStyle="#90CAF9"; ctx.font="bold 12px Arial"
-    ctx.fillText("📁",62,30)
-    ctx.fillStyle="#FFD700"; ctx.font="bold 14px Arial"
-    ctx.fillText("×"+score,80,29)
-    ctx.fillStyle="rgba(255,255,255,0.5)"; ctx.font="10px Arial"
-    ctx.fillText("Medical Line Georgia",86,40)
-    // Lives
-    ctx.fillStyle="rgba(0,0,0,0.5)"
-    ctx.beginPath(); ctx.roundRect(CW-70,8,62,36,8); ctx.fill()
-    ctx.fillStyle="#FF5252"; ctx.font="bold 18px Arial"
-    ctx.fillText("♥ "+lives,CW-62,31)
-  }
+    // Measurement arrows (WL indicator)
+    ctx.strokeStyle="rgba(100,200,100,0.5)"; ctx.lineWidth=1
+    ctx.setLineDash([3,3])
+    ctx.beginPath(); ctx.moveTo(tx+tw*0.6,pts[0][1]); ctx.lineTo(tx+tw*0.6,pts[49][1]); ctx.stroke()
+    ctx.setLineDash([])
+    ctx.fillStyle="rgba(100,200,100,0.8)"; ctx.font="10px monospace"
+    ctx.fillText(cas.wl+"mm",tx+tw*0.6+4,pts[49][1]-4)
 
-  function drawOverlay(ctx:CanvasRenderingContext2D, status:string, score:number){
-    ctx.fillStyle="rgba(0,0,0,0.72)"
-    ctx.fillRect(0,0,CW,CH)
-    // Draw ML logo centered large
-    drawMlLogo(ctx,CW/2,CH/2-90,2.2)
-    if(status==="win"){
-      ctx.fillStyle="#FFD700"; ctx.font="bold 48px Arial"; ctx.textAlign="center"
-      ctx.fillText("გამარჯვება!",CW/2,CH/2-20)
-      ctx.fillStyle="#90CAF9"; ctx.font="bold 22px Arial"
-      ctx.fillText("Eflex x"+score+" ფაილი შეგროვდა",CW/2,CH/2+18)
-      ctx.fillStyle="#A5D6A7"; ctx.font="16px Arial"
-      ctx.fillText("Medical Line Georgia — Eighteeth Official Partner",CW/2,CH/2+48)
-    } else {
-      ctx.fillStyle="#EF5350"; ctx.font="bold 48px Arial"; ctx.textAlign="center"
-      ctx.fillText("კიდევ სცადე!",CW/2,CH/2-20)
-      ctx.fillStyle="#fff"; ctx.font="bold 22px Arial"
-      ctx.fillText("ქულა: "+score,CW/2,CH/2+18)
+    // Fragment depth marker
+    ctx.strokeStyle="rgba(255,100,80,0.6)"; ctx.lineWidth=1
+    ctx.setLineDash([2,3])
+    ctx.beginPath(); ctx.moveTo(tx-tw*0.6,fp0[1]); ctx.lineTo(tx+tw*0.6+35,fp0[1]); ctx.stroke()
+    ctx.beginPath(); ctx.moveTo(tx-tw*0.6,fp1[1]); ctx.lineTo(tx+tw*0.6+35,fp1[1]); ctx.stroke()
+    ctx.setLineDash([])
+    ctx.fillStyle="rgba(255,120,80,0.85)"; ctx.font="9px monospace"
+    ctx.fillText("FRAG",(tx+tw*0.6+8),(fp0[1]+fp1[1])/2+3)
+
+    // Apex marker
+    const apex=pts[49]
+    ctx.strokeStyle="rgba(255,200,0,0.6)"; ctx.lineWidth=1.5
+    ctx.beginPath(); ctx.moveTo(apex[0]-8,apex[1]+5); ctx.lineTo(apex[0]+8,apex[1]+5); ctx.stroke()
+    ctx.fillStyle="rgba(255,200,0,0.8)"; ctx.font="9px monospace"
+    ctx.fillText("APEX",apex[0]+10,apex[1]+8)
+
+    // Corner info
+    mlLogo(ctx,36,36,0.55)
+    ctx.fillStyle="rgba(255,255,255,0.7)"; ctx.font="bold 11px monospace"
+    ctx.fillText("Medical Line Georgia",64,28)
+    ctx.fillStyle="rgba(180,180,160,0.7)"; ctx.font="10px monospace"
+    ctx.fillText(cas.tooth+" | WL:"+cas.wl+"mm | "+cas.canal,64,42)
+
+    // Diagnosis box
+    ctx.fillStyle="rgba(0,0,0,0.6)"
+    ctx.fillRect(8,H-52,W-16,44)
+    ctx.fillStyle="rgba(255,80,80,0.85)"; ctx.font="bold 10px monospace"
+    ctx.fillText("BROKEN INSTRUMENT DETECTED",16,H-36)
+    ctx.fillStyle="rgba(200,200,180,0.8)"; ctx.font="9px monospace"
+    ctx.fillText(cas.desc,16,H-22)
+    ctx.fillStyle="rgba(100,200,100,0.8)"
+    ctx.fillText("Prognosis: "+cas.prognosis,16,H-9)
+  },[cas])
+
+  // ── ULTRAX CANVAS ──
+  const drawUltrax=useCallback(()=>{
+    const cv=ultraxRef.current; if(!cv||!cas) return
+    const ctx=cv.getContext("2d")!
+    const W=cv.width,H=cv.height
+    const t=tRef.current
+    const pct=ultraxPct/100
+
+    ctx.fillStyle="#0d0d0d"; ctx.fillRect(0,0,W,H)
+
+    // Left panel: X-ray view with UltraX tip
+    const lw=W*0.45
+    const tx=lw/2,ty=40,rootH=H-90
+    const pts:[number,number][]=[]
+    for(let i=0;i<=50;i++){
+      const t2=i/50
+      let cx=tx
+      if(cas.curvature>0) cx+=Math.sin(t2*Math.PI)*cas.curvature*0.6
+      pts.push([cx,ty+t2*rootH])
     }
-    ctx.fillStyle="rgba(255,255,255,0.6)"; ctx.font="16px Arial"
-    ctx.fillText("R — რესტარტი",CW/2,CH/2+80)
+
+    // Tooth
+    ctx.shadowColor="rgba(180,180,160,0.2)"; ctx.shadowBlur=8
+    ctx.strokeStyle="rgba(160,155,140,0.65)"; ctx.lineWidth=60; ctx.lineCap="round"
+    ctx.beginPath(); ctx.moveTo(pts[0][0],pts[0][1])
+    pts.forEach(([px,py])=>ctx.lineTo(px,py)); ctx.stroke()
+    ctx.shadowBlur=0
+
+    // Canal
+    ctx.strokeStyle="rgba(18,18,16,0.98)"; ctx.lineWidth=10
+    ctx.beginPath(); ctx.moveTo(pts[0][0],pts[0][1])
+    pts.forEach(([px,py])=>ctx.lineTo(px,py)); ctx.stroke()
+
+    // Fragment
+    const fs=Math.floor(cas.fragDepth*50), fe=Math.floor((cas.fragDepth+cas.fragLen)*50)
+    const fp0=pts[Math.min(fs,49)], fp1=pts[Math.min(fe,49)]
+    const fragAlpha=1-pct*0.6
+    ctx.strokeStyle=`rgba(230,220,190,${fragAlpha})`; ctx.lineWidth=5; ctx.lineCap="round"
+    ctx.beginPath(); ctx.moveTo(fp0[0],fp0[1]); ctx.lineTo(fp1[0],fp1[1]); ctx.stroke()
+
+    // Vibration effect on fragment
+    if(pct>0){
+      const vib=Math.sin(t*0.5)*pct*3
+      ctx.strokeStyle=`rgba(100,180,255,${pct*0.4})`; ctx.lineWidth=2
+      ctx.beginPath(); ctx.moveTo(fp0[0]+vib,fp0[1]-vib); ctx.lineTo(fp1[0]-vib,fp1[1]+vib); ctx.stroke()
+    }
+
+    // UltraX tip descending
+    const tipProgress=Math.min(cas.fragDepth-0.05,0.95)
+    const tipIdx=Math.floor(tipProgress*50)
+    const tip=pts[Math.min(tipIdx,49)]
+
+    // UltraX body (white/gray pen style)
+    ctx.save(); ctx.translate(tip[0],tip[1])
+    const tipAngle=pts.length>2?Math.atan2(pts[tipIdx][1]-pts[Math.max(0,tipIdx-1)][1],
+      pts[tipIdx][0]-pts[Math.max(0,tipIdx-1)][0]):Math.PI/2
+    ctx.rotate(tipAngle-Math.PI/2)
+    // Shaft
+    ctx.fillStyle="#e0e0e0"; ctx.strokeStyle="#999"; ctx.lineWidth=1
+    ctx.beginPath(); ctx.roundRect(-4,-50,8,50,2); ctx.fill(); ctx.stroke()
+    // Tip needle
+    ctx.fillStyle="#aaa"
+    ctx.beginPath(); ctx.moveTo(-2,0); ctx.lineTo(2,0); ctx.lineTo(0,12); ctx.closePath(); ctx.fill()
+    // Ultrasonic waves
+    if(pct>0){
+      for(let w=1;w<=3;w++){
+        const wa=(t*0.15+w*0.4)%(Math.PI*2)
+        ctx.strokeStyle=`rgba(100,160,255,${Math.max(0,0.5-w*0.12)*Math.sin(wa)})`
+        ctx.lineWidth=1
+        ctx.beginPath(); ctx.arc(0,6,w*5,0,Math.PI*2); ctx.stroke()
+      }
+    }
+    // Eighteeth logo on body
+    ctx.fillStyle="#1E88E5"; ctx.font="bold 5px Arial"
+    ctx.save(); ctx.rotate(0); ctx.fillText("18",-3,-25); ctx.restore()
+    ctx.restore()
+
+    // Right panel: device + progress
+    const rx=lw+20
+    ctx.fillStyle="rgba(255,255,255,0.05)"
+    ctx.fillRect(rx,0,W-rx,H)
+
+    // E-Xtreme / UltraX device illustration
+    const dx=rx+60,dy=H/2-40
+    // Handle body
+    const hgrad=ctx.createLinearGradient(dx-18,0,dx+18,0)
+    hgrad.addColorStop(0,"#d0d0d0"); hgrad.addColorStop(0.4,"#f5f5f5")
+    hgrad.addColorStop(0.7,"#e0e0e0"); hgrad.addColorStop(1,"#b0b0b0")
+    ctx.fillStyle=hgrad; ctx.strokeStyle="#999"; ctx.lineWidth=1.5
+    ctx.beginPath(); ctx.roundRect(dx-18,dy-70,36,100,16); ctx.fill(); ctx.stroke()
+    // Black screen section
+    ctx.fillStyle="#111"
+    ctx.beginPath(); ctx.roundRect(dx-14,dy-20,28,40,4); ctx.fill()
+    ctx.fillStyle="#00ff88"; ctx.font="7px monospace"
+    ctx.fillText("ULTRA",dx-11,dy-8)
+    ctx.fillStyle="#90CAF9"
+    ctx.fillText("X "+Math.round(pct*100)+"%",dx-10,dy+4)
+    // Vibration freq display
+    ctx.fillStyle="#666"; ctx.font="6px monospace"
+    ctx.fillText("32kHz",dx-9,dy+16)
+    // Tip attachment
+    ctx.fillStyle="#888"; ctx.strokeStyle="#666"; ctx.lineWidth=1
+    ctx.beginPath(); ctx.roundRect(dx-5,dy-90,10,22,3); ctx.fill(); ctx.stroke()
+    ctx.fillStyle="#bbb"
+    ctx.beginPath(); ctx.moveTo(dx-3,dy-90); ctx.lineTo(dx+3,dy-90)
+    ctx.lineTo(dx+1,dy-110); ctx.lineTo(dx-1,dy-110); ctx.closePath(); ctx.fill()
+    // Ultrasonic rings around tip
+    for(let w=0;w<4;w++){
+      const wa=(t*0.12+w*0.7)%(Math.PI*2)
+      const alpha=Math.max(0,Math.sin(wa))*0.5*pct
+      ctx.strokeStyle=`rgba(100,160,255,${alpha})`; ctx.lineWidth=1.5
+      ctx.beginPath(); ctx.arc(dx,dy-110,w*8+4,0,Math.PI*2); ctx.stroke()
+    }
+    // Brand
+    mlLogo(ctx,dx+5,dy+38,0.45)
+    ctx.fillStyle="#aaa"; ctx.font="bold 8px Arial"
+    ctx.fillText("UltraX",dx-14,dy+60)
+    ctx.fillStyle="#666"; ctx.font="6px Arial"
+    ctx.fillText("Endoactivator",dx-18,dy+70)
+
+    // Progress bar
+    const pbx=rx+10,pby=H-55,pbw=W-rx-20
+    ctx.fillStyle="rgba(0,0,0,0.5)"
+    ctx.beginPath(); ctx.roundRect(pbx,pby,pbw,18,9); ctx.fill()
+    const pbFill=ctx.createLinearGradient(pbx,0,pbx+pbw,0)
+    pbFill.addColorStop(0,"#1E88E5"); pbFill.addColorStop(1,"#00E5FF")
+    ctx.fillStyle=pbFill
+    ctx.beginPath(); ctx.roundRect(pbx,pby,pbw*pct,18,9); ctx.fill()
+    ctx.fillStyle="#fff"; ctx.font="bold 10px monospace"; ctx.textAlign="center"
+    ctx.fillText("ვიბრაცია: "+Math.round(pct*100)+"%",pbx+pbw/2,pby+13)
     ctx.textAlign="left"
+
+    // Instructions
+    ctx.fillStyle="rgba(255,255,255,0.55)"; ctx.font="11px Arial"; ctx.textAlign="center"
+    ctx.fillText("ფრაგმენტზე დააჭირეთ — UltraX-ი ფხვიერებს",W/2,H-28)
+    ctx.fillText("მიზანი: 85%+ ვიბრაცია",W/2,H-13)
+    ctx.textAlign="left"
+  },[cas,ultraxPct])
+
+  // ── RETRIEVE CANVAS ──
+  const drawRetrieve=useCallback(()=>{
+    const cv=retrieveRef.current; if(!cv||!cas) return
+    const ctx=cv.getContext("2d")!
+    const W=cv.width,H=cv.height
+    const t=tRef.current
+
+    ctx.fillStyle="#0d0d0d"; ctx.fillRect(0,0,W,H)
+
+    // Vignette
+    const vig=ctx.createRadialGradient(W*0.35,H/2,50,W*0.35,H/2,H*0.7)
+    vig.addColorStop(0,"transparent"); vig.addColorStop(1,"rgba(0,0,0,0.7)")
+    ctx.fillStyle=vig; ctx.fillRect(0,0,W,H)
+
+    const tx=W*0.35,ty=40,rootH=H-90
+    const pts:[number,number][]=[]
+    for(let i=0;i<=50;i++){
+      const t2=i/50
+      let cx=tx
+      if(cas.curvature>0) cx+=Math.sin(t2*Math.PI)*cas.curvature*0.8
+      pts.push([cx,ty+t2*rootH])
+    }
+
+    // Tooth
+    ctx.shadowColor="rgba(180,175,155,0.25)"; ctx.shadowBlur=10
+    ctx.strokeStyle="rgba(155,150,135,0.65)"; ctx.lineWidth=65; ctx.lineCap="round"
+    ctx.beginPath(); ctx.moveTo(pts[0][0],pts[0][1])
+    pts.forEach(([px,py])=>ctx.lineTo(px,py)); ctx.stroke()
+    ctx.shadowBlur=0
+
+    ctx.strokeStyle="rgba(18,18,16,0.98)"; ctx.lineWidth=12
+    ctx.beginPath(); ctx.moveTo(pts[0][0],pts[0][1])
+    pts.forEach(([px,py])=>ctx.lineTo(px,py)); ctx.stroke()
+
+    // Fragment (fades as retrieved)
+    const pct=retrievePct/100
+    const fs=Math.floor(cas.fragDepth*50), fe=Math.floor((cas.fragDepth+cas.fragLen)*50)
+    const fp0=pts[Math.min(fs,49)], fp1=pts[Math.min(fe,49)]
+    const fragAlpha=Math.max(0,1-pct*1.2)
+    if(fragAlpha>0){
+      ctx.strokeStyle=`rgba(225,215,185,${fragAlpha})`; ctx.lineWidth=5; ctx.lineCap="round"
+      ctx.beginPath(); ctx.moveTo(fp0[0],fp0[1]); ctx.lineTo(fp1[0],fp1[1]); ctx.stroke()
+    }
+
+    // Eflex Blue file — descends then retrieves
+    const fileDepth=pct<0.5?pct*2:2-pct*2
+    const fileIdx=Math.floor(Math.min(fileDepth,0.99)*cas.fragDepth*50)
+    const fileTip=pts[Math.min(fileIdx,49)]
+
+    // Eflex Blue file draw
+    ctx.save(); ctx.translate(fileTip[0],fileTip[1])
+    const ang=fileIdx>0?Math.atan2(pts[fileIdx][1]-pts[Math.max(0,fileIdx-1)][1],
+      pts[fileIdx][0]-pts[Math.max(0,fileIdx-1)][0]):Math.PI/2
+    ctx.rotate(ang-Math.PI/2)
+
+    const fh=cas.fragDepth*rootH+30
+    // Gold handle
+    const gG=ctx.createLinearGradient(-8,-fh-20,8,-fh-20)
+    gG.addColorStop(0,"#B8860B"); gG.addColorStop(0.5,"#FFD700"); gG.addColorStop(1,"#B8860B")
+    ctx.fillStyle=gG; ctx.strokeStyle="#8B6914"; ctx.lineWidth=1
+    ctx.beginPath(); ctx.roundRect(-7,-fh-18,14,16,3); ctx.fill(); ctx.stroke()
+    // Red stopper ring
+    ctx.fillStyle="#CC1111"
+    ctx.beginPath(); ctx.roundRect(-8,-fh-4,16,6,2); ctx.fill()
+    // Blue shaft
+    const bG=ctx.createLinearGradient(-3,0,3,0)
+    bG.addColorStop(0,"#1565C0"); bG.addColorStop(0.3,"#90CAF9"); bG.addColorStop(0.7,"#42A5F5"); bG.addColorStop(1,"#1565C0")
+    ctx.fillStyle=bG; ctx.strokeStyle="#0D47A1"; ctx.lineWidth=0.8
+    ctx.beginPath(); ctx.moveTo(-3,-fh+2); ctx.lineTo(3,-fh+2); ctx.lineTo(1,0); ctx.lineTo(-1,0); ctx.closePath()
+    ctx.fill(); ctx.stroke()
+    // NiTi spiral
+    ctx.strokeStyle="rgba(200,230,255,0.55)"; ctx.lineWidth=0.8
+    for(let i=0;i<fh;i+=4){
+      const s2=Math.sin((i/fh)*Math.PI*8+t*0.3)*2.5
+      ctx.beginPath(); ctx.moveTo(s2,-fh+i+2); ctx.lineTo(-s2,-fh+i+5); ctx.stroke()
+    }
+    // Calibration rings
+    ctx.strokeStyle="rgba(0,0,0,0.7)"; ctx.lineWidth=1.5
+    for(let r=1;r<=5;r++){
+      ctx.beginPath(); ctx.moveTo(-3,-fh*0.25*r+2); ctx.lineTo(3,-fh*0.25*r+2); ctx.stroke()
+    }
+    // Rotating tip animation
+    ctx.save(); ctx.rotate(t*0.2)
+    ctx.strokeStyle="#1E88E5"; ctx.lineWidth=1.2
+    for(let i=0;i<3;i++){
+      ctx.rotate(Math.PI*2/3)
+      ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(0,-4); ctx.stroke()
+    }
+    ctx.restore()
+    ctx.restore()
+
+    // Right info panel
+    const rx=W*0.62
+    ctx.fillStyle="rgba(0,0,0,0.5)"
+    ctx.fillRect(rx,0,W-rx,H)
+
+    // E-Xtreme handpiece illustration
+    const ex=rx+55,ey=H/2-20
+    // Main body gradient
+    const hG=ctx.createLinearGradient(ex-20,0,ex+20,0)
+    hG.addColorStop(0,"#b8b8b8"); hG.addColorStop(0.35,"#f0f0f0")
+    hG.addColorStop(0.65,"#e0e0e0"); hG.addColorStop(1,"#a0a0a0")
+    ctx.fillStyle=hG; ctx.strokeStyle="#888"; ctx.lineWidth=1.5
+    ctx.beginPath(); ctx.roundRect(ex-22,ey-90,44,130,20); ctx.fill(); ctx.stroke()
+    // Black control area
+    ctx.fillStyle="#0a0a0a"
+    ctx.beginPath(); ctx.roundRect(ex-18,ey-10,36,60,4); ctx.fill()
+    ctx.fillStyle="#00ff88"; ctx.font="7px monospace"
+    ctx.fillText("400 RPM",ex-14,ey+5)
+    ctx.fillStyle="#fff"; ctx.font="6px monospace"
+    ctx.fillText("M1 3.0 Ncm",ex-14,ey+16)
+    // S button
+    ctx.fillStyle="#333"
+    ctx.beginPath(); ctx.roundRect(ex-10,ey+24,20,10,3); ctx.fill()
+    ctx.fillStyle="#aaa"; ctx.font="bold 8px Arial"; ctx.textAlign="center"
+    ctx.fillText("S",ex,ey+33); ctx.textAlign="left"
+    // Eighteeth logo on white body
+    mlLogo(ctx,ex,ey-50,0.38)
+    ctx.fillStyle="#555"; ctx.font="7px Arial"
+    ctx.fillText("Eighteeth",ex-14,ey-62)
+    ctx.fillStyle="#333"; ctx.font="6px Arial"
+    ctx.fillText("E-xtreme",ex-12,ey-72)
+    // Neck/head
+    ctx.fillStyle="#c0c0c0"; ctx.strokeStyle="#888"; ctx.lineWidth=1
+    ctx.beginPath(); ctx.roundRect(ex-10,ey-110,20,22,4); ctx.fill(); ctx.stroke()
+    // Head
+    const hGrad=ctx.createLinearGradient(ex-14,0,ex+14,0)
+    hGrad.addColorStop(0,"#a0a0a0"); hGrad.addColorStop(0.5,"#d8d8d8"); hGrad.addColorStop(1,"#a0a0a0")
+    ctx.fillStyle=hGrad; ctx.strokeStyle="#777"; ctx.lineWidth=1.5
+    ctx.beginPath(); ctx.ellipse(ex-2,ey-118,18,12,-0.3,0,Math.PI*2); ctx.fill(); ctx.stroke()
+    // Blue file in head
+    ctx.fillStyle="#1E88E5"
+    ctx.beginPath(); ctx.arc(ex-10,ey-122,3,0,Math.PI*2); ctx.fill()
+    ctx.fillStyle="rgba(30,136,229,0.3)"
+    ctx.beginPath(); ctx.arc(ex-10,ey-122,7,0,Math.PI*2); ctx.fill()
+    // Rotating animation
+    ctx.save(); ctx.translate(ex-10,ey-122); ctx.rotate(t*0.3)
+    ctx.strokeStyle="#90CAF9"; ctx.lineWidth=1
+    ctx.beginPath(); ctx.moveTo(0,-5); ctx.lineTo(0,5); ctx.stroke()
+    ctx.beginPath(); ctx.moveTo(-5,0); ctx.lineTo(5,0); ctx.stroke()
+    ctx.restore()
+
+    // Progress bar
+    const pbx=rx+8,pby=H-55,pbw=W-rx-16
+    ctx.fillStyle="rgba(0,0,0,0.5)"
+    ctx.beginPath(); ctx.roundRect(pbx,pby,pbw,18,9); ctx.fill()
+    const colR=pct<0.5?"#1E88E5":"#00E676"
+    const pbG=ctx.createLinearGradient(pbx,0,pbx+pbw,0)
+    pbG.addColorStop(0,colR); pbG.addColorStop(1,"#00BCD4")
+    ctx.fillStyle=pbG
+    ctx.beginPath(); ctx.roundRect(pbx,pby,pbw*Math.min(pct,1),18,9); ctx.fill()
+    ctx.fillStyle="#fff"; ctx.font="bold 9px monospace"; ctx.textAlign="center"
+    const label=pct<0.5?"↓ ჩაღრმავება "+(Math.round(pct*2*cas.fragDepth*cas.wl*10)/10)+"mm":"↑ ამოღება "+(Math.round((2-pct*2)*cas.fragDepth*cas.wl*10)/10)+"mm"
+    ctx.fillText(label,pbx+pbw/2,pby+13)
+    ctx.textAlign="left"
+
+    // Inst
+    ctx.fillStyle="rgba(255,255,255,0.5)"; ctx.font="10px Arial"; ctx.textAlign="center"
+    ctx.fillText(pct<0.45?"→ გადადით ფრაგმენტამდე":"← ნელ-ნელა ამოიღეთ",W-rx/2,H-28)
+    ctx.textAlign="left"
+  },[cas,retrievePct])
+
+  // Animation loop
+  useEffect(()=>{
+    if(phase!=="xray"&&phase!=="ultrax"&&phase!=="retrieve") return
+    let last=0
+    function loop(ts:number){
+      const dt=ts-last; last=ts
+      tRef.current+=dt/16
+      if(phase==="xray") drawXray()
+      else if(phase==="ultrax") drawUltrax()
+      else if(phase==="retrieve") drawRetrieve()
+      animRef.current=requestAnimationFrame(loop)
+    }
+    animRef.current=requestAnimationFrame(loop)
+    return()=>cancelAnimationFrame(animRef.current)
+  },[phase,drawXray,drawUltrax,drawRetrieve])
+
+  function handleUltraxClick(e:React.MouseEvent<HTMLCanvasElement>){
+    if(ultraxPct>=100) return
+    const rect=e.currentTarget.getBoundingClientRect()
+    const cx=(e.clientX-rect.left)*(e.currentTarget.width/rect.width)
+    const cy=(e.clientY-rect.top)*(e.currentTarget.height/rect.height)
+    // Check if clicking near fragment area (left half canvas)
+    const lw=e.currentTarget.width*0.45
+    const fragY=40+(cas?.fragDepth||0.7)*(e.currentTarget.height-90)
+    const dist=Math.sqrt((cx-lw/2)**2+(cy-fragY)**2)
+    if(dist<60){
+      const gain=12-Math.min(ultraxClicks*0.5,8)
+      setUltraxPct(p=>Math.min(p+gain,100))
+      setUltraxClicks(c=>c+1)
+      beep(32000,0.05,"sawtooth",0.1)
+      setTimeout(()=>beep(18000,0.03,"square",0.05),30)
+      setPulse(true); setTimeout(()=>setPulse(false),120)
+    } else {
+      setMistakes(m=>m+1)
+      beep(200,0.1,"square",0.15)
+      setShake(true); setTimeout(()=>setShake(false),300)
+    }
   }
 
-  useEffect(()=>{
-    const canvas=ref.current; if(!canvas) return
-    const ctx=canvas.getContext("2d")!
-
-    function onKey(e:KeyboardEvent,down:boolean){
-      G.current.keys[e.key]=down
-      if(down&&(e.key==="r"||e.key==="R")&&G.current.status!=="play") restart()
-      if([" ","ArrowUp","ArrowLeft","ArrowRight","ArrowDown"].includes(e.key)) e.preventDefault()
+  function handleRetrieveClick(){
+    if(ultraxPct<70){
+      beep(220,0.3,"square"); return
     }
-
-    function restart(){
-      G.current.px=60; G.current.py=100; G.current.pvx=0; G.current.pvy=0
-      G.current.cam=0; G.current.score=0; G.current.lives=3; G.current.fr=0; G.current.ft=0
-      G.current.mobs=INIT_MOBS.map(m=>({...m}))
-      G.current.gems=makeGems()
-      G.current.status="play"
-      setUi({score:0,lives:3,status:"play"})
-      cancelAnimationFrame(anim.current)
-      anim.current=requestAnimationFrame(loop)
+    if(retrievePct>=100){
+      const sc=Math.max(20,100-mistakes*8-(100-ultraxPct)*0.3)
+      setScore(Math.round(sc))
+      setSuccess(true)
+      beep(880,0.15); setTimeout(()=>beep(1100,0.2),180); setTimeout(()=>beep(1320,0.25),380)
+      setPhase("result")
+      return
     }
+    setRetrievePct(p=>{
+      const next=p+8
+      beep(440+next*3,0.04,"sine",0.15)
+      if(next>=50&&p<50) setPulse(true)
+      return Math.min(next,100)
+    })
+  }
 
-    let lastT=0
-    function loop(ts:number){
-      const dt=Math.min(ts-lastT,33); lastT=ts
-      const s=G.current
-      if(s.status!=="play"){
-        const ctx2=canvas.getContext("2d")!
-        sky(ctx2); mountains(ctx2,s.cam); churches(ctx2,s.cam); clouds(ctx2,s.cam); sun(ctx2)
-        for(const p of PLATS) drawPlat(ctx2,p,s.cam)
-        for(const g of s.gems) drawGem(ctx2,g,s.cam,s.t)
-        for(const m of s.mobs) drawMob(ctx2,m,s.cam,s.t)
-        drawChar(ctx2,s.px-s.cam,s.py,s.pw,s.ph,s.onG,s.right,s.fr)
-        drawHUD(ctx2,s.score,s.lives)
-        drawOverlay(ctx2,s.status,s.score)
-        return
-      }
+  const st={
+    page:{minHeight:"100vh",background:"#080a0f",color:"#e0e8e0",fontFamily:"monospace",
+      display:"flex",flexDirection:"column" as const,alignItems:"center",justifyContent:"center",padding:"16px"},
+    card:{background:"rgba(0,10,5,0.95)",border:"1px solid rgba(0,200,100,0.2)",borderRadius:"12px",
+      padding:"28px",maxWidth:"700px",width:"100%"},
+    title:{fontSize:"22px",fontWeight:"bold",color:"#00cc88",marginBottom:"6px"},
+    btn:{background:"linear-gradient(135deg,#00994d,#006633)",color:"#fff",border:"none",borderRadius:"8px",
+      padding:"12px 24px",fontSize:"14px",fontWeight:"bold",cursor:"pointer",fontFamily:"monospace"},
+    btnBlue:{background:"linear-gradient(135deg,#1565C0,#0D47A1)",color:"#fff",border:"none",borderRadius:"8px",
+      padding:"12px 24px",fontSize:"14px",fontWeight:"bold",cursor:"pointer",fontFamily:"monospace"},
+    sep:{height:"1px",background:"rgba(0,200,100,0.15)",margin:"18px 0"},
+  }
 
-      s.t++
-
-      // Input
-      const L=s.keys["ArrowLeft"]||s.keys["a"]||s.keys["A"]
-      const R=s.keys["ArrowRight"]||s.keys["d"]||s.keys["D"]
-      const J=s.keys["ArrowUp"]||s.keys[" "]||s.keys["w"]||s.keys["W"]
-
-      if(L){s.pvx=-SPD; s.right=false}
-      else if(R){s.pvx=SPD; s.right=true}
-      else s.pvx*=0.65
-
-      if(J&&s.onG){s.pvy=JUMP; s.onG=false}
-
-      s.pvy+=GRAV
-      s.px+=s.pvx
-      s.py+=s.pvy
-
-      if(s.px<0){s.px=0; s.pvx=0}
-      if(s.px>LW-s.pw){s.px=LW-s.pw}
-
-      // Platform collision
-      s.onG=false
-      for(const p of PLATS){
-        if(!overlap(s.px,s.py,s.pw,s.ph,p.x,p.y,p.w,p.h)) continue
-        const wasAbove=s.pvy>0&&s.py+s.ph-s.pvy<=p.y+8
-        if(wasAbove){
-          s.py=p.y-s.ph; s.pvy=0; s.onG=true
-          if(p.lbl==="FINISH"){s.status="win"; setUi(u=>({...u,status:"win"}))}
-        } else if(s.pvx>0&&s.px+s.pw-s.pvx<=p.x+6){s.px=p.x-s.pw; s.pvx=0}
-        else if(s.pvx<0&&s.px-s.pvx>=p.x+p.w-6){s.px=p.x+p.w; s.pvx=0}
-        else{s.py=p.y+p.h; s.pvy=0}
-      }
-
-      // Fall death
-      if(s.py>CH+120){
-        s.lives--; setUi(u=>({...u,lives:s.lives}))
-        if(s.lives<=0){s.status="over"; setUi(u=>({...u,status:"over"})); return}
-        s.px=Math.max(60,s.cam); s.py=100; s.pvx=0; s.pvy=0
-      }
-
-      // Mob update
-      for(const m of s.mobs){
-        if(!m.alive) continue
-        m.x+=m.vx
-        if(m.x<10||m.x>LW-50) m.vx*=-1
-        for(const p of PLATS){
-          if(!p.lbl) continue
-          if(overlap(m.x,m.y,m.w,m.h,p.x,p.y,p.w,p.h)) m.vx*=-1
-        }
-        // Stomp
-        const stomp=s.pvy>0&&overlap(s.px+2,s.py+s.ph-8,s.pw-4,12,m.x+4,m.y,m.w-8,8)
-        if(stomp){
-          m.alive=false; s.pvy=JUMP*0.55; s.score+=100
-          setUi(u=>({...u,score:s.score}))
-        } else if(overlap(s.px,s.py,s.pw,s.ph,m.x,m.y,m.w,m.h)){
-          s.lives--; setUi(u=>({...u,lives:s.lives}))
-          if(s.lives<=0){s.status="over"; setUi(u=>({...u,status:"over"})); return}
-          s.px=Math.max(60,s.cam); s.py=100; s.pvx=0; s.pvy=JUMP*0.4
-        }
-      }
-
-      // Gems
-      for(const g of s.gems){
-        if(!g.got&&overlap(s.px,s.py,s.pw,s.ph,g.x-10,g.y-2,20,18)){
-          g.got=true; s.score+=10; setUi(u=>({...u,score:s.score}))
-        }
-      }
-
-      // Camera
-      const tgt=s.px-CW/3
-      s.cam=Math.max(0,Math.min(tgt,LW-CW))
-
-      // Anim frame
-      s.ft++; if(s.ft>5){s.fr++; s.ft=0}
-
-      // Draw
-      sky(ctx); sun(ctx); clouds(ctx,s.cam); mountains(ctx,s.cam); churches(ctx,s.cam)
-      for(const p of PLATS) drawPlat(ctx,p,s.cam)
-      for(const g of s.gems) drawGem(ctx,g,s.cam,s.t)
-      for(const m of s.mobs) drawMob(ctx,m,s.cam,s.t)
-      drawChar(ctx,s.px-s.cam,s.py,s.pw,s.ph,s.onG,s.right,s.fr)
-      drawHUD(ctx,s.score,s.lives)
-
-      anim.current=requestAnimationFrame(loop)
-    }
-
-    window.addEventListener("keydown",e=>onKey(e,true))
-    window.addEventListener("keyup",e=>onKey(e,false))
-    anim.current=requestAnimationFrame(loop)
-    return()=>{
-      cancelAnimationFrame(anim.current)
-      window.removeEventListener("keydown",e=>onKey(e,true))
-      window.removeEventListener("keyup",e=>onKey(e,false))
-    }
-  },[])
-
-  return (
-    <div style={{minHeight:"100vh",background:"#1a1a2e",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",fontFamily:"monospace"}}>
-      <div style={{marginBottom:"10px",color:"#FFD700",fontSize:"18px",fontWeight:"bold",letterSpacing:"2px"}}>
-        EIGHTEETH GEORGIA — Medical Line
-      </div>
-      <div style={{position:"relative"}}>
-        <canvas ref={ref} width={CW} height={CH} style={{display:"block",borderRadius:"10px",border:"3px solid #333",boxShadow:"0 0 40px rgba(0,0,0,0.8)"}} />
-      </div>
-      <div style={{marginTop:"12px",color:"rgba(255,255,255,0.5)",fontSize:"12px",display:"flex",gap:"24px"}}>
-        <span>← → გადაადგილება</span>
-        <span>↑ / Space — ხტუნვა</span>
-        <span>ბაქტერიებზე დახტი!</span>
-        <span>კბილები — ქულები</span>
+  if(phase==="intro") return(
+    <div style={st.page}>
+      <div style={st.card}>
+        <div style={{textAlign:"center",marginBottom:"24px"}}>
+          <div style={{fontSize:"11px",color:"rgba(0,200,100,0.5)",letterSpacing:"3px",marginBottom:"8px"}}>MEDICAL LINE GEORGIA × EIGHTEETH</div>
+          <div style={{...st.title,fontSize:"28px"}}>Broken File Retrieval</div>
+          <div style={{fontSize:"13px",color:"rgba(0,200,100,0.6)",marginTop:"4px"}}>კლინიკური სიმულაციური ტრენინგი</div>
+        </div>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:"12px",marginBottom:"24px"}}>
+          {[["E-Xtreme","ენდომოტორი","#42A5F5"],["UltraX","ენდოაქტივატორი","#90CAF9"],["Eflex Blue","NiTi ფაილი","#FFD700"]].map(([n,d,c])=>(
+            <div key={n} style={{background:"rgba(0,20,10,0.7)",border:`1px solid ${c}33`,borderRadius:"8px",padding:"12px",textAlign:"center"}}>
+              <div style={{fontSize:"13px",fontWeight:"bold",color:c,marginBottom:"4px"}}>{n}</div>
+              <div style={{fontSize:"10px",color:"rgba(255,255,255,0.5)"}}>{d}</div>
+            </div>
+          ))}
+        </div>
+        <div style={{fontSize:"12px",color:"rgba(0,200,100,0.6)",lineHeight:"2",marginBottom:"20px"}}>
+          <div>① X-Ray — ჩატეხილი ფრაგმენტის შეფასება</div>
+          <div>② UltraX — ულტრაბგერითი ვიბრაცია (ფხვიერება)</div>
+          <div>③ Eflex Blue — ფრაგმენტის ამოღება</div>
+        </div>
+        <div style={{textAlign:"center"}}>
+          <button style={st.btn} onClick={()=>setPhase("cases")}>► ტრენინგის დაწყება</button>
+        </div>
       </div>
     </div>
   )
+
+  if(phase==="cases") return(
+    <div style={st.page}>
+      <div style={st.card}>
+        <div style={st.title}>ქეისის შერჩევა</div>
+        <div style={{fontSize:"11px",color:"rgba(0,200,100,0.4)",marginBottom:"18px"}}>აირჩიეთ კლინიკური შემთხვევა</div>
+        <div style={{display:"flex",flexDirection:"column",gap:"10px"}}>
+          {CASES.map(c=>(
+            <button key={c.id} onClick={()=>startCase(c)} style={{
+              background:"rgba(0,20,10,0.8)",border:"1px solid rgba(0,200,100,0.2)",
+              borderRadius:"10px",padding:"14px",cursor:"pointer",textAlign:"left",fontFamily:"monospace",
+              transition:"border-color 0.2s"}}>
+              <div style={{display:"flex",justifyContent:"space-between",marginBottom:"5px"}}>
+                <span style={{color:"#00cc88",fontWeight:"bold",fontSize:"15px"}}>{c.tooth} — {c.canal} canal</span>
+                <span style={{color:"rgba(255,200,100,0.7)",fontSize:"11px"}}>{"★".repeat(c.difficulty)}{"☆".repeat(4-c.difficulty)}</span>
+              </div>
+              <div style={{fontSize:"11px",color:"rgba(0,200,100,0.6)",lineHeight:"1.6"}}>{c.desc}</div>
+              <div style={{fontSize:"10px",color:"rgba(0,200,100,0.4)",marginTop:"4px"}}>
+                WL: {c.wl}mm | Curvature: {c.curvature}° | Prognosis: {c.prognosis}
+              </div>
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+
+  if(phase==="xray"&&cas) return(
+    <div style={st.page}>
+      <div style={{...st.card,maxWidth:"760px"}}>
+        <div style={{fontSize:"11px",color:"rgba(255,80,80,0.7)",marginBottom:"4px"}}>⚠ BROKEN INSTRUMENT DETECTED</div>
+        <div style={st.title}>{cas.tooth} — {cas.canal} Canal</div>
+        <canvas ref={xrayRef} width={680} height={360}
+          style={{width:"100%",borderRadius:"8px",border:"1px solid rgba(0,200,100,0.15)",display:"block",marginBottom:"16px"}} />
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"10px",marginBottom:"18px",fontSize:"11px"}}>
+          {[["სამუშაო სიგრძე",cas.wl+"mm"],["მოხრილობა",cas.curvature+"°"],["სირთულე","★".repeat(cas.difficulty)],["პროგნოზი",cas.prognosis]].map(([l,v])=>(
+            <div key={l} style={{background:"rgba(0,20,10,0.6)",border:"1px solid rgba(0,200,100,0.1)",borderRadius:"6px",padding:"8px"}}>
+              <div style={{color:"rgba(0,200,100,0.5)",marginBottom:"2px"}}>{l}</div>
+              <div style={{color:"#00cc88",fontWeight:"bold"}}>{v}</div>
+            </div>
+          ))}
+        </div>
+        <div style={{display:"flex",gap:"12px"}}>
+          <button style={st.btn} onClick={()=>setPhase("ultrax")}>► UltraX ვიბრაცია</button>
+          <button style={{...st.card,padding:"10px 20px",cursor:"pointer",fontSize:"12px",color:"rgba(0,200,100,0.6)"}}
+            onClick={()=>setPhase("cases")}>← უკან</button>
+        </div>
+      </div>
+    </div>
+  )
+
+  if(phase==="ultrax"&&cas) return(
+    <div style={{...st.page,...(shake?{animation:"shake 0.3s"}:{})}}>
+      <style>{"@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}"}</style>
+      <div style={{...st.card,maxWidth:"760px"}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"8px"}}>
+          <div>
+            <div style={{fontSize:"11px",color:"rgba(0,150,255,0.7)",marginBottom:"2px"}}>UltraX ენდოაქტივატორი</div>
+            <div style={st.title}>{cas.tooth} — ფრაგმენტის ფხვიერება</div>
+          </div>
+          <div style={{textAlign:"right",fontSize:"11px",color:"rgba(0,200,100,0.5)"}}>
+            <div>შეცდომები: {mistakes}</div>
+            <div>დაჭერები: {ultraxClicks}</div>
+          </div>
+        </div>
+        <canvas ref={ultraxRef} width={680} height={340}
+          onClick={handleUltraxClick}
+          style={{width:"100%",borderRadius:"8px",border:`1px solid rgba(0,150,255,${pulse?0.8:0.2})`,
+            display:"block",marginBottom:"16px",cursor:"crosshair",
+            boxShadow:pulse?"0 0 20px rgba(0,150,255,0.4)":"none"}} />
+        <div style={{display:"flex",gap:"12px",alignItems:"center"}}>
+          <button style={ultraxPct>=70?st.btn:{...st.btn,opacity:0.5}}
+            onClick={()=>{if(ultraxPct>=70){beep(660,0.15);setPhase("retrieve")}}}>
+            {ultraxPct>=70?"► ფაილით ამოღება":"⟳ გააგრძელეთ ვიბრაცია ("+Math.round(ultraxPct)+"%)"}
+          </button>
+          {ultraxPct>=70&&<span style={{color:"#00cc88",fontSize:"11px"}}>✓ მზადაა ამოღებისთვის</span>}
+        </div>
+      </div>
+    </div>
+  )
+
+  if(phase==="retrieve"&&cas) return(
+    <div style={st.page}>
+      <div style={{...st.card,maxWidth:"760px"}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"8px"}}>
+          <div>
+            <div style={{fontSize:"11px",color:"rgba(100,180,255,0.7)",marginBottom:"2px"}}>Eflex Blue + E-Xtreme</div>
+            <div style={st.title}>{cas.tooth} — ფრაგმენტის ამოღება</div>
+          </div>
+          <div style={{textAlign:"right",fontSize:"11px"}}>
+            <div style={{color:"rgba(0,200,100,0.6)"}}>UltraX: {Math.round(ultraxPct)}%</div>
+            <div style={{color:"rgba(255,200,100,0.6)"}}>შეცდ: {mistakes}</div>
+          </div>
+        </div>
+        <canvas ref={retrieveRef} width={680} height={340}
+          style={{width:"100%",borderRadius:"8px",border:"1px solid rgba(100,180,255,0.2)",
+            display:"block",marginBottom:"16px"}} />
+        <div style={{display:"flex",gap:"12px",alignItems:"center"}}>
+          <button style={retrievePct>=100?{...st.btn,background:"linear-gradient(135deg,#00c853,#00695c)"}:st.btnBlue}
+            onClick={handleRetrieveClick}>
+            {retrievePct>=100?"✓ ფრაგმენტი ამოღებულია!":
+             retrievePct>=50?"↑ ამოაღეთ ("+Math.round(retrievePct)+"%)":
+             "↓ ჩაღრმავება ("+Math.round(retrievePct*2)+"%)"}
+          </button>
+          <span style={{fontSize:"11px",color:"rgba(0,200,100,0.5)"}}>
+            {retrievePct<45?"ფრთხილად — მიხვდით ფრაგმენტს":
+             retrievePct<55?"✓ ფრაგმენტს ეხება":
+             "ნელა ამოიღეთ"}
+          </span>
+        </div>
+      </div>
+    </div>
+  )
+
+  if(phase==="result") return(
+    <div style={st.page}>
+      <div style={{...st.card,textAlign:"center"}}>
+        <div style={{fontSize:"11px",color:"rgba(0,200,100,0.5)",letterSpacing:"2px",marginBottom:"8px"}}>MEDICAL LINE GEORGIA</div>
+        <div style={{...st.title,fontSize:"26px"}}>
+          {success?"✓ ფრაგმენტი წარმატებით ამოიღეს!":"✗ პროცედურა ვერ დასრულდა"}
+        </div>
+        <div style={{fontSize:"52px",fontWeight:"bold",margin:"20px 0",
+          color:score>=80?"#00cc88":score>=60?"#FFD700":"#ff5555"}}>
+          {score}
+        </div>
+        <div style={{fontSize:"13px",color:"rgba(0,200,100,0.6)",marginBottom:"20px"}}>
+          {score>=80?"კვალიფიციური ენდოდონტისტი — ბრძანეთ, Medical Line-ში!":
+           score>=60?"კარგი — კიდევ ვარჯიში სჭირდება":
+           "E-Xtreme-ის კურსი გირჩევნიათ :)"}
+        </div>
+        <div style={{background:"rgba(0,200,100,0.15)",height:"1px",margin:"16px 0"}} />
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:"10px",marginBottom:"20px"}}>
+          {[["UltraX ვიბრაცია",ultraxPct+"%"],["შეცდომები",mistakes+""],["ქეისი",cas?.tooth||""]].map(([l,v])=>(
+            <div key={l} style={{background:"rgba(0,20,10,0.6)",borderRadius:"8px",padding:"10px",border:"1px solid rgba(0,200,100,0.1)"}}>
+              <div style={{fontSize:"10px",color:"rgba(0,200,100,0.5)",marginBottom:"3px"}}>{l}</div>
+              <div style={{fontSize:"18px",fontWeight:"bold",color:"#00cc88"}}>{v}</div>
+            </div>
+          ))}
+        </div>
+        <div style={{display:"flex",gap:"12px",justifyContent:"center"}}>
+          <button style={st.btn} onClick={()=>setPhase("cases")}>↺ სხვა ქეისი</button>
+          <button style={st.btnBlue} onClick={()=>startCase(cas!)}>↺ იგივე ქეისი</button>
+        </div>
+      </div>
+    </div>
+  )
+
+  return null
 }
