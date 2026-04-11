@@ -1,12 +1,57 @@
 'use client'
 import { useEffect, useState, useCallback } from 'react'
-import { supabase } from '../lib/supabase'
+import { isSupabaseReady, supabase, supabaseConfigError } from '../lib/supabase'
+import { findCatalogProductByAny, findDatabaseProductMatch, inferBrand, localCatalogProducts, mapCategoryToSlug, type LocalCatalogAiFeature, type LocalCatalogProduct, specsArrayToRecord } from '../lib/catalogSync'
 
 type Screen = 'login' | 'register' | 'catalog' | 'product' | 'service' | 'academy' | 'profile'
 type User = { id: string; full_name: string; clinic_name: string; city: string; phone: string; role: string; status: string }
-type Product = { id: string; slug: string; name: string; category_slug: string; brand: string; short_desc: string; specs: Record<string,string>; prices: { price_gel: number; price_usd: number; installment_monthly: number; installment_months: number; note: string }[] }
+type Product = { id: string; dbId?: string | null; slug: string; name: string; category_slug: string; brand: string; short_desc: string; specs: Record<string,string>; images?: string[]; prices: { price_gel: number; price_usd: number; installment_monthly: number; installment_months: number; note: string }[] }
 type Request = { id: string; type: string; status: string; created_at: string; products: { name: string } }
 type AcademyItem = { id: string; type: string; title: string; description: string; duration_sec: number; webinar_date: string }
+type ServiceTicket = { id: string; serial_number: string | null; problem_desc: string; status: string; created_at: string; visit_date: string | null; resolution: string | null; products?: { name: string } | null }
+type CatalogAiFeature = LocalCatalogAiFeature
+type CatalogProduct = LocalCatalogProduct
+
+const PRODUCT_IMAGE_MAP: Record<string, string> = {
+  'helios-700': '/images/helios700.png',
+  'helios-680': '/images/helios680.png',
+  'helios-600': '/images/helios600.png',
+  'helios-500': '/images/helios500.png',
+  'finscan-f350': '/images/finscan.png',
+  'hyperlight': '/images/hyperlightm.png',
+  'hyperlight-g': '/images/hyperlightg.png',
+  'nanopix-1': '/images/nanopix1.png',
+  'e-connect-s-plus': '/images/econnectsplus.png',
+  'e-connect-s': '/images/econnects.png',
+  'e-xtreme': '/images/extreme.png',
+  'e-pex': '/images/epex.png',
+  'acuvision-x': '/images/acuvisionx.jpg',
+  'brilliance': '/images/brilliance.jpg',
+  'ultramint-pro': '/images/ultramint.png',
+  'e-sanit': '/images/esanit.png',
+  'hager-g4': '/images/hager-g4.jpg',
+  'hager-h5': '/images/hager-h5.jpg',
+}
+
+function getProductImage(product: Product) {
+  return product.images?.[0] || PRODUCT_IMAGE_MAP[product.slug] || ''
+}
+
+function getCatalogProduct(product: Product): CatalogProduct | undefined {
+  return findCatalogProductByAny(product) as CatalogProduct | undefined
+}
+
+function buildInstallmentCode(product: Product) {
+  return `ML-${product.slug.replace(/[^a-z0-9]+/gi, '-').toUpperCase()}`
+}
+
+function buildAiSalesCopy(product: Product, catalogProduct?: CatalogProduct, monthlyEstimate?: number) {
+  const topSpec = catalogProduct?.specs?.[0]
+  const summary = catalogProduct?.description || product.short_desc || `${product.name} კლინიკისთვის პრაქტიკული არჩევანია.`
+  const monthlyText = monthlyEstimate ? `დაახლოებით ₾${Math.round(monthlyEstimate)}/თვიდან` : 'მოქნილი გადახდის პირობებით'
+
+  return `${summary} განსაკუთრებით გამოგადგებათ, თუ თქვენთვის მნიშვნელოვანია სწრაფი დანერგვა, სანდო შედეგი და ${monthlyText}.${topSpec ? ` მთავარი უპირატესობა: ${topSpec}.` : ''}`
+}
 
 const G = '#085041'
 const G2 = '#0a6b52'
@@ -30,7 +75,9 @@ export default function ClinicApp() {
   const [products, setProducts] = useState<Product[]>([])
   const [filteredProds, setFilteredProds] = useState<Product[]>([])
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
+  const [installmentMonths, setInstallmentMonths] = useState(12)
   const [requests, setRequests] = useState<Request[]>([])
+  const [serviceTickets, setServiceTickets] = useState<ServiceTicket[]>([])
   const [academy, setAcademy] = useState<AcademyItem[]>([])
   const [cat, setCat] = useState('')
   const [search, setSearch] = useState('')
@@ -50,13 +97,51 @@ export default function ClinicApp() {
   // service ticket
   const [ticketDesc, setTicketDesc] = useState('')
   const [ticketSerial, setTicketSerial] = useState('')
+  const [ticketProductId, setTicketProductId] = useState('')
+  const [ticketVisitDate, setTicketVisitDate] = useState('')
   const [showTicket, setShowTicket] = useState(false)
 
   const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(null), 3000) }
+  const getFriendlyAuthError = useCallback((error: unknown) => {
+    if (supabaseConfigError) {
+      return 'რეგისტრაცია დროებით მიუწვდომელია. ავტორიზაციის სერვერის კონფიგურაცია აკლია ან არასწორია.'
+    }
+
+    if (error instanceof Error) {
+      if (error.message === 'User already registered') {
+        return 'ეს ელ.ფოსტა უკვე დარეგისტრირებულია'
+      }
+
+      if (error.message === 'Email rate limit exceeded') {
+        return 'ამ ელფოსტაზე ზედიზედ ბევრი დადასტურების წერილი გაიგზავნა. გთხოვ, რამდენიმე წუთში სცადო თავიდან ან შეხვიდე უკვე შექმნილი ანგარიშით.'
+      }
+
+      const message = error.message.toLowerCase()
+      if (
+        message.includes('failed to fetch') ||
+        message.includes('networkerror') ||
+        message.includes('network request failed') ||
+        message.includes('load failed')
+      ) {
+        return 'რეგისტრაცია ვერ მოხერხდა. ავტორიზაციის სერვერთან კავშირი ვერ დამყარდა.'
+      }
+
+      return error.message
+    }
+
+    return 'რეგისტრაცია ვერ მოხერხდა. სცადეთ მოგვიანებით.'
+  }, [])
 
   useEffect(() => {
+    if (!isSupabaseReady) {
+      setAuthErr('რეგისტრაცია დროებით მიუწვდომელია. სერვერის კონფიგურაცია შესამოწმებელია.')
+      return
+    }
+
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) loadProfile(session.user.id)
+    }).catch(() => {
+      setAuthErr('ავტორიზაციის სერვერთან კავშირი ვერ დამყარდა.')
     })
   }, [])
 
@@ -67,14 +152,82 @@ export default function ClinicApp() {
     setFilteredProds(list)
   }, [products, cat, search])
 
+  useEffect(() => {
+    if (!user) return
+
+    const channel = supabase
+      .channel(`clinic-live-${user.id}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'requests' }, () => {
+        loadRequests(user.id)
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'service_tickets' }, () => {
+        loadServiceTickets(user.id)
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'products' }, () => {
+        loadProducts()
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'prices' }, () => {
+        loadProducts()
+      })
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [user])
+
+  useEffect(() => {
+    if (!user) return
+    if (!loading && !showTicket && ticketDesc === '' && ticketSerial === '') {
+      if (ticketProductId) setTicketProductId('')
+      if (ticketVisitDate) setTicketVisitDate('')
+      loadServiceTickets(user.id)
+    }
+  }, [user, loading, showTicket, ticketDesc, ticketSerial, ticketProductId, ticketVisitDate])
+
   async function loadProfile(uid: string) {
-    const { data } = await supabase.from('profiles').select('*').eq('id', uid).single()
-    if (data) { setUser(data); setScreen('catalog'); loadProducts(); loadRequests(uid); loadAcademy() }
+    try {
+      const { data, error } = await supabase.from('profiles').select('*').eq('id', uid).single()
+      if (error) {
+        setAuthErr('პროფილის ჩატვირთვა ვერ მოხერხდა. საჭიროა `profiles` policy-ს შემოწმება.')
+        return
+      }
+      if (data) { setUser(data); setScreen('catalog'); loadProducts(); loadRequests(uid); loadServiceTickets(uid); loadAcademy() }
+    } catch {
+      setAuthErr('პროფილის ჩატვირთვა ვერ მოხერხდა. ბაზის policy-ს კონფლიქტია.')
+    }
   }
 
   async function loadProducts() {
     const { data } = await supabase.from('products').select('*, prices(*)').eq('is_active', true).order('sort_order')
-    if (data) setProducts(data)
+    const dbProducts = data || []
+    const matchedIds = new Set<string>()
+
+    const mergedCatalogProducts: Product[] = localCatalogProducts.map((item) => {
+      const dbMatch = findDatabaseProductMatch(dbProducts as Product[], item) as Product | undefined
+
+      if (dbMatch) {
+        matchedIds.add(dbMatch.id)
+      }
+
+      return {
+        id: dbMatch?.id || `catalog-${item.slug}`,
+        dbId: dbMatch?.id || null,
+        slug: dbMatch?.slug || item.slug,
+        name: dbMatch?.name || item.name,
+        category_slug: dbMatch?.category_slug || mapCategoryToSlug(item.cat),
+        brand: dbMatch?.brand || 'Eighteeth',
+        short_desc: dbMatch?.short_desc || item.description,
+        specs: Object.keys(dbMatch?.specs || {}).length ? dbMatch!.specs : specsArrayToRecord(item.specs),
+        images: dbMatch?.images?.length ? dbMatch.images : [item.img],
+        prices: dbMatch?.prices || [],
+      }
+    })
+
+    const dbOnlyProducts = dbProducts
+      .filter((product: Product) => !matchedIds.has(product.id))
+      .map((product: Product) => ({ ...product, dbId: product.id }))
+    setProducts([...mergedCatalogProducts, ...dbOnlyProducts])
   }
 
   async function loadRequests(uid: string) {
@@ -87,66 +240,131 @@ export default function ClinicApp() {
     if (data) setAcademy(data)
   }
 
+  async function loadServiceTickets(uid: string) {
+    const { data } = await supabase
+      .from('service_tickets')
+      .select('id, serial_number, problem_desc, status, created_at, visit_date, resolution, products(name)')
+      .eq('user_id', uid)
+      .order('created_at', { ascending: false })
+
+    if (data) setServiceTickets(data as unknown as ServiceTicket[])
+  }
+
   async function doLogin() {
+    if (!isSupabaseReady) {
+      setAuthErr(getFriendlyAuthError(new Error('Supabase configuration error')))
+      return
+    }
     setAuthErr(''); setLoading(true)
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password })
-    setLoading(false)
-    if (error) { setAuthErr('ელ.ფოსტა ან პაროლი არასწორია'); return }
-    if (data.user) loadProfile(data.user.id)
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password })
+      setLoading(false)
+      if (error) { setAuthErr('ელ.ფოსტა ან პაროლი არასწორია'); return }
+      if (data.user) loadProfile(data.user.id)
+    } catch (error) {
+      setLoading(false)
+      setAuthErr(getFriendlyAuthError(error))
+    }
   }
 
   async function doRegister() {
+    if (!isSupabaseReady) {
+      setAuthErr(getFriendlyAuthError(new Error('Supabase configuration error')))
+      return
+    }
     setAuthErr(''); setLoading(true)
     if (!fullName || !clinicName || !city || !phone || !email || !password) {
       setAuthErr('გთხოვთ შეავსოთ ყველა ველი'); setLoading(false); return
     }
     if (password.length < 6) { setAuthErr('პაროლი მინ. 6 სიმბოლო'); setLoading(false); return }
-    const { data, error } = await supabase.auth.signUp({
-      email, password,
-      options: { data: { full_name: fullName, clinic_name: clinicName, city, phone, role: 'doctor' } }
-    })
-    if (error) { setAuthErr(error.message === 'User already registered' ? 'ეს ელ.ფოსტა უკვე დარეგისტრირებულია' : 'რეგისტრაცია ვერ მოხერხდა: ' + error.message); setLoading(false); return }
-    if (!data.user) { setAuthErr('რეგისტრაცია ვერ მოხერხდა'); setLoading(false); return }
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email, password,
+        options: { data: { full_name: fullName, clinic_name: clinicName, city, phone, role: 'doctor' } }
+      })
+      if (error) { setAuthErr(getFriendlyAuthError(error)); setLoading(false); return }
+      if (!data.user) { setAuthErr('რეგისტრაცია ვერ მოხერხდა'); setLoading(false); return }
 
-    // Create profile record (in case DB trigger doesn't exist)
-    const { error: profErr } = await supabase.from('profiles').upsert({
-      id: data.user.id,
-      full_name: fullName,
-      clinic_name: clinicName,
-      city,
-      phone,
-      email,
-      role: 'doctor',
-      status: 'pending',
-    })
-    setLoading(false)
-    if (profErr) { setAuthErr('პროფილი ვერ შეიქმნა: ' + profErr.message); return }
-    loadProfile(data.user.id)
+      setLoading(false)
+      await supabase.auth.signOut()
+      setAuthTab('login')
+      setPassword('')
+      showToast('რეგისტრაცია მიღებულია. სცადე შესვლა ცოტა მოგვიანებით ან დაელოდე ადმინისტრატორის დადასტურებას.')
+    } catch (error) {
+      setLoading(false)
+      setAuthErr(getFriendlyAuthError(error))
+    }
   }
 
   async function doLogout() {
     await supabase.auth.signOut()
-    setUser(null); setScreen('login'); setProducts([]); setRequests([])
+    setUser(null); setScreen('login'); setProducts([]); setRequests([]); setServiceTickets([])
+  }
+
+  async function ensureClinicProductRecord(productId?: string) {
+    if (!productId) return null
+
+    const product = products.find((item) => item.id === productId || item.dbId === productId)
+    if (!product) return null
+    if (product.dbId) return product.dbId
+
+    const source = findCatalogProductByAny(product)
+    if (!source) return null
+
+    const payload = {
+      slug: source.slug,
+      name: source.name,
+      category_slug: mapCategoryToSlug(source.cat),
+      brand: inferBrand(source),
+      short_desc: source.description,
+      specs: specsArrayToRecord(source.specs),
+      images: [source.img],
+      is_active: true,
+      sort_order: source.id,
+    }
+
+    const { data, error } = await supabase.from('products').upsert(payload, { onConflict: 'slug' }).select('id').single()
+    if (error || !data?.id) {
+      showToast('პროდუქტის დაკავშირება ვერ მოხერხდა')
+      return null
+    }
+
+    return data.id
   }
 
   async function sendRequest(type: string, productId?: string) {
     if (!user) return
-    const { error } = await supabase.from('requests').insert({ user_id: user.id, product_id: productId, type })
+    const resolvedProductId = await ensureClinicProductRecord(productId)
+    const { error } = await supabase.from('requests').insert({ user_id: user.id, product_id: resolvedProductId, type })
     if (!error) {
       showToast(type === 'price' ? '✓ ფასის მოთხოვნა გაიგზავნა!' : type === 'demo' ? '✓ დემოს მოთხოვნა გაიგზავნა!' : '✓ გაიგზავნა!')
       loadRequests(user.id)
+      return
     }
+    showToast('მოთხოვნის გაგზავნა ვერ მოხერხდა')
   }
 
   async function sendTicket() {
     if (!user || !ticketDesc) return
     setLoading(true)
-    const { error } = await supabase.from('service_tickets').insert({ user_id: user.id, problem_desc: ticketDesc, serial_number: ticketSerial })
+    const { error } = await supabase.from('service_tickets').insert({
+      user_id: user.id,
+      product_id: ticketProductId || null,
+      problem_desc: ticketDesc,
+      serial_number: ticketSerial || null,
+      visit_date: ticketVisitDate || null,
+    })
     setLoading(false)
     if (!error) { showToast('✓ სერვის ტიკეტი გაიგზავნა!'); setTicketDesc(''); setTicketSerial(''); setShowTicket(false) }
   }
 
   const ini = user ? user.full_name.split(' ').map((w:string) => w[0]).join('').substring(0,2).toUpperCase() : ''
+  const pendingReqs = requests.filter(r => r.status === 'new').length
+  const doneReqs = requests.filter(r => r.status === 'done').length
+  const activeTickets = serviceTickets.filter(t => t.status !== 'done').length
+  const ticketStatusLabel: Record<string, string> = { new: 'ახალი', assigned: 'დაგეგმილი', inprogress: 'მიმდინარე', done: 'დასრულებული' }
+  const userStatusTone = user?.status === 'active' ? '#E1F5EE' : user?.status === 'blocked' ? '#FCEBEB' : '#FAEEDA'
+  const userStatusText = user?.status === 'active' ? '#085041' : user?.status === 'blocked' ? '#791F1F' : '#633806'
 
   // ─── STYLES ───────────────────────────────────────────────
   const s: Record<string, React.CSSProperties> = {
@@ -280,7 +498,16 @@ export default function ClinicApp() {
   if (screen === 'product' && selectedProduct) {
     const p = selectedProduct
     const price = p.prices?.[0]
+    const catalogProduct = getCatalogProduct(p)
     const specs = Object.entries(p.specs || {})
+    const siteSpecs = catalogProduct?.specs || []
+    const aiFeatures = catalogProduct?.aiFeatures || []
+    const imageSrc = getProductImage(p)
+    const installmentCode = buildInstallmentCode(p)
+    const installmentMessage = encodeURIComponent(`გამარჯობა, მაინტერესებს ${p.name}-ის განვადება. კოდი: ${installmentCode}`)
+    const financeBase = price ? Number(price.price_gel || (price.installment_monthly || 0) * (price.installment_months || 12)) : 0
+    const monthlyEstimate = financeBase && installmentMonths ? financeBase / installmentMonths : price?.installment_monthly
+    const aiSalesCopy = buildAiSalesCopy(p, catalogProduct, monthlyEstimate)
     const catEmojis: Record<string,string> = { scan: '🦷', radio: '📡', endo: '⚙️', optics: '🔬', hygiene: '🧪', partner: '🪑', other: '📦' }
     return (
       <div style={s.wrap}>
@@ -292,9 +519,19 @@ export default function ClinicApp() {
             <p style={{ color: '#9FE1CB', fontSize: 11, margin: 0 }}>{p.brand}</p>
           </div>
         </div>
-        <div style={s.detImg}>{catEmojis[p.category_slug] || '🦷'}</div>
+        <div style={s.detImg}>
+          {imageSrc ? (
+            <img
+              src={imageSrc}
+              alt={p.name}
+              style={{ width: '100%', height: '100%', objectFit: 'contain', padding: 18 }}
+            />
+          ) : (
+            catEmojis[p.category_slug] || '🦷'
+          )}
+        </div>
         <div style={s.detBody}>
-          {p.short_desc && <p style={{ fontSize: 13, color: '#666', lineHeight: 1.6, marginBottom: 14 }}>{p.short_desc}</p>}
+          <p style={{ fontSize: 13, color: '#666', lineHeight: 1.7, marginBottom: 14 }}>{catalogProduct?.description || p.short_desc}</p>
           {price ? (
             <div style={s.priceBox}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
@@ -319,6 +556,65 @@ export default function ClinicApp() {
               <p style={{ fontSize: 13, color: '#888', margin: 0 }}>ფასი ხილვადია დარეგისტრირებულთათვის</p>
             </div>
           )}
+          {price && (
+            <div style={{ background: '#eef8ff', border: '1px solid #bfdbfe', borderRadius: 14, padding: 14, marginBottom: 14 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'flex-start', marginBottom: 10 }}>
+                <div>
+                  <p style={{ fontSize: 11, color: '#1d4ed8', fontWeight: 700, letterSpacing: 0.4, margin: 0 }}>განვადება პირდაპირ</p>
+                  <p style={{ fontSize: 13, color: '#334155', margin: '4px 0 0' }}>კოდი: <span style={{ fontWeight: 700 }}>{installmentCode}</span></p>
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                  <p style={{ fontSize: 11, color: '#1d4ed8', margin: 0 }}>საწყისი შეთავაზება</p>
+                  <p style={{ fontSize: 18, fontWeight: 700, color: '#0f172a', margin: '4px 0 0' }}>
+                    ₾{Math.round(monthlyEstimate || 0)}<span style={{ fontSize: 12, fontWeight: 400 }}>/თვე</span>
+                  </p>
+                </div>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, marginBottom: 10 }}>
+                {[6, 12, 18, 24].map((months) => (
+                  <button
+                    key={months}
+                    onClick={() => setInstallmentMonths(months)}
+                    style={{
+                      background: installmentMonths === months ? '#1d4ed8' : '#fff',
+                      color: installmentMonths === months ? '#fff' : '#1d4ed8',
+                      border: '1px solid #bfdbfe',
+                      borderRadius: 10,
+                      padding: '8px 6px',
+                      fontSize: 11,
+                      fontWeight: 700,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    {months} თვე
+                  </button>
+                ))}
+              </div>
+              <p style={{ fontSize: 12, color: '#475569', margin: '0 0 10px' }}>
+                სავარაუდო გადანაწილება: ₾{financeBase.toLocaleString()} / {installmentMonths} თვე = <span style={{ fontWeight: 700 }}>₾{Math.round(monthlyEstimate || 0)}/თვე</span>
+              </p>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                <a
+                  href={`https://wa.me/995514011116?text=${installmentMessage}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  style={{ background: '#0f172a', color: '#fff', textDecoration: 'none', borderRadius: 10, padding: '11px 12px', textAlign: 'center', fontSize: 12, fontWeight: 700 }}
+                >
+                  განვადების მოთხოვნა
+                </a>
+                <a
+                  href="tel:+995514011116"
+                  style={{ background: '#fff', color: '#1d4ed8', textDecoration: 'none', borderRadius: 10, padding: '11px 12px', textAlign: 'center', fontSize: 12, fontWeight: 700, border: '1px solid #bfdbfe' }}
+                >
+                  დარეკვა ახლავე
+                </a>
+              </div>
+            </div>
+          )}
+          <div style={{ background: '#0f172a', color: '#fff', borderRadius: 16, padding: 16, marginBottom: 14 }}>
+            <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: 0.4, color: '#93c5fd', margin: '0 0 8px' }}>AI ADVISOR</p>
+            <p style={{ fontSize: 13, lineHeight: 1.7, margin: 0 }}>{aiSalesCopy}</p>
+          </div>
           {specs.length > 0 && (
             <div style={s.specsCard}>
               <p style={{ fontSize: 13, fontWeight: 600, color: '#1a1a1a', marginBottom: 10 }}>ტექნიკური მახასიათებლები</p>
@@ -328,6 +624,32 @@ export default function ClinicApp() {
                   <span style={{ fontSize: 13, color: '#1a1a1a', fontWeight: 600 }}>{v as string}</span>
                 </div>
               ))}
+            </div>
+          )}
+          {siteSpecs.length > 0 && (
+            <div style={{ ...s.specsCard, background: '#f8fafc' }}>
+              <p style={{ fontSize: 13, fontWeight: 600, color: '#1a1a1a', marginBottom: 10 }}>კატალოგის highlights</p>
+              <div style={{ display: 'grid', gap: 8 }}>
+                {siteSpecs.slice(0, 6).map((item) => (
+                  <div key={item} style={{ fontSize: 13, color: '#475569', lineHeight: 1.5, paddingLeft: 14, position: 'relative' }}>
+                    <span style={{ position: 'absolute', left: 0, top: 0, color: '#0f766e' }}>•</span>
+                    {item}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          {aiFeatures.length > 0 && (
+            <div style={{ marginBottom: 14 }}>
+              <p style={{ fontSize: 13, fontWeight: 700, color: '#1a1a1a', margin: '0 0 10px' }}>AI Highlights</p>
+              <div style={{ display: 'grid', gap: 10 }}>
+                {aiFeatures.map((feature) => (
+                  <div key={feature.title} style={{ background: '#fff', borderRadius: 14, border: '0.5px solid rgba(0,0,0,0.08)', padding: 14 }}>
+                    <p style={{ fontSize: 13, fontWeight: 700, color: '#0f172a', margin: '0 0 4px' }}>{feature.title}</p>
+                    <p style={{ fontSize: 12, color: '#64748b', margin: 0, lineHeight: 1.6 }}>{feature.desc}</p>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
           <div style={{ background: '#fff', borderRadius: 14, border: '0.5px solid rgba(0,0,0,0.08)', padding: 14, marginBottom: 14 }}>
@@ -364,6 +686,47 @@ export default function ClinicApp() {
         {/* ── CATALOG ── */}
         {screen === 'catalog' && (
           <>
+            <div style={{ padding: '12px 14px 0' }}>
+              <div style={{ background: userStatusTone, borderRadius: 14, padding: '12px 14px', border: '0.5px solid rgba(0,0,0,0.06)', marginBottom: 10 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
+                  <div>
+                    <p style={{ fontSize: 13, fontWeight: 600, color: '#1a1a1a', margin: '0 0 3px' }}>Welcome back, {user.full_name.split(' ')[0]}</p>
+                    <p style={{ fontSize: 12, color: '#666', margin: 0 }}>
+                      {user.status === 'active'
+                        ? 'ფასები, განვადება და მოთხოვნები უკვე აქტიურია შენთვის.'
+                        : user.status === 'blocked'
+                          ? 'ანგარიში საჭიროებს ხელახლა გააქტიურებას. დაგვიკავშირდი მხარდაჭერასთან.'
+                          : 'ანგარიში ელოდება დადასტურებას, თუმცა კატალოგის დათვალიერება უკვე შეგიძლია.'}
+                    </p>
+                  </div>
+                  <span style={{ fontSize: 11, padding: '4px 10px', borderRadius: 20, background: '#fff', color: userStatusText, fontWeight: 600 }}>{user.status}</span>
+                </div>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginBottom: 10 }}>
+                <button onClick={() => setScreen('service')} style={{ background: '#fff', border: '0.5px solid rgba(0,0,0,0.08)', borderRadius: 12, padding: '10px 8px', cursor: 'pointer' }}>
+                  <div style={{ fontSize: 18 }}>🔧</div>
+                  <div style={{ fontSize: 11, color: '#1a1a1a', fontWeight: 600, marginTop: 4 }}>Service</div>
+                </button>
+                <button onClick={() => setScreen('academy')} style={{ background: '#fff', border: '0.5px solid rgba(0,0,0,0.08)', borderRadius: 12, padding: '10px 8px', cursor: 'pointer' }}>
+                  <div style={{ fontSize: 18 }}>🎓</div>
+                  <div style={{ fontSize: 11, color: '#1a1a1a', fontWeight: 600, marginTop: 4 }}>Academy</div>
+                </button>
+                <button onClick={() => setScreen('profile')} style={{ background: '#fff', border: '0.5px solid rgba(0,0,0,0.08)', borderRadius: 12, padding: '10px 8px', cursor: 'pointer' }}>
+                  <div style={{ fontSize: 18 }}>👤</div>
+                  <div style={{ fontSize: 11, color: '#1a1a1a', fontWeight: 600, marginTop: 4 }}>Profile</div>
+                </button>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 10 }}>
+                <div style={{ background: '#fff', borderRadius: 12, padding: '10px 12px', border: '0.5px solid rgba(0,0,0,0.08)' }}>
+                  <p style={{ fontSize: 20, fontWeight: 700, color: G, margin: 0 }}>{pendingReqs}</p>
+                  <p style={{ fontSize: 11, color: '#888', margin: '3px 0 0' }}>ღია მოთხოვნა</p>
+                </div>
+                <div style={{ background: '#fff', borderRadius: 12, padding: '10px 12px', border: '0.5px solid rgba(0,0,0,0.08)' }}>
+                  <p style={{ fontSize: 20, fontWeight: 700, color: G, margin: 0 }}>{doneReqs}</p>
+                  <p style={{ fontSize: 11, color: '#888', margin: '3px 0 0' }}>დასრულებული</p>
+                </div>
+              </div>
+            </div>
             <div style={s.searchRow}>
               <input style={s.searchInput} placeholder="🔍 პროდუქტის ძიება..." value={search} onChange={e => setSearch(e.target.value)} />
             </div>
@@ -378,12 +741,28 @@ export default function ClinicApp() {
               <div style={s.prodGrid}>
                 {filteredProds.map(p => {
                   const price = p.prices?.[0]
+                  const catalogProduct = getCatalogProduct(p)
+                  const imageSrc = getProductImage(p)
                   return (
-                    <div key={p.id} style={s.prodCard} onClick={() => { setSelectedProduct(p); setScreen('product') }}>
-                      <div style={s.prodImg}>{catEmojis[p.category_slug] || '🦷'}</div>
+                    <div key={p.id} style={s.prodCard} onClick={() => { setInstallmentMonths(12); setSelectedProduct(p); setScreen('product') }}>
+                      <div style={s.prodImg}>
+                        {imageSrc ? (
+                          <img
+                            src={imageSrc}
+                            alt={p.name}
+                            style={{ width: '100%', height: '100%', objectFit: 'contain', padding: 10 }}
+                          />
+                        ) : (
+                          catEmojis[p.category_slug] || '🦷'
+                        )}
+                      </div>
                       <div style={s.prodBody}>
                         <p style={s.prodCat}>{p.brand}</p>
                         <p style={s.prodName}>{p.name}</p>
+                        <p style={{ fontSize: 11, color: '#64748b', lineHeight: 1.45, margin: '6px 0 0' }}>
+                          {(catalogProduct?.description || p.short_desc || '').slice(0, 88)}
+                          {(catalogProduct?.description || p.short_desc || '').length > 88 ? '...' : ''}
+                        </p>
                         {price ? (
                           <>
                             <p style={s.prodPrice}>₾{price.price_gel?.toLocaleString()}</p>
@@ -403,6 +782,16 @@ export default function ClinicApp() {
         {/* ── SERVICE ── */}
         {screen === 'service' && (
           <div style={s.svcList}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+              <div style={{ background: '#fff', borderRadius: 12, padding: '12px 14px', border: '0.5px solid rgba(0,0,0,0.08)' }}>
+                <p style={{ fontSize: 22, fontWeight: 700, color: G, margin: 0 }}>{serviceTickets.length}</p>
+                <p style={{ fontSize: 11, color: '#888', margin: '4px 0 0' }}>Service tickets</p>
+              </div>
+              <div style={{ background: '#fff', borderRadius: 12, padding: '12px 14px', border: '0.5px solid rgba(0,0,0,0.08)' }}>
+                <p style={{ fontSize: 22, fontWeight: 700, color: G, margin: 0 }}>{activeTickets}</p>
+                <p style={{ fontSize: 11, color: '#888', margin: '4px 0 0' }}>Open cases</p>
+              </div>
+            </div>
             {[
               { ico: '🛠️', title: 'სერვის ტიკეტი', sub: 'ინჟინერის გამოძახება', bg: GL, action: () => setShowTicket(v => !v) },
               { ico: '🛡️', title: 'გარანტიის სტატუსი', sub: 'სერიული ნომრით', bg: '#FAEEDA', action: () => {} },
@@ -421,11 +810,45 @@ export default function ClinicApp() {
             {showTicket && (
               <div style={s.formCard}>
                 <p style={{ fontSize: 14, fontWeight: 600, marginBottom: 12 }}>ახალი სერვის ტიკეტი</p>
+                <div style={s.field}>
+                  <label style={s.label}>პროდუქტი</label>
+                  <select style={s.select} value={ticketProductId} onChange={e => setTicketProductId(e.target.value)}>
+                    <option value="">აირჩიე პროდუქტი...</option>
+                    {products.map(product => <option key={product.id} value={product.id}>{product.name}</option>)}
+                  </select>
+                </div>
                 <div style={s.field}><label style={s.label}>სერიული ნომერი (სურვილისამებრ)</label><input style={s.input} value={ticketSerial} onChange={e => setTicketSerial(e.target.value)} placeholder="SN-XXXXXXX" /></div>
                 <div style={s.field}><label style={s.label}>პრობლემის აღწერა *</label><textarea style={s.textarea} value={ticketDesc} onChange={e => setTicketDesc(e.target.value)} placeholder="მოკლედ აღწერე..." /></div>
+                <div style={s.field}><label style={s.label}>სასურველი ვიზიტის თარიღი</label><input style={s.input} type="date" value={ticketVisitDate} onChange={e => setTicketVisitDate(e.target.value)} /></div>
                 <button style={s.btn} onClick={sendTicket} disabled={loading}>{loading ? 'იგზავნება...' : '📨 ტიკეტის გაგზავნა'}</button>
               </div>
             )}
+            <div style={s.formCard}>
+              <p style={{ fontSize: 14, fontWeight: 600, marginBottom: 12 }}>Recent service activity</p>
+              {serviceTickets.length === 0 ? (
+                <p style={{ fontSize: 12, color: '#888', margin: 0 }}>No tickets yet. Create your first service case for engineer follow-up.</p>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  {serviceTickets.slice(0, 4).map(ticket => (
+                    <div key={ticket.id} style={{ border: '0.5px solid rgba(0,0,0,0.08)', borderRadius: 12, padding: 12, background: '#fafaf8' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
+                        <div>
+                          <p style={{ fontSize: 13, fontWeight: 600, color: '#1a1a1a', margin: 0 }}>{ticket.products?.name || 'General service case'}</p>
+                          <p style={{ fontSize: 11, color: '#888', margin: '4px 0 0' }}>{new Date(ticket.created_at).toLocaleDateString('ka-GE')}</p>
+                        </div>
+                        <span style={{ fontSize: 11, padding: '4px 10px', borderRadius: 20, background: ticket.status === 'done' ? '#E1F5EE' : ticket.status === 'inprogress' ? '#E6F1FB' : '#FAEEDA', color: ticket.status === 'done' ? '#085041' : ticket.status === 'inprogress' ? '#0C447C' : '#633806', fontWeight: 600 }}>
+                          {ticketStatusLabel[ticket.status] || ticket.status}
+                        </span>
+                      </div>
+                      {ticket.serial_number && <p style={{ fontSize: 12, color: '#666', margin: '8px 0 0' }}>SN: {ticket.serial_number}</p>}
+                      <p style={{ fontSize: 12, color: '#444', lineHeight: 1.5, margin: '8px 0 0' }}>{ticket.problem_desc}</p>
+                      {ticket.visit_date && <p style={{ fontSize: 11, color: '#0C447C', margin: '8px 0 0' }}>Visit: {new Date(ticket.visit_date).toLocaleDateString('ka-GE')}</p>}
+                      {ticket.resolution && <p style={{ fontSize: 11, color: '#085041', margin: '8px 0 0' }}>Update: {ticket.resolution}</p>}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         )}
 
@@ -488,6 +911,10 @@ export default function ClinicApp() {
                   <p style={{ fontSize: 12, color: '#888', margin: '3px 0 0' }}>{st.lab}</p>
                 </div>
               ))}
+              <div style={s.statCard}>
+                <p style={{ fontSize: 26, fontWeight: 700, color: G, margin: 0 }}>{serviceTickets.length}</p>
+                <p style={{ fontSize: 12, color: '#888', margin: '3px 0 0' }}>Service active</p>
+              </div>
             </div>
             {requests.length > 0 && (
               <>
@@ -507,6 +934,23 @@ export default function ClinicApp() {
               </>
             )}
             <p style={s.sectionTitle}>ანგარიშის ინფო</p>
+            {serviceTickets.length > 0 && (
+              <>
+                <p style={s.sectionTitle}>Service timeline</p>
+                <div style={s.histCard}>
+                  {serviceTickets.slice(0, 4).map(ticket => (
+                    <div key={ticket.id} style={s.histRow}>
+                      <div style={{ width: 8, height: 8, borderRadius: 4, background: ticket.status === 'done' ? '#1D9E75' : ticket.status === 'inprogress' ? '#185FA5' : '#BA7517', flexShrink: 0 }} />
+                      <div style={{ flex: 1 }}>
+                        <p style={{ fontSize: 12, fontWeight: 600, color: '#1a1a1a', margin: 0 }}>{ticket.products?.name || 'General service case'}</p>
+                        <p style={{ fontSize: 11, color: '#aaa', margin: '2px 0 0' }}>{new Date(ticket.created_at).toLocaleDateString('ka-GE')}</p>
+                      </div>
+                      <span style={{ fontSize: 11, fontWeight: 600, color: ticket.status === 'done' ? '#1D9E75' : ticket.status === 'inprogress' ? '#185FA5' : '#BA7517' }}>{ticketStatusLabel[ticket.status] || ticket.status}</span>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
             <div style={s.infoCard}>
               {[['სახელი', user.full_name], ['კლინიკა', user.clinic_name], ['ტელეფონი', user.phone], ['ქალაქი', user.city]].map(([k, v]) => (
                 <div key={k} style={s.infoRow}>

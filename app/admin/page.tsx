@@ -1,39 +1,188 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
+import { findCatalogProductByAny, findDatabaseProductMatch, inferBrand, localCatalogProducts, mapCategoryToSlug, specsArrayToRecord } from '../lib/catalogSync'
 
-const ADMIN_PASSWORD = 'medicalline2026'
-
-type Tab = 'dashboard' | 'users' | 'prices' | 'requests'
+type Tab = 'dashboard' | 'users' | 'prices' | 'requests' | 'service' | 'engineering'
 
 export default function AdminPage() {
   const [auth, setAuth] = useState(false)
-  const [pw, setPw] = useState('')
+  const [adminEmail, setAdminEmail] = useState('')
+  const [adminPassword, setAdminPassword] = useState('')
+  const [authError, setAuthError] = useState('')
   const [tab, setTab] = useState<Tab>('dashboard')
   const [users, setUsers] = useState<any[]>([])
   const [products, setProducts] = useState<any[]>([])
   const [requests, setRequests] = useState<any[]>([])
+  const [serviceTickets, setServiceTickets] = useState<any[]>([])
   const [saved, setSaved] = useState<string | null>(null)
+  const [saveError, setSaveError] = useState<string | null>(null)
+  const [requestFilter, setRequestFilter] = useState<'all' | 'new' | 'inprogress' | 'done'>('all')
+  const [requestSearch, setRequestSearch] = useState('')
 
   useEffect(() => {
-    if (auth) {
-      loadAll()
+    if (!auth) return
+
+    const channel = supabase
+      .channel('admin-service-live')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'service_tickets' }, () => {
+        loadAll()
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'requests' }, () => {
+        loadAll()
+      })
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
     }
   }, [auth])
 
-  async function loadAll() {
-    const [u, p, r] = await Promise.all([
-      supabase.from('profiles').select('*').order('created_at', { ascending: false }),
-      supabase.from('products').select('*, prices(*)').order('sort_order'),
-      supabase.from('requests').select('*, profiles(full_name,clinic_name,phone), products(name)').order('created_at', { ascending: false }),
-    ])
-    if (u.data) setUsers(u.data)
-    if (p.data) setProducts(p.data)
-    if (r.data) setRequests(r.data)
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user?.id) {
+        loadAdminProfile(session.user.id)
+      }
+    })
+  }, [])
+
+  useEffect(() => {
+    if (auth) {
+      try { sessionStorage.setItem('ml_admin_auth', '1') } catch {}
+      loadAll()
+    } else {
+      try { sessionStorage.removeItem('ml_admin_auth') } catch {}
+    }
+  }, [auth])
+
+  async function loadAdminProfile(userId: string) {
+    const { data, error } = await supabase.from('profiles').select('*').eq('id', userId).single()
+    if (error || !data) {
+      setAuth(false)
+      setAuthError('Admin profile could not be loaded.')
+      return
+    }
+
+    if (data.role !== 'admin') {
+      setAuth(false)
+      setAuthError('This account does not have admin access.')
+      await supabase.auth.signOut()
+      return
+    }
+
+    setAuthError('')
+    setAuth(true)
   }
 
-  async function updatePrice(productId: string, price: number) {
-    await supabase.from('prices').update({ price_gel: price }).eq('product_id', productId)
+  async function loadAll() {
+    const [u, p, r, s] = await Promise.all([
+      supabase.from('profiles').select('*').order('created_at', { ascending: false }),
+      supabase.from('products').select('*, prices(*)').order('sort_order'),
+      supabase.from('requests').select('*, client:profiles!requests_user_id_fkey(full_name,clinic_name,phone), assignee:profiles!requests_assigned_to_fkey(full_name,phone), products(name)').order('created_at', { ascending: false }),
+      supabase.from('service_tickets').select('*, client:profiles!service_tickets_user_id_fkey(full_name,clinic_name,phone), engineer:profiles!service_tickets_engineer_id_fkey(full_name,phone), products(name)').order('created_at', { ascending: false }),
+    ])
+    if (u.data) setUsers(u.data)
+    if (p.data) {
+      const matchedIds = new Set<string>()
+      const mergedProducts = localCatalogProducts.map((item) => {
+        const dbMatch = findDatabaseProductMatch(p.data, item)
+
+        if (dbMatch?.id) matchedIds.add(dbMatch.id)
+
+        return {
+          id: dbMatch?.id || `catalog-${item.slug}`,
+          dbId: dbMatch?.id || null,
+          slug: dbMatch?.slug || item.slug,
+          name: dbMatch?.name || item.name,
+          category_slug: dbMatch?.category_slug || mapCategoryToSlug(item.cat),
+          brand: dbMatch?.brand || inferBrand(item),
+          short_desc: dbMatch?.short_desc || item.description,
+          specs: Object.keys(dbMatch?.specs || {}).length ? dbMatch.specs : specsArrayToRecord(item.specs),
+          images: dbMatch?.images?.length ? dbMatch.images : [item.img],
+          prices: dbMatch?.prices || [],
+          catalogSource: item,
+        }
+      })
+
+      const dbOnlyProducts = p.data
+        .filter((item: any) => !matchedIds.has(item.id))
+        .map((item: any) => ({ ...item, dbId: item.id, catalogSource: findCatalogProductByAny(item) }))
+
+      setProducts([...mergedProducts, ...dbOnlyProducts])
+    }
+    if (r.data) setRequests(r.data)
+    if (s.data) setServiceTickets(s.data)
+  }
+
+  async function loginAsAdmin() {
+    setAuthError('')
+    const { data, error } = await supabase.auth.signInWithPassword({ email: adminEmail, password: adminPassword })
+    if (error || !data.user) {
+      setAuthError('Admin login failed.')
+      return
+    }
+
+    await loadAdminProfile(data.user.id)
+  }
+
+  async function logoutAdmin() {
+    await supabase.auth.signOut()
+    setAuth(false)
+    setAdminEmail('')
+    setAdminPassword('')
+  }
+
+  async function ensureProductRecord(product: any) {
+    if (product.dbId) return product.dbId
+
+    const source = product.catalogSource || findCatalogProductByAny(product)
+    if (!source) return null
+
+    const payload = {
+      slug: source.slug,
+      name: source.name,
+      category_slug: mapCategoryToSlug(source.cat),
+      brand: inferBrand(source),
+      short_desc: source.description,
+      specs: specsArrayToRecord(source.specs),
+      images: [source.img],
+      is_active: true,
+      sort_order: source.id,
+    }
+
+    const { data, error } = await supabase
+      .from('products')
+      .upsert(payload, { onConflict: 'slug' })
+      .select('id')
+      .single()
+
+    if (error || !data?.id) {
+      setSaveError(error?.message || 'პროდუქტის ბაზაში დამატება ვერ მოხერხდა')
+      return null
+    }
+
+    return data.id
+  }
+
+  async function updatePrice(product: any, price: number) {
+    setSaveError(null)
+    const productId = await ensureProductRecord(product)
+    if (!productId) return
+
+    const baseMonthly = Math.round(price / 12)
+    const { error } = await supabase.from('prices').upsert({
+      product_id: productId,
+      price_gel: price,
+      installment_monthly: baseMonthly,
+      installment_months: 12,
+      note: 'განვადება Credo-ს გავლით',
+    }, { onConflict: 'product_id' })
+
+    if (error) {
+      setSaveError(error.message)
+      return
+    }
+
     setSaved(productId)
     setTimeout(() => setSaved(null), 2000)
     loadAll()
@@ -44,10 +193,43 @@ export default function AdminPage() {
     loadAll()
   }
 
+  async function updateUserRole(id: string, role: string) {
+    const { error } = await supabase.from('profiles').update({ role }).eq('id', id)
+    if (error) {
+      setSaveError(error.message)
+      return
+    }
+    setSaveError(null)
+    loadAll()
+  }
+
   async function updateRequestStatus(id: string, status: string) {
     await supabase.from('requests').update({ status }).eq('id', id)
     loadAll()
   }
+
+  async function updateServiceTicket(id: string, patch: Record<string, unknown>) {
+    const { error } = await supabase.from('service_tickets').update(patch).eq('id', id)
+    if (error) {
+      setSaveError(error.message)
+      return
+    }
+    setSaveError(null)
+    loadAll()
+  }
+
+  const pendingUsers = users.filter(u => u.status === 'pending').length
+  const blockedUsers = users.filter(u => u.status === 'blocked').length
+  const newServiceTickets = serviceTickets.filter(ticket => ticket.status === 'new').length
+  const engineerUsers = users.filter(user => user.role === 'engineer' || user.role === 'dealer')
+  const engineeringDivision = users.filter(user => user.role === 'engineer' || user.role === 'dealer')
+  const filteredRequests = requests.filter(r => {
+    if (requestFilter !== 'all' && r.status !== requestFilter) return false
+    if (!requestSearch.trim()) return true
+    const query = requestSearch.toLowerCase()
+    return [r.products?.name, r.client?.full_name, r.client?.clinic_name, r.client?.phone, r.type]
+      .some(value => String(value || '').toLowerCase().includes(query))
+  })
 
   if (!auth) return (
     <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f5f5f0' }}>
@@ -55,21 +237,29 @@ export default function AdminPage() {
         <div style={{ textAlign: 'center', marginBottom: 24 }}>
           <div style={{ width: 56, height: 56, background: '#085041', borderRadius: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px', fontSize: 24 }}>🦷</div>
           <h1 style={{ fontSize: 18, fontWeight: 500, color: '#1a1a1a' }}>Medical Line Admin</h1>
+          <input
+            type="email"
+            placeholder="admin@medicalline.ge"
+            value={adminEmail}
+            onChange={e => setAdminEmail(e.target.value)}
+            style={{ width: '100%', padding: '10px 12px', borderRadius: 10, border: '0.5px solid rgba(0,0,0,0.2)', fontSize: 14, marginTop: 12, marginBottom: 10, boxSizing: 'border-box' }}
+          />
           <p style={{ fontSize: 13, color: '#888', marginTop: 4 }}>შედი ადმინ პანელში</p>
         </div>
         <input
           type="password"
           placeholder="პაროლი"
-          value={pw}
-          onChange={e => setPw(e.target.value)}
-          onKeyDown={e => e.key === 'Enter' && pw === ADMIN_PASSWORD && setAuth(true)}
+          value={adminPassword}
+          onChange={e => setAdminPassword(e.target.value)}
+          onKeyDown={e => e.key === 'Enter' && loginAsAdmin()}
           style={{ width: '100%', padding: '10px 12px', borderRadius: 10, border: '0.5px solid rgba(0,0,0,0.2)', fontSize: 14, marginBottom: 10, boxSizing: 'border-box' }}
         />
         <button
-          onClick={() => pw === ADMIN_PASSWORD ? setAuth(true) : alert('პაროლი არასწორია')}
+          onClick={loginAsAdmin}
           style={{ width: '100%', background: '#085041', color: '#fff', border: 'none', borderRadius: 10, padding: '11px', fontSize: 14, cursor: 'pointer', fontWeight: 500 }}>
-          შესვლა
+          Admin Login
         </button>
+        {authError && <p style={{ fontSize: 12, color: '#9f1239', textAlign: 'center', marginTop: 10 }}>{authError}</p>}
       </div>
     </div>
   )
@@ -89,13 +279,15 @@ export default function AdminPage() {
           { id: 'users', label: '👥 მომხმარებლები' },
           { id: 'prices', label: '💰 ფასები' },
           { id: 'requests', label: `📨 მოთხოვნები${newReqs > 0 ? ` (${newReqs})` : ''}` },
+          { id: 'service', label: `🔧 Service${newServiceTickets > 0 ? ` (${newServiceTickets})` : ''}` },
+          { id: 'engineering', label: `⚙️ Engineering${engineeringDivision.length > 0 ? ` (${engineeringDivision.length})` : ''}` },
         ] as { id: Tab; label: string }[]).map(item => (
           <button key={item.id} onClick={() => setTab(item.id)}
             style={{ display: 'block', width: '100%', textAlign: 'left', padding: '10px 16px', background: tab === item.id ? 'rgba(255,255,255,0.12)' : 'transparent', color: tab === item.id ? '#fff' : '#9FE1CB', border: 'none', borderLeft: tab === item.id ? '3px solid #5DCAA5' : '3px solid transparent', cursor: 'pointer', fontSize: 13 }}>
             {item.label}
           </button>
         ))}
-        <button onClick={() => setAuth(false)}
+        <button onClick={logoutAdmin}
           style={{ marginTop: 'auto', padding: '10px 16px', background: 'transparent', color: '#9FE1CB', border: 'none', textAlign: 'left', cursor: 'pointer', fontSize: 12 }}>
           გამოსვლა
         </button>
@@ -105,7 +297,7 @@ export default function AdminPage() {
       <div style={{ flex: 1, background: '#f5f5f0', overflow: 'auto' }}>
         <div style={{ background: '#fff', padding: '14px 24px', borderBottom: '0.5px solid rgba(0,0,0,0.08)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <h2 style={{ fontSize: 16, fontWeight: 500, color: '#1a1a1a' }}>
-            {tab === 'dashboard' ? 'Dashboard' : tab === 'users' ? 'მომხმარებლები' : tab === 'prices' ? 'ფასების მართვა' : 'მოთხოვნები'}
+            {tab === 'dashboard' ? 'Dashboard' : tab === 'users' ? 'მომხმარებლები' : tab === 'prices' ? 'ფასების მართვა' : tab === 'requests' ? 'მოთხოვნები' : tab === 'service' ? 'Service Dispatch' : 'Engineering Division'}
           </h2>
           <span style={{ fontSize: 12, color: '#888' }}>Medical Line Pro · {new Date().toLocaleDateString('ka-GE')}</span>
         </div>
@@ -128,6 +320,21 @@ export default function AdminPage() {
                   </div>
                 ))}
               </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 20 }}>
+                <div style={{ background: '#fff', borderRadius: 12, padding: '14px 16px', border: '0.5px solid rgba(0,0,0,0.08)' }}>
+                  <p style={{ fontSize: 13, fontWeight: 500, color: '#1a1a1a', margin: '0 0 8px' }}>Needs Attention</p>
+                  <p style={{ fontSize: 12, color: '#888', margin: '0 0 4px' }}>Pending approvals: <strong style={{ color: '#633806' }}>{pendingUsers}</strong></p>
+                  <p style={{ fontSize: 12, color: '#888', margin: 0 }}>Blocked users: <strong style={{ color: '#791F1F' }}>{blockedUsers}</strong></p>
+                </div>
+                <div style={{ background: '#fff', borderRadius: 12, padding: '14px 16px', border: '0.5px solid rgba(0,0,0,0.08)' }}>
+                  <p style={{ fontSize: 13, fontWeight: 500, color: '#1a1a1a', margin: '0 0 8px' }}>Quick Actions</p>
+                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                    <button onClick={() => setTab('users')} style={{ fontSize: 12, padding: '6px 10px', background: '#FAEEDA', color: '#633806', border: 'none', borderRadius: 8, cursor: 'pointer' }}>Users</button>
+                    <button onClick={() => setTab('requests')} style={{ fontSize: 12, padding: '6px 10px', background: '#E6F1FB', color: '#0C447C', border: 'none', borderRadius: 8, cursor: 'pointer' }}>Requests</button>
+                    <button onClick={() => setTab('engineering')} style={{ fontSize: 12, padding: '6px 10px', background: '#E1F5EE', color: '#085041', border: 'none', borderRadius: 8, cursor: 'pointer' }}>Engineering</button>
+                  </div>
+                </div>
+              </div>
               <div style={{ background: '#fff', borderRadius: 12, border: '0.5px solid rgba(0,0,0,0.08)', overflow: 'hidden' }}>
                 <div style={{ padding: '12px 16px', borderBottom: '0.5px solid rgba(0,0,0,0.08)', display: 'flex', justifyContent: 'space-between' }}>
                   <span style={{ fontSize: 13, fontWeight: 500 }}>ბოლო მოთხოვნები</span>
@@ -143,8 +350,8 @@ export default function AdminPage() {
                     {requests.slice(0, 5).map(r => (
                       <tr key={r.id} style={{ borderTop: '0.5px solid rgba(0,0,0,0.06)' }}>
                         <td style={{ padding: '9px 14px' }}>{r.products?.name || '—'}</td>
-                        <td style={{ padding: '9px 14px' }}>{r.profiles?.full_name || '—'}</td>
-                        <td style={{ padding: '9px 14px', color: '#888' }}>{r.profiles?.clinic_name || '—'}</td>
+                        <td style={{ padding: '9px 14px' }}>{r.client?.full_name || '—'}</td>
+                        <td style={{ padding: '9px 14px', color: '#888' }}>{r.client?.clinic_name || '—'}</td>
                         <td style={{ padding: '9px 14px' }}>{r.type === 'price' ? 'ფასი' : r.type === 'demo' ? 'დემო' : r.type}</td>
                         <td style={{ padding: '9px 14px' }}>
                           <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 20, background: r.status === 'new' ? '#E6F1FB' : r.status === 'done' ? '#E1F5EE' : '#FAEEDA', color: r.status === 'new' ? '#0C447C' : r.status === 'done' ? '#085041' : '#633806' }}>
@@ -181,7 +388,13 @@ export default function AdminPage() {
                         </span>
                       </td>
                       <td style={{ padding: '10px 14px' }}>
-                        <div style={{ display: 'flex', gap: 4 }}>
+                        <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+                          {u.status === 'pending' && (
+                            <button onClick={() => updateUserStatus(u.id, 'active')}
+                              style={{ fontSize: 11, padding: '4px 8px', background: '#E1F5EE', color: '#085041', border: 'none', borderRadius: 6, cursor: 'pointer' }}>
+                              დადასტურება
+                            </button>
+                          )}
                           {u.status !== 'blocked' ? (
                             <button onClick={() => updateUserStatus(u.id, 'blocked')}
                               style={{ fontSize: 11, padding: '4px 8px', background: '#FCEBEB', color: '#791F1F', border: 'none', borderRadius: 6, cursor: 'pointer' }}>
@@ -205,9 +418,72 @@ export default function AdminPage() {
             </div>
           )}
 
+          {/* ENGINEERING */}
+          {tab === 'engineering' && (
+            <div>
+              {saveError && (
+                <div style={{ background: '#fff1f2', color: '#9f1239', border: '1px solid #fecdd3', borderRadius: 12, padding: 12, fontSize: 12, marginBottom: 12 }}>
+                  {saveError}
+                </div>
+              )}
+              <div style={{ display: 'grid', gridTemplateColumns: '1.2fr .8fr', gap: 12, marginBottom: 16 }}>
+                <div style={{ background: '#fff', borderRadius: 12, padding: '14px 16px', border: '0.5px solid rgba(0,0,0,0.08)' }}>
+                  <p style={{ fontSize: 14, fontWeight: 600, color: '#1a1a1a', margin: '0 0 8px' }}>Engineering Division</p>
+                  <p style={{ fontSize: 12, color: '#666', margin: 0 }}>Create a dedicated engineering team separate from admin. Assign service tickets only to field engineers and keep dispatch cleaner.</p>
+                </div>
+                <div style={{ background: '#eef7f4', borderRadius: 12, padding: '14px 16px', border: '1px solid #c7eadf' }}>
+                  <p style={{ fontSize: 24, fontWeight: 700, color: '#085041', margin: 0 }}>{engineeringDivision.length}</p>
+                  <p style={{ fontSize: 12, color: '#085041', margin: '4px 0 0' }}>Active engineering members</p>
+                </div>
+              </div>
+              <div style={{ background: '#fff', borderRadius: 12, border: '0.5px solid rgba(0,0,0,0.08)', overflow: 'hidden' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                  <thead><tr style={{ background: '#f8f8f6' }}>
+                    {['Name', 'Clinic/Base', 'City', 'Phone', 'Current role', 'Actions'].map(h => (
+                      <th key={h} style={{ padding: '10px 14px', textAlign: 'left', color: '#888', fontWeight: 500, fontSize: 12 }}>{h}</th>
+                    ))}
+                  </tr></thead>
+                  <tbody>
+                    {users.map(user => (
+                      <tr key={user.id} style={{ borderTop: '0.5px solid rgba(0,0,0,0.06)' }}>
+                        <td style={{ padding: '10px 14px', fontWeight: 500 }}>{user.full_name}</td>
+                        <td style={{ padding: '10px 14px' }}>{user.clinic_name || 'Medical Line'}</td>
+                        <td style={{ padding: '10px 14px', color: '#888' }}>{user.city}</td>
+                        <td style={{ padding: '10px 14px', color: '#888' }}>{user.phone}</td>
+                        <td style={{ padding: '10px 14px' }}>
+                          <span style={{ fontSize: 11, padding: '3px 8px', borderRadius: 20, background: user.role === 'engineer' || user.role === 'dealer' ? '#E1F5EE' : '#F3F4F6', color: user.role === 'engineer' || user.role === 'dealer' ? '#085041' : '#4B5563', fontWeight: 600 }}>
+                            {user.role}
+                          </span>
+                        </td>
+                        <td style={{ padding: '10px 14px' }}>
+                          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                            <button onClick={() => updateUserRole(user.id, 'engineer')} style={{ fontSize: 11, padding: '4px 8px', background: '#085041', color: '#fff', border: 'none', borderRadius: 6, cursor: 'pointer' }}>
+                              Make engineer
+                            </button>
+                            <button onClick={() => updateUserRole(user.id, 'dealer')} style={{ fontSize: 11, padding: '4px 8px', background: '#E6F1FB', color: '#0C447C', border: 'none', borderRadius: 6, cursor: 'pointer' }}>
+                              Legacy dealer
+                            </button>
+                            <button onClick={() => updateUserRole(user.id, 'doctor')} style={{ fontSize: 11, padding: '4px 8px', background: '#FAEEDA', color: '#633806', border: 'none', borderRadius: 6, cursor: 'pointer' }}>
+                              Doctor
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
           {/* PRICES */}
           {tab === 'prices' && (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 10 }}>
+              {saveError && (
+                <div style={{ gridColumn: '1 / -1', background: '#fff1f2', color: '#9f1239', border: '1px solid #fecdd3', borderRadius: 12, padding: 12, fontSize: 12 }}>
+                  {saveError}
+                </div>
+              )}
               {products.map(p => (
                 <div key={p.id} style={{ background: '#fff', borderRadius: 12, padding: 14, border: '0.5px solid rgba(0,0,0,0.08)' }}>
                   <p style={{ fontSize: 12, color: '#085041', fontWeight: 500 }}>{p.category_slug}</p>
@@ -223,10 +499,10 @@ export default function AdminPage() {
                     <button
                       onClick={() => {
                         const el = document.getElementById(`price-${p.id}`) as HTMLInputElement
-                        updatePrice(p.id, parseFloat(el.value))
+                        updatePrice(p, parseFloat(el.value))
                       }}
                       style={{ padding: '6px 10px', background: '#085041', color: '#fff', border: 'none', borderRadius: 8, fontSize: 12, cursor: 'pointer' }}>
-                      {saved === p.id ? '✓' : 'შენახვა'}
+                      {saved === (p.dbId || p.id) ? '✓' : 'შენახვა'}
                     </button>
                   </div>
                 </div>
@@ -234,23 +510,112 @@ export default function AdminPage() {
             </div>
           )}
 
+          {/* SERVICE */}
+          {tab === 'service' && (
+            <div>
+              {saveError && (
+                <div style={{ background: '#fff1f2', color: '#9f1239', border: '1px solid #fecdd3', borderRadius: 12, padding: 12, fontSize: 12, marginBottom: 12 }}>
+                  {saveError}
+                </div>
+              )}
+              <div style={{ background: '#eef7f4', color: '#085041', border: '1px solid #c7eadf', borderRadius: 12, padding: 12, fontSize: 12, marginBottom: 12 }}>
+                Service Dispatch works as the admin console for the separate engineering division. Assign each case to an engineer profile and track visit progress here.
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 12, marginBottom: 16 }}>
+                <div style={{ background: '#fff', borderRadius: 12, padding: '14px 16px', border: '0.5px solid rgba(0,0,0,0.08)' }}>
+                  <p style={{ fontSize: 24, fontWeight: 600, color: '#085041', margin: 0 }}>{serviceTickets.length}</p>
+                  <p style={{ fontSize: 12, color: '#888', marginTop: 4 }}>All service tickets</p>
+                </div>
+                <div style={{ background: '#fff', borderRadius: 12, padding: '14px 16px', border: '0.5px solid rgba(0,0,0,0.08)' }}>
+                  <p style={{ fontSize: 24, fontWeight: 600, color: '#0C447C', margin: 0 }}>{serviceTickets.filter(ticket => ticket.status === 'inprogress').length}</p>
+                  <p style={{ fontSize: 12, color: '#888', marginTop: 4 }}>In progress</p>
+                </div>
+                <div style={{ background: '#fff', borderRadius: 12, padding: '14px 16px', border: '0.5px solid rgba(0,0,0,0.08)' }}>
+                  <p style={{ fontSize: 24, fontWeight: 600, color: '#633806', margin: 0 }}>{newServiceTickets}</p>
+                  <p style={{ fontSize: 12, color: '#888', marginTop: 4 }}>Need triage</p>
+                </div>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {serviceTickets.map(ticket => (
+                  <div key={ticket.id} style={{ background: '#fff', borderRadius: 12, padding: '14px 16px', border: '0.5px solid rgba(0,0,0,0.08)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'flex-start' }}>
+                      <div>
+                        <p style={{ fontSize: 14, fontWeight: 600, color: '#1a1a1a', margin: 0 }}>{ticket.products?.name || 'General service case'}</p>
+                        <p style={{ fontSize: 12, color: '#888', margin: '4px 0 0' }}>{ticket.client?.full_name || '—'} · {ticket.client?.clinic_name || '—'} · {ticket.client?.phone || '—'}</p>
+                        <p style={{ fontSize: 11, color: '#aaa', margin: '6px 0 0' }}>{new Date(ticket.created_at).toLocaleDateString('ka-GE')}</p>
+                      </div>
+                      <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                        <span style={{ fontSize: 11, padding: '4px 10px', borderRadius: 20, background: ticket.status === 'done' ? '#E1F5EE' : ticket.status === 'inprogress' ? '#E6F1FB' : '#FAEEDA', color: ticket.status === 'done' ? '#085041' : ticket.status === 'inprogress' ? '#0C447C' : '#633806', fontWeight: 600 }}>
+                          {ticket.status}
+                        </span>
+                        <select defaultValue={ticket.status} onChange={e => updateServiceTicket(ticket.id, { status: e.target.value })} style={{ padding: '7px 10px', borderRadius: 8, border: '0.5px solid rgba(0,0,0,0.15)', fontSize: 12 }}>
+                          <option value="new">new</option>
+                          <option value="assigned">assigned</option>
+                          <option value="inprogress">inprogress</option>
+                          <option value="done">done</option>
+                        </select>
+                      </div>
+                    </div>
+                    {ticket.serial_number && <p style={{ fontSize: 12, color: '#444', margin: '10px 0 0' }}>Serial: {ticket.serial_number}</p>}
+                    <p style={{ fontSize: 13, color: '#444', lineHeight: 1.5, margin: '10px 0 0' }}>{ticket.problem_desc}</p>
+                    <div style={{ display: 'grid', gridTemplateColumns: '220px 180px 1fr auto', gap: 8, marginTop: 12, alignItems: 'center' }}>
+                      <select
+                        defaultValue={ticket.engineer_id || ''}
+                        id={`engineer-${ticket.id}`}
+                        style={{ padding: '8px 10px', borderRadius: 8, border: '0.5px solid rgba(0,0,0,0.15)', fontSize: 12 }}
+                      >
+                        <option value="">Assign engineering division</option>
+                        {engineerUsers.map(engineer => (
+                          <option key={engineer.id} value={engineer.id}>
+                            {engineer.full_name} · {engineer.role}
+                          </option>
+                        ))}
+                      </select>
+                      <input type="date" defaultValue={ticket.visit_date ? String(ticket.visit_date).slice(0, 10) : ''} id={`visit-${ticket.id}`} style={{ padding: '8px 10px', borderRadius: 8, border: '0.5px solid rgba(0,0,0,0.15)', fontSize: 12 }} />
+                      <input type="text" defaultValue={ticket.resolution || ''} id={`resolution-${ticket.id}`} placeholder="Engineer update / next step" style={{ padding: '8px 10px', borderRadius: 8, border: '0.5px solid rgba(0,0,0,0.15)', fontSize: 12 }} />
+                      <button
+                        onClick={() => {
+                          const engineerInput = document.getElementById(`engineer-${ticket.id}`) as HTMLSelectElement | null
+                          const visitInput = document.getElementById(`visit-${ticket.id}`) as HTMLInputElement | null
+                          const resolutionInput = document.getElementById(`resolution-${ticket.id}`) as HTMLInputElement | null
+                          updateServiceTicket(ticket.id, {
+                            engineer_id: engineerInput?.value || null,
+                            visit_date: visitInput?.value || null,
+                            resolution: resolutionInput?.value || null,
+                            status: engineerInput?.value && ticket.status === 'new' ? 'assigned' : ticket.status,
+                          })
+                        }}
+                        style={{ padding: '8px 12px', background: '#085041', color: '#fff', border: 'none', borderRadius: 8, fontSize: 12, cursor: 'pointer' }}
+                      >
+                        Save
+                      </button>
+                    </div>
+                  </div>
+                ))}
+                {serviceTickets.length === 0 && (
+                  <p style={{ textAlign: 'center', color: '#aaa', padding: 24 }}>Service tickets not found</p>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* REQUESTS */}
           {tab === 'requests' && (
             <div>
-              <div style={{ display: 'flex', gap: 6, marginBottom: 14 }}>
-                {['ყველა', 'new', 'inprogress', 'done'].map(f => (
-                  <button key={f} style={{ fontSize: 12, padding: '5px 12px', borderRadius: 20, border: '0.5px solid rgba(0,0,0,0.15)', background: '#fff', cursor: 'pointer' }}>
-                    {f === 'ყველა' ? 'ყველა' : f === 'new' ? 'ახალი' : f === 'inprogress' ? 'მიმდინარე' : 'დასრულებული'}
-                  </button>
-                ))}
+              <div style={{ display: 'flex', gap: 6, marginBottom: 14, flexWrap: 'wrap', alignItems: 'center' }}>
+                <button onClick={() => setRequestFilter('all')} style={{ fontSize: 12, padding: '5px 12px', borderRadius: 20, border: '0.5px solid rgba(0,0,0,0.15)', background: requestFilter === 'all' ? '#085041' : '#fff', color: requestFilter === 'all' ? '#fff' : '#333', cursor: 'pointer' }}>All</button>
+                <button onClick={() => setRequestFilter('new')} style={{ fontSize: 12, padding: '5px 12px', borderRadius: 20, border: '0.5px solid rgba(0,0,0,0.15)', background: requestFilter === 'new' ? '#085041' : '#fff', color: requestFilter === 'new' ? '#fff' : '#333', cursor: 'pointer' }}>New</button>
+                <button onClick={() => setRequestFilter('inprogress')} style={{ fontSize: 12, padding: '5px 12px', borderRadius: 20, border: '0.5px solid rgba(0,0,0,0.15)', background: requestFilter === 'inprogress' ? '#085041' : '#fff', color: requestFilter === 'inprogress' ? '#fff' : '#333', cursor: 'pointer' }}>In Progress</button>
+                <button onClick={() => setRequestFilter('done')} style={{ fontSize: 12, padding: '5px 12px', borderRadius: 20, border: '0.5px solid rgba(0,0,0,0.15)', background: requestFilter === 'done' ? '#085041' : '#fff', color: requestFilter === 'done' ? '#fff' : '#333', cursor: 'pointer' }}>Done</button>
+                <input value={requestSearch} onChange={e => setRequestSearch(e.target.value)} placeholder="Search request..." style={{ marginLeft: 'auto', minWidth: 220, padding: '7px 10px', borderRadius: 10, border: '0.5px solid rgba(0,0,0,0.15)', fontSize: 12 }} />
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                {requests.map(r => (
+                {filteredRequests.map(r => (
                   <div key={r.id} style={{ background: '#fff', borderRadius: 12, padding: '12px 16px', border: '0.5px solid rgba(0,0,0,0.08)', display: 'flex', alignItems: 'center', gap: 12 }}>
                     <div style={{ width: 8, height: 8, borderRadius: 4, background: r.status === 'new' ? '#185FA5' : r.status === 'done' ? '#1D9E75' : '#BA7517', flexShrink: 0 }} />
                     <div style={{ flex: 1 }}>
                       <p style={{ fontSize: 13, fontWeight: 500, color: '#1a1a1a' }}>{r.products?.name || '—'} — {r.type === 'price' ? 'ფასის მოთხოვნა' : r.type === 'demo' ? 'დემო' : r.type}</p>
-                      <p style={{ fontSize: 12, color: '#888', marginTop: 2 }}>{r.profiles?.full_name} · {r.profiles?.clinic_name} · {r.profiles?.phone}</p>
+                      <p style={{ fontSize: 12, color: '#888', marginTop: 2 }}>{r.client?.full_name} · {r.client?.clinic_name} · {r.client?.phone}</p>
                     </div>
                     <span style={{ fontSize: 11, color: '#aaa' }}>{new Date(r.created_at).toLocaleDateString('ka-GE')}</span>
                     <div style={{ display: 'flex', gap: 4 }}>
@@ -272,7 +637,7 @@ export default function AdminPage() {
                     </div>
                   </div>
                 ))}
-                {requests.length === 0 && (
+                {filteredRequests.length === 0 && (
                   <p style={{ textAlign: 'center', color: '#aaa', padding: 24 }}>მოთხოვნა არ არის</p>
                 )}
               </div>
