@@ -670,29 +670,58 @@ export default function GamePage(){
 
   if(phase==="ultrax"&&cas) return(
     <div style={{...st.page,...(shake?{animation:"shake 0.3s"}:{})}}>
-      <style>{"@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}"}</style>
-      <div style={{...st.card,maxWidth:"760px"}}>
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"8px"}}>
-          <div>
-            <div style={{fontSize:"11px",color:"rgba(0,150,255,0.7)",marginBottom:"2px"}}>UltraX ენდოაქტივატორი</div>
-            <div style={st.title}>{cas.tooth} — ფრაგმენტის ფხვიერება</div>
+      <style>{`
+        @keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+        @keyframes floatImg{0%,100%{transform:translateY(0px)}50%{transform:translateY(-8px)}}
+        @keyframes pulseGlow{0%,100%{box-shadow:0 0 12px rgba(0,150,255,0.3)}50%{box-shadow:0 0 28px rgba(0,150,255,0.7)}}
+      `}</style>
+      <div style={{display:"flex",gap:"16px",alignItems:"flex-start",maxWidth:"920px",width:"100%"}}>
+        {/* Product photo — left */}
+        <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:"8px",minWidth:"130px"}}>
+          <div style={{background:"rgba(0,10,5,0.9)",border:"1px solid rgba(0,150,255,0.3)",borderRadius:"12px",
+            padding:"12px",animation:"floatImg 3s ease-in-out infinite",
+            boxShadow:pulse?"0 0 30px rgba(0,150,255,0.5)":"0 0 12px rgba(0,150,255,0.2)"}}>
+            <img src="/ultrax.jpg" alt="UltraX" style={{width:"100px",height:"160px",objectFit:"contain",display:"block"}} />
           </div>
-          <div style={{textAlign:"right",fontSize:"11px",color:"rgba(0,200,100,0.5)"}}>
-            <div>შეცდომები: {mistakes}</div>
-            <div>დაჭერები: {ultraxClicks}</div>
+          <div style={{fontSize:"10px",color:"rgba(0,150,255,0.7)",textAlign:"center",fontWeight:"bold"}}>UltraX</div>
+          <div style={{fontSize:"9px",color:"rgba(255,255,255,0.4)",textAlign:"center"}}>Endoactivator</div>
+          <div style={{fontSize:"9px",color:"rgba(0,150,255,0.6)",textAlign:"center"}}>32 kHz</div>
+        </div>
+
+        {/* Main card */}
+        <div style={{...st.card,flex:1}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"8px"}}>
+            <div>
+              <div style={{fontSize:"11px",color:"rgba(0,150,255,0.7)",marginBottom:"2px"}}>UltraX ენდოაქტივატორი</div>
+              <div style={st.title}>{cas.tooth} — ფრაგმენტის ფხვიერება</div>
+            </div>
+            <div style={{textAlign:"right",fontSize:"11px",color:"rgba(0,200,100,0.5)"}}>
+              <div>შეცდომები: {mistakes}</div>
+              <div>დაჭერები: {ultraxClicks}</div>
+            </div>
+          </div>
+          <canvas ref={ultraxRef} width={580} height={300}
+            onClick={handleUltraxClick}
+            style={{width:"100%",borderRadius:"8px",border:`1px solid rgba(0,150,255,${pulse?0.8:0.2})`,
+              display:"block",marginBottom:"16px",cursor:"crosshair",
+              boxShadow:pulse?"0 0 20px rgba(0,150,255,0.4)":"none"}} />
+          <div style={{display:"flex",gap:"12px",alignItems:"center"}}>
+            <button style={ultraxPct>=70?st.btn:{...st.btn,opacity:0.5}}
+              onClick={()=>{if(ultraxPct>=70){beep(660,0.15);setPhase("retrieve")}}}>
+              {ultraxPct>=70?"► ფაილით ამოღება":"⟳ გააგრძელეთ ვიბრაცია ("+Math.round(ultraxPct)+"%)"}
+            </button>
+            {ultraxPct>=70&&<span style={{color:"#00cc88",fontSize:"11px"}}>✓ მზადაა ამოღებისთვის</span>}
           </div>
         </div>
-        <canvas ref={ultraxRef} width={680} height={340}
-          onClick={handleUltraxClick}
-          style={{width:"100%",borderRadius:"8px",border:`1px solid rgba(0,150,255,${pulse?0.8:0.2})`,
-            display:"block",marginBottom:"16px",cursor:"crosshair",
-            boxShadow:pulse?"0 0 20px rgba(0,150,255,0.4)":"none"}} />
-        <div style={{display:"flex",gap:"12px",alignItems:"center"}}>
-          <button style={ultraxPct>=70?st.btn:{...st.btn,opacity:0.5}}
-            onClick={()=>{if(ultraxPct>=70){beep(660,0.15);setPhase("retrieve")}}}>
-            {ultraxPct>=70?"► ფაილით ამოღება":"⟳ გააგრძელეთ ვიბრაცია ("+Math.round(ultraxPct)+"%)"}
-          </button>
-          {ultraxPct>=70&&<span style={{color:"#00cc88",fontSize:"11px"}}>✓ მზადაა ამოღებისთვის</span>}
+
+        {/* Eflex Blue photo — right */}
+        <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:"8px",minWidth:"80px"}}>
+          <div style={{background:"rgba(0,10,5,0.9)",border:"1px solid rgba(100,180,255,0.3)",borderRadius:"12px",
+            padding:"12px",animation:"floatImg 3.5s ease-in-out infinite 0.5s"}}>
+            <img src="/eflexblue.png" alt="Eflex Blue" style={{width:"60px",height:"160px",objectFit:"contain",display:"block"}} />
+          </div>
+          <div style={{fontSize:"10px",color:"rgba(100,180,255,0.7)",textAlign:"center",fontWeight:"bold"}}>Eflex Blue</div>
+          <div style={{fontSize:"9px",color:"rgba(255,255,255,0.4)",textAlign:"center"}}>NiTi File</div>
         </div>
       </div>
     </div>
@@ -700,32 +729,70 @@ export default function GamePage(){
 
   if(phase==="retrieve"&&cas) return(
     <div style={st.page}>
-      <div style={{...st.card,maxWidth:"760px"}}>
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"8px"}}>
-          <div>
-            <div style={{fontSize:"11px",color:"rgba(100,180,255,0.7)",marginBottom:"2px"}}>Eflex Blue + E-Xtreme</div>
-            <div style={st.title}>{cas.tooth} — ფრაგმენტის ამოღება</div>
+      <style>{`
+        @keyframes floatImg{0%,100%{transform:translateY(0px)}50%{transform:translateY(-8px)}}
+        @keyframes spinFile{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+      `}</style>
+      <div style={{display:"flex",gap:"16px",alignItems:"flex-start",maxWidth:"960px",width:"100%"}}>
+
+        {/* Eflex Blue — left */}
+        <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:"8px",minWidth:"80px"}}>
+          <div style={{background:"rgba(0,10,5,0.9)",border:"1px solid rgba(100,180,255,0.3)",borderRadius:"12px",
+            padding:"12px",animation:"floatImg 2.5s ease-in-out infinite",
+            boxShadow:"0 0 16px rgba(30,136,229,0.25)"}}>
+            <img src="/eflexblue.png" alt="Eflex Blue"
+              style={{width:"55px",height:"170px",objectFit:"contain",display:"block",
+                filter:retrievePct>50?"drop-shadow(0 0 8px rgba(30,136,229,0.8))":"none",
+                transition:"filter 0.3s"}} />
           </div>
-          <div style={{textAlign:"right",fontSize:"11px"}}>
-            <div style={{color:"rgba(0,200,100,0.6)"}}>UltraX: {Math.round(ultraxPct)}%</div>
-            <div style={{color:"rgba(255,200,100,0.6)"}}>შეცდ: {mistakes}</div>
+          <div style={{fontSize:"10px",color:"rgba(100,180,255,0.8)",fontWeight:"bold"}}>Eflex Blue</div>
+          <div style={{fontSize:"9px",color:"rgba(255,255,255,0.4)"}}>NiTi File</div>
+          <div style={{fontSize:"9px",color:"rgba(100,180,255,0.5)",textAlign:"center"}}>
+            {retrievePct<10?"ready":retrievePct<50?"▼ descending":"▲ retrieving"}
           </div>
         </div>
-        <canvas ref={retrieveRef} width={680} height={340}
-          style={{width:"100%",borderRadius:"8px",border:"1px solid rgba(100,180,255,0.2)",
-            display:"block",marginBottom:"16px"}} />
-        <div style={{display:"flex",gap:"12px",alignItems:"center"}}>
-          <button style={retrievePct>=100?{...st.btn,background:"linear-gradient(135deg,#00c853,#00695c)"}:st.btnBlue}
-            onClick={handleRetrieveClick}>
-            {retrievePct>=100?"✓ ფრაგმენტი ამოღებულია!":
-             retrievePct>=50?"↑ ამოაღეთ ("+Math.round(retrievePct)+"%)":
-             "↓ ჩაღრმავება ("+Math.round(retrievePct*2)+"%)"}
-          </button>
-          <span style={{fontSize:"11px",color:"rgba(0,200,100,0.5)"}}>
-            {retrievePct<45?"ფრთხილად — მიხვდით ფრაგმენტს":
-             retrievePct<55?"✓ ფრაგმენტს ეხება":
-             "ნელა ამოიღეთ"}
-          </span>
+
+        {/* Main canvas */}
+        <div style={{...st.card,flex:1}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"8px"}}>
+            <div>
+              <div style={{fontSize:"11px",color:"rgba(100,180,255,0.7)",marginBottom:"2px"}}>Eflex Blue + E-Xtreme</div>
+              <div style={st.title}>{cas.tooth} — ფრაგმენტის ამოღება</div>
+            </div>
+            <div style={{textAlign:"right",fontSize:"11px"}}>
+              <div style={{color:"rgba(0,200,100,0.6)"}}>UltraX: {Math.round(ultraxPct)}%</div>
+              <div style={{color:"rgba(255,200,100,0.6)"}}>შეცდ: {mistakes}</div>
+            </div>
+          </div>
+          <canvas ref={retrieveRef} width={540} height={300}
+            style={{width:"100%",borderRadius:"8px",border:"1px solid rgba(100,180,255,0.2)",
+              display:"block",marginBottom:"16px"}} />
+          <div style={{display:"flex",gap:"12px",alignItems:"center"}}>
+            <button style={retrievePct>=100?{...st.btn,background:"linear-gradient(135deg,#00c853,#00695c)"}:st.btnBlue}
+              onClick={handleRetrieveClick}>
+              {retrievePct>=100?"✓ ფრაგმენტი ამოღებულია!":
+               retrievePct>=50?"↑ ამოაღეთ ("+Math.round(retrievePct)+"%)":
+               "↓ ჩაღრმავება ("+Math.round(retrievePct*2)+"%)"}
+            </button>
+            <span style={{fontSize:"11px",color:"rgba(0,200,100,0.5)"}}>
+              {retrievePct<45?"ფრთხილად — მიხვდით ფრაგმენტს":
+               retrievePct<55?"✓ ფრაგმენტს ეხება":
+               "ნელა ამოიღეთ"}
+            </span>
+          </div>
+        </div>
+
+        {/* E-Xtreme — right */}
+        <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:"8px",minWidth:"130px"}}>
+          <div style={{background:"rgba(0,10,5,0.9)",border:"1px solid rgba(200,200,200,0.2)",borderRadius:"12px",
+            padding:"12px",animation:"floatImg 3s ease-in-out infinite 0.8s",
+            boxShadow:"0 0 16px rgba(255,255,255,0.06)"}}>
+            <img src="/extreme.png" alt="E-Xtreme"
+              style={{width:"100px",height:"200px",objectFit:"contain",display:"block"}} />
+          </div>
+          <div style={{fontSize:"10px",color:"rgba(220,220,220,0.8)",fontWeight:"bold"}}>E-Xtreme</div>
+          <div style={{fontSize:"9px",color:"rgba(255,255,255,0.4)"}}>Endomotor</div>
+          <div style={{fontSize:"9px",color:"rgba(0,200,100,0.5)"}}>400 RPM</div>
         </div>
       </div>
     </div>
