@@ -208,11 +208,23 @@ async function saveWaybillHeader(
   if (fault) throw new Error(`Rs.ge (save_invoice_b_n): ${fault}`)
   const resultVal = xmlVal(res.body, 'save_invoice_b_nResult')
   const invois_id = xmlVal(res.body, 'invois_id')
-  // Result may be boolean string OR integer invoice ID depending on service version
   const resultInt = parseInt(resultVal || '0')
-  if (!resultVal || resultVal === 'false' || resultInt < 0)
-    throw new Error(`Rs.ge: ზედნადების სათაური ვერ შეინახა (result=${resultVal}, invois_id=${invois_id}, body=${res.body.slice(0,800)})`)
-  // If result is the invois_id itself (integer > 0), use it; otherwise use the invois_id element
+  if (!resultVal || resultVal === 'false' || resultInt < 0) {
+    const debugParams = JSON.stringify({
+      seller_un_id, buyer_un_id,
+      ssd_n: inv.number,
+      op_date: opDate,
+      tr_st_date: docDate,
+      sender_addr: meta.senderAddress,
+      recipient_addr: meta.recipientAddress,
+      transport_type: meta.transportType,
+      transport_mark: inv.transportMark,
+      driver_info: inv.driverInfo,
+      driver_no: inv.driverNo,
+      invoiceType,
+    })
+    throw new Error(`Rs.ge: ზედნადების სათაური ვერ შეინახა\nPARAMS: ${debugParams}`)
+  }
   const finalId = resultInt > 0 ? resultInt : parseInt(invois_id || '0')
   if (finalId <= 0)
     throw new Error(`Rs.ge: ზედნადების ID ვერ მიიღო (result=${resultVal}, invois_id=${invois_id})`)
