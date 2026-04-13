@@ -2743,6 +2743,12 @@ async function confirmRsUpload() {
   if(!senderTin){ alert('კომპანიის ს/კ სავალდებულოა'); return; }
   if(!pendingRsInvoice){ alert('ინვოისი არ არის შერჩეული'); return; }
   const isWaybill = document.getElementById('rs-type-waybill')?.checked;
+  if(isWaybill) {
+    if(!driverInfo){ alert('მძღოლის სახელი სავალდებულოა ზედნადებისთვის'); return; }
+    if(!transportMark){ alert('მანქანის ნომერი სავალდებულოა ზედნადებისთვის'); return; }
+    if(!senderAddress){ alert('გამგზავნის მისამართი სავალდებულოა ზედნადებისთვის'); return; }
+    if(!recipientAddress){ alert('მიმღების მისამართი სავალდებულოა ზედნადებისთვის'); return; }
+  }
 
   await persistRsSettings({
     rsUser: username,

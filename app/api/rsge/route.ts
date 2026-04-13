@@ -371,6 +371,11 @@ export async function POST(request: NextRequest) {
       const sui = await specLogin(user_id, username, password)
 
       const meta = (invoice.waybillMeta as Record<string, unknown>) || {}
+
+      if (!meta.senderAddress)
+        return NextResponse.json({ error: 'გამგზავნის მისამართი სავალდებულოა ზედნადებისთვის' }, { status: 400 })
+      if (!meta.recipientAddress)
+        return NextResponse.json({ error: 'მიმღების მისამართი სავალდებულოა ზედნადებისთვის' }, { status: 400 })
       // invoiceType 1 = სასაქონლო ზედნადები
       const invois_id = await saveWaybillHeader(user_id, sui, seller_un_id, buyer_un_id, invoice, meta, username, password, 1)
 
