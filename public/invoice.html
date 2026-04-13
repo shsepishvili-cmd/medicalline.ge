@@ -1671,6 +1671,7 @@ function renderLines() {
   const c=document.getElementById('f-currency').value;
   const taxedProducts = db.products.filter(p=>getVatIncludedByCode(p.code, p.vatIncluded));
   const untaxedProducts = db.products.filter(p=>!getVatIncludedByCode(p.code, p.vatIncluded));
+  const datalist = `<datalist id="line-product-options">${db.products.map(p=>`<option value="${escH(productOptionLabel(p))}">`).join('')}</datalist>`;
   body.innerHTML=currentLines.map((ln,i)=>`
     <tr>
       <td class="col-no" style="text-align:center;color:var(--text-muted);font-size:12px;padding-top:10px">${i+1}</td>
