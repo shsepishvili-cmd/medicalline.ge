@@ -149,10 +149,26 @@ async function sendInvoice(user_id: number, invois_id: number, su: string, sp: s
   if (fault) throw new Error(`Rs.ge (send): ${fault}`)
 }
 
+// =========== SpecInvoicesService auth ===========
+
+async function specLogin(user_id: number, su: string, sp: string): Promise<number> {
+  const res = await soapCall('chek_in', `
+    <su>${escXml(su)}</su>
+    <sp>${escXml(sp)}</sp>
+    <user_id>${user_id}</user_id>
+    <log_text></log_text>`, SPEC_RS_URL)
+  const fault = xmlVal(res.body, 'faultstring')
+  if (fault) throw new Error(`Rs.ge (chek_in): ${fault}`)
+  const ok  = xmlVal(res.body, 'chek_inResult')
+  const sui = xmlVal(res.body, 'sui')
+  if (!ok || ok === 'false') throw new Error('Rs.ge: SpecInvoicesService authentication failed (chek_in returned false)')
+  return parseInt(sui || '0')
+}
+
 // =========== ზედნადები (SpecInvoicesService) ===========
 
 async function saveWaybillHeader(
-  user_id: number, seller_un_id: number, buyer_un_id: number,
+  user_id: number, sui: number, seller_un_id: number, buyer_un_id: number,
   inv: Record<string, unknown>, meta: Record<string, unknown>,
   su: string, sp: string,
   invoiceType: number
@@ -183,7 +199,7 @@ async function saveWaybillHeader(
     <p_DRIVER_INFO>${escXml(inv.driverInfo)}</p_DRIVER_INFO>
     <p_CARRIER_INFO></p_CARRIER_INFO>
     <p_CARRIE_S_NO></p_CARRIE_S_NO>
-    <p_USER_ID>${user_id}</p_USER_ID>
+    <p_USER_ID>${sui}</p_USER_ID>
     <p_S_USER_ID>0</p_S_USER_ID>
     <p_B_S_USER_ID>0</p_B_S_USER_ID>
     <p_SSD_DATE>${docDate}</p_SSD_DATE>
@@ -199,7 +215,7 @@ async function saveWaybillHeader(
     <p_SSAF_ALT_STATUS>0</p_SSAF_ALT_STATUS>
     <p_SSD_ALT_STATUS>0</p_SSD_ALT_STATUS>
     <p_driver_is_geo>${Number(inv.driverIsGeo ?? 1)}</p_driver_is_geo>
-    <user_id>${user_id}</user_id>
+    <user_id>${sui}</user_id>
     <invoiceType>${invoiceType}</invoiceType>
     <su>${escXml(su)}</su>
     <sp>${escXml(sp)}</sp>`, SPEC_RS_URL)
@@ -211,7 +227,7 @@ async function saveWaybillHeader(
   const resultInt = parseInt(resultVal || '0')
   if (!resultVal || resultVal === 'false' || resultInt < 0) {
     const debugParams = JSON.stringify({
-      seller_un_id, buyer_un_id,
+      user_id, sui, seller_un_id, buyer_un_id,
       ssd_n: inv.number,
       op_date: opDate,
       tr_st_date: docDate,
@@ -232,7 +248,7 @@ async function saveWaybillHeader(
 }
 
 async function saveWaybillDesc(
-  user_id: number, invois_id: number,
+  sui: number, invois_id: number,
   item: Record<string, unknown>, vatRate: number,
   su: string, sp: string
 ) {
@@ -241,7 +257,7 @@ async function saveWaybillDesc(
   const drgAmt = qty * price * vatRate / (100 + vatRate)
 
   const res = await soapCall('save_invoice_desc_n', `
-    <user_id>${user_id}</user_id>
+    <user_id>${sui}</user_id>
     <id>0</id>
     <su>${escXml(su)}</su>
     <sp>${escXml(sp)}</sp>
@@ -266,9 +282,9 @@ async function saveWaybillDesc(
   if (!ok || ok === 'false') throw new Error(`Rs.ge: პროდუქტი "${item.name}" ვერ შეინახა ზედნადებში`)
 }
 
-async function sendWaybill(user_id: number, invois_id: number, su: string, sp: string) {
+async function sendWaybill(sui: number, invois_id: number, su: string, sp: string) {
   const res = await soapCall('change_invoice_status_n', `
-    <user_id>${user_id}</user_id>
+    <user_id>${sui}</user_id>
     <inv_id>${invois_id}</inv_id>
     <status>1</status>
     <su>${escXml(su)}</su>
@@ -352,9 +368,11 @@ export async function POST(request: NextRequest) {
         catch { /* buyer TIN not found */ }
       }
 
+      const sui = await specLogin(user_id, username, password)
+
       const meta = (invoice.waybillMeta as Record<string, unknown>) || {}
       // invoiceType 1 = სასაქონლო ზედნადები
-      const invois_id = await saveWaybillHeader(user_id, seller_un_id, buyer_un_id, invoice, meta, username, password, 1)
+      const invois_id = await saveWaybillHeader(user_id, sui, seller_un_id, buyer_un_id, invoice, meta, username, password, 1)
 
       const vatRate = parseFloat(String(invoice.vatRate)) || 18
       const items   = (Array.isArray(invoice.items) ? invoice.items : [])
@@ -364,9 +382,9 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'ინვოისს პროდუქტები არ აქვს' }, { status: 400 })
 
       for (const item of items)
-        await saveWaybillDesc(user_id, invois_id, item, vatRate, username, password)
+        await saveWaybillDesc(sui, invois_id, item, vatRate, username, password)
 
-      await sendWaybill(user_id, invois_id, username, password)
+      await sendWaybill(sui, invois_id, username, password)
 
       return NextResponse.json({
         ok: true,
