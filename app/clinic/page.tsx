@@ -3,12 +3,23 @@ import { useEffect, useState, useCallback } from 'react'
 import { isSupabaseReady, supabase, supabaseConfigError } from '../lib/supabase'
 import { findCatalogProductByAny, findDatabaseProductMatch, inferBrand, localCatalogProducts, mapCategoryToSlug, type LocalCatalogAiFeature, type LocalCatalogProduct, specsArrayToRecord } from '../lib/catalogSync'
 
-type Screen = 'login' | 'register' | 'catalog' | 'product' | 'service' | 'academy' | 'profile'
+type Screen = 'login' | 'register' | 'catalog' | 'product' | 'service' | 'academy' | 'profile' | 'proposal'
 type User = { id: string; full_name: string; clinic_name: string; city: string; phone: string; role: string; status: string }
 type Product = { id: string; dbId?: string | null; slug: string; name: string; category_slug: string; brand: string; short_desc: string; specs: Record<string,string>; images?: string[]; prices: { price_gel: number; price_usd: number; installment_monthly: number; installment_months: number; note: string }[] }
 type Request = { id: string; type: string; status: string; created_at: string; products: { name: string } }
 type AcademyItem = { id: string; type: string; title: string; description: string; duration_sec: number; webinar_date: string }
-type ServiceTicket = { id: string; serial_number: string | null; problem_desc: string; status: string; created_at: string; visit_date: string | null; resolution: string | null; products?: { name: string } | null }
+type ServiceTicket = { id: string; serial_number: string | null; problem_desc: string; status: string; created_at: string; visit_date: string | null; resolution: string | null; attachments?: string[] | null; products?: { name: string } | null }
+type ProposalForm = {
+  recipientName: string
+  clinicName: string
+  phone: string
+  email: string
+  taxId: string
+  address: string
+  validDays: number
+  paymentTerms: string
+  note: string
+}
 type CatalogAiFeature = LocalCatalogAiFeature
 type CatalogProduct = LocalCatalogProduct
 
@@ -68,14 +79,74 @@ const CATS = [
 ]
 const TYPE_LABELS: Record<string,string> = { price: 'ფასი', demo: 'დემო', service: 'სერვისი', info: 'ინფო' }
 const STATUS_LABELS: Record<string,string> = { new: 'ახალი', inprogress: 'მიმდინარე', done: 'დასრულდა', cancelled: 'გაუქმდა' }
+const VAT_RATE = 0.18
+const COMPANY_BILLING = {
+  name: 'Medical Line Georgia',
+  legalName: 'შპს მედიქალ ლაინ ჯორჯია',
+  taxId: '417893569',
+  address: 'თბილისი, დ. ჯაბიძის #8',
+  phone: '514 011 116',
+  bankName: 'საქართველოს ბანკი',
+  iban: 'GE50BG0000000103262327GEL',
+}
+
+function formatMoney(value: number) {
+  return `₾${value.toLocaleString('ka-GE', { maximumFractionDigits: 2 })}`
+}
 
 export default function ClinicApp() {
+  const [isDesktop, setIsDesktop] = useState(false)
+  useEffect(() => {
+    const check = () => setIsDesktop(window.innerWidth >= 768)
+    check()
+    window.addEventListener('resize', check)
+    return () => window.removeEventListener('resize', check)
+  }, [])
   const [screen, setScreen] = useState<Screen>('login')
   const [user, setUser] = useState<User | null>(null)
   const [products, setProducts] = useState<Product[]>([])
   const [filteredProds, setFilteredProds] = useState<Product[]>([])
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
+  const [proposalItems, setProposalItems] = useState<Product[]>([])
+  const [proposalQuantities, setProposalQuantities] = useState<Record<string, number>>({})
+  const [proposalDiscountPct, setProposalDiscountPct] = useState(0)
+  const [proposalVatMode, setProposalVatMode] = useState<'included' | 'excluded'>('included')
+  const [proposalInvoiceNo] = useState(() => {
+    const now = new Date()
+    return `ML-${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}-${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}`
+  })
+  const [proposalForm, setProposalForm] = useState<ProposalForm>({
+    recipientName: '',
+    clinicName: '',
+    phone: '',
+    email: '',
+    taxId: '',
+    address: '',
+    validDays: 14,
+    paymentTerms: '50% ავანსი, დარჩენილი თანხა მიწოდებამდე',
+    note: '',
+  })
+
+  const toggleProposalItem = (p: Product) => {
+    const exists = proposalItems.some(item => item.id === p.id)
+
+    setProposalItems(prev => {
+      if (exists) {
+        return prev.filter(item => item.id !== p.id)
+      }
+      return [...prev, p]
+    })
+    setProposalQuantities(prev => {
+      if (exists) {
+        const next = { ...prev }
+        delete next[p.id]
+        return next
+      }
+      return { ...prev, [p.id]: prev[p.id] || 1 }
+    })
+  }
   const [installmentMonths, setInstallmentMonths] = useState(12)
+  const [generatingPdf, setGeneratingPdf] = useState(false)
   const [requests, setRequests] = useState<Request[]>([])
   const [serviceTickets, setServiceTickets] = useState<ServiceTicket[]>([])
   const [academy, setAcademy] = useState<AcademyItem[]>([])
@@ -99,6 +170,8 @@ export default function ClinicApp() {
   const [ticketSerial, setTicketSerial] = useState('')
   const [ticketProductId, setTicketProductId] = useState('')
   const [ticketVisitDate, setTicketVisitDate] = useState('')
+  const [ticketFiles, setTicketFiles] = useState<File[]>([])
+  const [uploadProgress, setUploadProgress] = useState(0)
   const [showTicket, setShowTicket] = useState(false)
 
   const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(null), 3000) }
@@ -185,6 +258,16 @@ export default function ClinicApp() {
     }
   }, [user, loading, showTicket, ticketDesc, ticketSerial, ticketProductId, ticketVisitDate])
 
+  useEffect(() => {
+    if (!user) return
+    setProposalForm(prev => ({
+      ...prev,
+      recipientName: prev.recipientName || user.full_name,
+      clinicName: prev.clinicName || user.clinic_name,
+      phone: prev.phone || user.phone,
+    }))
+  }, [user])
+
   async function loadProfile(uid: string) {
     try {
       const { data, error } = await supabase.from('profiles').select('*').eq('id', uid).single()
@@ -227,7 +310,12 @@ export default function ClinicApp() {
     const dbOnlyProducts = dbProducts
       .filter((product: Product) => !matchedIds.has(product.id))
       .map((product: Product) => ({ ...product, dbId: product.id }))
-    setProducts([...mergedCatalogProducts, ...dbOnlyProducts])
+    const all = [...mergedCatalogProducts, ...dbOnlyProducts]
+    setProducts(all)
+    setSelectedProduct(prev => {
+      if (!prev) return prev
+      return all.find(p => p.id === prev.id || p.slug === prev.slug) || prev
+    })
   }
 
   async function loadRequests(uid: string) {
@@ -243,7 +331,7 @@ export default function ClinicApp() {
   async function loadServiceTickets(uid: string) {
     const { data } = await supabase
       .from('service_tickets')
-      .select('id, serial_number, problem_desc, status, created_at, visit_date, resolution, products(name)')
+      .select('id, serial_number, problem_desc, status, created_at, visit_date, resolution, attachments, products(name)')
       .eq('user_id', uid)
       .order('created_at', { ascending: false })
 
@@ -347,15 +435,36 @@ export default function ClinicApp() {
   async function sendTicket() {
     if (!user || !ticketDesc) return
     setLoading(true)
+
+    // upload attachments first
+    const uploadedUrls: string[] = []
+    for (let i = 0; i < ticketFiles.length; i++) {
+      const file = ticketFiles[i]
+      const ext = file.name.split('.').pop()
+      const path = `${user.id}/${Date.now()}-${i}.${ext}`
+      setUploadProgress(Math.round(((i) / ticketFiles.length) * 80))
+      const { data: up } = await supabase.storage.from('service-attachments').upload(path, file, { upsert: true })
+      if (up) {
+        const { data: pub } = supabase.storage.from('service-attachments').getPublicUrl(up.path)
+        uploadedUrls.push(pub.publicUrl)
+      }
+    }
+    setUploadProgress(90)
+
     const { error } = await supabase.from('service_tickets').insert({
       user_id: user.id,
       product_id: ticketProductId || null,
       problem_desc: ticketDesc,
       serial_number: ticketSerial || null,
       visit_date: ticketVisitDate || null,
+      attachments: uploadedUrls.length ? uploadedUrls : null,
     })
     setLoading(false)
-    if (!error) { showToast('✓ სერვის ტიკეტი გაიგზავნა!'); setTicketDesc(''); setTicketSerial(''); setShowTicket(false) }
+    setUploadProgress(0)
+    if (!error) {
+      showToast('✓ სერვის ტიკეტი გაიგზავნა!')
+      setTicketDesc(''); setTicketSerial(''); setTicketFiles([]); setShowTicket(false)
+    }
   }
 
   const ini = user ? user.full_name.split(' ').map((w:string) => w[0]).join('').substring(0,2).toUpperCase() : ''
@@ -365,15 +474,126 @@ export default function ClinicApp() {
   const ticketStatusLabel: Record<string, string> = { new: 'ახალი', assigned: 'დაგეგმილი', inprogress: 'მიმდინარე', done: 'დასრულებული' }
   const userStatusTone = user?.status === 'active' ? '#E1F5EE' : user?.status === 'blocked' ? '#FCEBEB' : '#FAEEDA'
   const userStatusText = user?.status === 'active' ? '#085041' : user?.status === 'blocked' ? '#791F1F' : '#633806'
+  const proposalRows = proposalItems.map(product => {
+    const quantity = Math.max(1, proposalQuantities[product.id] || 1)
+    const unitPrice = product.prices[0]?.price_gel || 0
+    const lineTotal = quantity * unitPrice
+
+    return {
+      product,
+      quantity,
+      unitPrice,
+      lineTotal,
+    }
+  })
+  const proposalSubtotal = proposalRows.reduce((acc, row) => acc + row.lineTotal, 0)
+  const proposalDiscountValue = proposalSubtotal * (Math.max(0, proposalDiscountPct) / 100)
+  const proposalNetTotal = Math.max(0, proposalSubtotal - proposalDiscountValue)
+  const proposalVatValue = proposalVatMode === 'included'
+    ? proposalNetTotal - (proposalNetTotal / (1 + VAT_RATE))
+    : proposalNetTotal * VAT_RATE
+  const proposalGrandTotal = proposalVatMode === 'included'
+    ? proposalNetTotal
+    : proposalNetTotal + proposalVatValue
+
+  function openInvoicePdf() {
+    window.print()
+  }
+
+  async function generateInvoicePdfBlob(): Promise<Blob | null> {
+    const el = document.getElementById('proposal-print-area')
+    if (!el) return null
+    setGeneratingPdf(true)
+    try {
+      // temporarily show print-footer for full capture
+      const footer = el.querySelector('.print-footer') as HTMLElement | null
+      if (footer) footer.style.display = 'block'
+      const noPrintEls = el.querySelectorAll('.no-print') as NodeListOf<HTMLElement>
+      noPrintEls.forEach(e => { e.style.display = 'none' })
+
+      const { default: html2canvas } = await import('html2canvas')
+      const canvas = await html2canvas(el, { scale: 2, useCORS: true, logging: false, backgroundColor: '#ffffff' })
+
+      if (footer) footer.style.display = ''
+      noPrintEls.forEach(e => { e.style.display = '' })
+
+      const { jsPDF } = await import('jspdf')
+      const pdf = new jsPDF('p', 'mm', 'a4')
+      const pageW = 210
+      const pageH = 297
+      const imgW = pageW
+      const imgH = (canvas.height * pageW) / canvas.width
+      let y = 0
+      while (y < imgH) {
+        const srcY = (y * canvas.width) / pageW
+        const srcH = Math.min((pageH * canvas.width) / pageW, canvas.height - srcY)
+        const pageCanvas = document.createElement('canvas')
+        pageCanvas.width = canvas.width
+        pageCanvas.height = srcH
+        const ctx = pageCanvas.getContext('2d')!
+        ctx.drawImage(canvas, 0, srcY, canvas.width, srcH, 0, 0, canvas.width, srcH)
+        if (y > 0) pdf.addPage()
+        pdf.addImage(pageCanvas.toDataURL('image/png'), 'PNG', 0, 0, imgW, (srcH * pageW) / canvas.width)
+        y += pageH
+      }
+      return pdf.output('blob')
+    } finally {
+      setGeneratingPdf(false)
+    }
+  }
+
+  async function shareInvoiceWA() {
+    const blob = await generateInvoicePdfBlob()
+    if (!blob) return
+    const filename = `invoice-${proposalInvoiceNo}.pdf`
+    const file = new File([blob], filename, { type: 'application/pdf' })
+    if (typeof navigator !== 'undefined' && navigator.canShare?.({ files: [file] })) {
+      try {
+        await navigator.share({ files: [file], title: `ინვოისი ${proposalInvoiceNo}` })
+        return
+      } catch { /* cancelled */ }
+    }
+    // fallback: download + open WA
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a'); a.href = url; a.download = filename; a.click()
+    URL.revokeObjectURL(url)
+    const waNum = proposalForm.phone ? proposalForm.phone.replace(/\D/g, '') : ''
+    const waText = encodeURIComponent(`📄 ინვოისი ${proposalInvoiceNo} — Medical Line Georgia\nჯამი: ${formatMoney(proposalGrandTotal)}`)
+    setTimeout(() => window.open(waNum ? `https://wa.me/995${waNum.replace(/^995/, '')}?text=${waText}` : `https://wa.me/?text=${waText}`, '_blank'), 400)
+  }
+
+  async function shareInvoiceEmail() {
+    const blob = await generateInvoicePdfBlob()
+    if (!blob) return
+    const filename = `invoice-${proposalInvoiceNo}.pdf`
+    const file = new File([blob], filename, { type: 'application/pdf' })
+    if (typeof navigator !== 'undefined' && navigator.canShare?.({ files: [file] })) {
+      try {
+        await navigator.share({ files: [file], title: `ინვოისი ${proposalInvoiceNo}`, text: `Medical Line Georgia` })
+        return
+      } catch { /* cancelled */ }
+    }
+    // fallback: download + open mailto
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a'); a.href = url; a.download = filename; a.click()
+    URL.revokeObjectURL(url)
+    const subject = encodeURIComponent(`ინვოისი ${proposalInvoiceNo} — Medical Line Georgia`)
+    const body = encodeURIComponent(`გამარჯობა,\n\nთანდართულ ფაილში იხილეთ ინვოისი.\n\nMedical Line Georgia · 514 011 116`)
+    setTimeout(() => { window.location.href = `mailto:${proposalForm.email || ''}?subject=${subject}&body=${body}` }, 400)
+  }
 
   // ─── STYLES ───────────────────────────────────────────────
   const s: Record<string, React.CSSProperties> = {
-    wrap: { fontFamily: "'Georgia', serif", background: '#f7f6f2', minHeight: '100vh' },
+    wrap: { fontFamily: "'Georgia', serif", background: '#f7f6f2', minHeight: '100vh', display: isDesktop ? 'flex' : 'block' },
+    // desktop sidebar
+    sidebar: { width: 230, background: G, minHeight: '100vh', display: 'flex', flexDirection: 'column' as const, flexShrink: 0, position: 'sticky' as const, top: 0, height: '100vh', overflowY: 'auto' as const },
+    sideNavBtn: { display: 'flex', alignItems: 'center', gap: 12, padding: '13px 24px', cursor: 'pointer', color: 'rgba(255,255,255,0.8)', fontSize: 15, border: 'none', background: 'transparent', width: '100%', textAlign: 'left' as const, fontFamily: 'Georgia, serif', transition: 'background 0.15s' },
+    sideNavBtnOn: { background: 'rgba(255,255,255,0.15)', color: '#fff', fontWeight: 700, borderLeft: '3px solid #9FE1CB', paddingLeft: 21 },
     header: { background: G, padding: '14px 18px 12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky' as const, top: 0, zIndex: 100 },
     headerTitle: { color: '#fff', fontSize: 15, fontWeight: 600, letterSpacing: 0.3 },
     headerSub: { color: '#9FE1CB', fontSize: 11, marginTop: 1 },
-    content: { paddingBottom: 80 },
-    // bottom nav
+    content: { paddingBottom: isDesktop ? 24 : 80 },
+    // bottom nav (mobile only)
     bnav: { position: 'fixed' as const, bottom: 0, left: 0, right: 0, background: '#fff', borderTop: '0.5px solid rgba(0,0,0,0.1)', display: 'flex', zIndex: 100 },
     bn: { flex: 1, padding: '10px 4px 12px', textAlign: 'center' as const, cursor: 'pointer', border: 'none', background: 'transparent', display: 'flex', flexDirection: 'column' as const, alignItems: 'center', gap: 3 },
     bnIcon: { fontSize: 18 },
@@ -394,21 +614,21 @@ export default function ClinicApp() {
     btn: { width: '100%', background: G, color: '#fff', border: 'none', borderRadius: 12, padding: 12, fontSize: 14, cursor: 'pointer', fontWeight: 600, fontFamily: 'Georgia, serif', marginTop: 4 },
     errMsg: { fontSize: 12, color: '#E24B4A', textAlign: 'center' as const, marginTop: 8 },
     // catalog
-    searchRow: { padding: '10px 14px', display: 'flex', gap: 8, background: '#fff', borderBottom: '0.5px solid rgba(0,0,0,0.07)' },
-    searchInput: { flex: 1, padding: '8px 12px', border: '0.5px solid rgba(0,0,0,0.15)', borderRadius: 10, fontSize: 13, background: '#fafaf8', fontFamily: 'Georgia, serif' },
-    catRow: { display: 'flex', gap: 6, padding: '10px 14px', overflowX: 'auto' as const, background: '#fff', borderBottom: '0.5px solid rgba(0,0,0,0.07)' },
-    catPill: { whiteSpace: 'nowrap' as const, padding: '5px 12px', borderRadius: 20, border: '0.5px solid rgba(0,0,0,0.15)', background: '#fff', fontSize: 12, cursor: 'pointer', color: '#555', fontFamily: 'Georgia, serif' },
+    searchRow: { padding: isDesktop ? '14px 28px' : '10px 14px', display: 'flex', gap: 8, background: '#fff', borderBottom: '0.5px solid rgba(0,0,0,0.07)' },
+    searchInput: { flex: 1, padding: isDesktop ? '10px 16px' : '8px 12px', border: '0.5px solid rgba(0,0,0,0.15)', borderRadius: 10, fontSize: isDesktop ? 15 : 13, background: '#fafaf8', fontFamily: 'Georgia, serif' },
+    catRow: { display: 'flex', gap: isDesktop ? 8 : 6, padding: isDesktop ? '12px 28px' : '10px 14px', overflowX: 'auto' as const, background: '#fff', borderBottom: '0.5px solid rgba(0,0,0,0.07)' },
+    catPill: { whiteSpace: 'nowrap' as const, padding: isDesktop ? '7px 18px' : '5px 12px', borderRadius: 20, border: '0.5px solid rgba(0,0,0,0.15)', background: '#fff', fontSize: isDesktop ? 14 : 12, cursor: 'pointer', color: '#555', fontFamily: 'Georgia, serif' },
     catPillOn: { background: GL, borderColor: '#5DCAA5', color: G, fontWeight: 600 },
-    prodGrid: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, padding: 14 },
-    prodCard: { background: '#fff', borderRadius: 14, border: '0.5px solid rgba(0,0,0,0.08)', overflow: 'hidden', cursor: 'pointer' },
-    prodImg: { background: '#f5f5f0', height: 90, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 36 },
-    prodBody: { padding: '10px' },
-    prodCat: { fontSize: 10, color: G, fontWeight: 600, marginBottom: 2 },
-    prodName: { fontSize: 13, fontWeight: 600, color: '#1a1a1a', lineHeight: 1.3 },
-    prodPrice: { fontSize: 13, fontWeight: 600, color: G, marginTop: 5 },
-    prodPriceLock: { fontSize: 11, color: '#bbb', fontStyle: 'italic', marginTop: 5 },
-    prodInst: { fontSize: 10, color: '#999', marginTop: 1 },
-    prodBtn: { marginTop: 8, background: G, color: '#fff', border: 'none', borderRadius: 8, padding: '6px 8px', width: '100%', fontSize: 11, cursor: 'pointer', fontFamily: 'Georgia, serif', fontWeight: 600 },
+    prodGrid: { display: 'grid', gridTemplateColumns: isDesktop ? 'repeat(3, 1fr)' : '1fr 1fr', gap: isDesktop ? 18 : 10, padding: isDesktop ? '24px 28px' : 14 },
+    prodCard: { background: '#fff', borderRadius: isDesktop ? 18 : 14, border: '0.5px solid rgba(0,0,0,0.08)', overflow: 'hidden', cursor: 'pointer', boxShadow: isDesktop ? '0 2px 12px rgba(0,0,0,0.06)' : undefined },
+    prodImg: { background: '#f5f5f0', height: isDesktop ? 180 : 90, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 36 },
+    prodBody: { padding: isDesktop ? '16px' : '10px' },
+    prodCat: { fontSize: isDesktop ? 12 : 10, color: G, fontWeight: 600, marginBottom: 2 },
+    prodName: { fontSize: isDesktop ? 16 : 13, fontWeight: 600, color: '#1a1a1a', lineHeight: 1.3 },
+    prodPrice: { fontSize: isDesktop ? 17 : 13, fontWeight: 700, color: G, marginTop: 5 },
+    prodPriceLock: { fontSize: isDesktop ? 13 : 11, color: '#bbb', fontStyle: 'italic', marginTop: 5 },
+    prodInst: { fontSize: isDesktop ? 12 : 10, color: '#999', marginTop: 1 },
+    prodBtn: { marginTop: isDesktop ? 12 : 8, background: G, color: '#fff', border: 'none', borderRadius: isDesktop ? 10 : 8, padding: isDesktop ? '9px 12px' : '6px 8px', width: '100%', fontSize: isDesktop ? 13 : 11, cursor: 'pointer', fontFamily: 'Georgia, serif', fontWeight: 600 },
     // product detail
     detHeader: { background: G, padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 10 },
     backBtn: { background: 'none', border: 'none', color: '#9FE1CB', fontSize: 24, cursor: 'pointer', padding: 0, lineHeight: 1 },
@@ -509,6 +729,38 @@ export default function ClinicApp() {
     const monthlyEstimate = financeBase && installmentMonths ? financeBase / installmentMonths : price?.installment_monthly
     const aiSalesCopy = buildAiSalesCopy(p, catalogProduct, monthlyEstimate)
     const catEmojis: Record<string,string> = { scan: '🦷', radio: '📡', endo: '⚙️', optics: '🔬', hygiene: '🧪', partner: '🪑', other: '📦' }
+    const inProposal = proposalItems.some(item => item.id === p.id)
+
+    const shareOfferWA = () => {
+      const lines = [
+        `🦷 *${p.name}* — Medical Line Georgia`,
+        price ? `💰 ფასი: ₾${price.price_gel?.toLocaleString()}` : '',
+        monthlyEstimate ? `📅 განვადება: ₾${Math.round(monthlyEstimate)}/თვე (${installmentMonths} თვე)` : '',
+        ``,
+        `📞 514 011 116`,
+        `🌐 medicalline.ge`,
+      ].filter(Boolean).join('\n')
+      window.open(`https://wa.me/?text=${encodeURIComponent(lines)}`, '_blank')
+    }
+    const shareOfferEmail = () => {
+      const subject = encodeURIComponent(`Medical Line — ${p.name}`)
+      const body = encodeURIComponent([
+        `გამარჯობა,`,
+        ``,
+        `გაგიგზავნით ინფორმაციას პროდუქტის შესახებ:`,
+        ``,
+        `პროდუქტი: ${p.name}`,
+        `ბრენდი: ${p.brand}`,
+        price ? `ფასი: ₾${price.price_gel?.toLocaleString()}` : '',
+        monthlyEstimate ? `განვადება: ₾${Math.round(monthlyEstimate)}/თვე (${installmentMonths} თვე)` : '',
+        ``,
+        `Medical Line Georgia`,
+        `ტელ: 514 011 116`,
+        `medicalline.ge`,
+      ].filter(l => l !== undefined).join('\n'))
+      window.location.href = `mailto:?subject=${subject}&body=${body}`
+    }
+
     return (
       <div style={s.wrap}>
         {toast && <div style={s.toastBox}>{toast}</div>}
@@ -611,6 +863,16 @@ export default function ClinicApp() {
               </div>
             </div>
           )}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10, marginBottom: 14 }}>
+            <button 
+              style={{ ...s.actBtnSec, background: inProposal ? '#FCEBEB' : '#f0fdf8', borderColor: inProposal ? '#E24B4A' : '#5DCAA5', color: inProposal ? '#E24B4A' : G }} 
+              onClick={() => toggleProposalItem(p)}
+            >
+              {inProposal ? '🗑 ამოღება ინვოისიდან' : '➕ ინვოისში დამატება'}
+            </button>
+            <button style={{ ...s.actBtnSec, background: '#f0fdf4', borderColor: '#22c55e', color: '#15803d' }} onClick={shareOfferWA}>📱 WhatsApp</button>
+            <button style={{ ...s.actBtnSec, background: '#eff6ff', borderColor: '#60a5fa', color: '#1d4ed8' }} onClick={shareOfferEmail}>✉️ ელ.ფოსტა</button>
+          </div>
           <div style={{ background: '#0f172a', color: '#fff', borderRadius: 16, padding: 16, marginBottom: 14 }}>
             <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: 0.4, color: '#93c5fd', margin: '0 0 8px' }}>AI ADVISOR</p>
             <p style={{ fontSize: 13, lineHeight: 1.7, margin: 0 }}>{aiSalesCopy}</p>
@@ -673,14 +935,65 @@ export default function ClinicApp() {
     <div style={s.wrap}>
       {toast && <div style={s.toastBox}>{toast}</div>}
 
-      {/* HEADER */}
-      <div style={s.header}>
+      <style>{`
+        @media print {
+          header, #app-header, .no-print, nav, button { display: none !important; }
+          body { background: white !important; padding: 0 !important; }
+          #proposal-print-area { display: block !important; padding: 32px !important; max-width: 794px !important; margin: 0 auto !important; }
+          .print-header { display: flex !important; justify-content: space-between; align-items: center; border-bottom: 2px solid #085041; padding-bottom: 20px; margin-bottom: 30px; }
+          .print-footer { display: block !important; margin-top: 50px; border-top: 1px solid #eee; padding-top: 20px; font-size: 12px; color: #666; }
+          .svc-card-print { border: 1px solid #eee !important; margin-bottom: 10px !important; }
+        }
+        .print-header, .print-footer { display: none; }
+        .side-nav-btn:hover { background: rgba(255,255,255,0.1) !important; }
+      `}</style>
+
+      {/* DESKTOP SIDEBAR */}
+      {isDesktop && (
+        <div style={s.sidebar}>
+          <div style={{ padding: '28px 24px 20px', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
+            <p style={{ color: '#fff', fontSize: 20, fontWeight: 700, margin: '0 0 3px', letterSpacing: 0.5 }}>Medical Line</p>
+            <p style={{ color: '#9FE1CB', fontSize: 12, margin: 0 }}>Pro კაბინეტი</p>
+          </div>
+          <div style={{ padding: '16px 24px 16px', borderBottom: '1px solid rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div style={{ width: 42, height: 42, borderRadius: 21, background: 'rgba(255,255,255,0.18)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 16, fontWeight: 700, flexShrink: 0 }}>{ini}</div>
+            <div>
+              <p style={{ color: '#fff', fontSize: 13, fontWeight: 600, margin: '0 0 2px' }}>{user.full_name}</p>
+              <p style={{ color: '#9FE1CB', fontSize: 11, margin: 0 }}>{user.clinic_name}</p>
+            </div>
+          </div>
+          <nav style={{ flex: 1, padding: '12px 0' }}>
+            {[
+              { id: 'catalog', ico: '🏪', label: 'კატალოგი' },
+              { id: 'proposal', ico: '📄', label: 'ინვოისი', badge: proposalItems.length },
+              { id: 'service', ico: '🔧', label: 'სერვისი' },
+              { id: 'academy', ico: '🎓', label: 'Academy' },
+              { id: 'profile', ico: '👤', label: 'პროფილი' },
+            ].map(item => (
+              <button key={item.id} className="side-nav-btn" style={{ ...s.sideNavBtn, ...(screen === item.id ? s.sideNavBtnOn : {}) }} onClick={() => setScreen(item.id as Screen)}>
+                <span style={{ fontSize: 20 }}>{item.ico}</span>
+                <span>{item.label}</span>
+                {(item.badge ?? 0) > 0 && <span style={{ marginLeft: 'auto', background: '#E24B4A', color: '#fff', fontSize: 10, borderRadius: 10, padding: '2px 7px', fontWeight: 700 }}>{item.badge}</span>}
+              </button>
+            ))}
+          </nav>
+          <div style={{ padding: '16px' }}>
+            <button onClick={doLogout} style={{ width: '100%', padding: '10px', background: 'rgba(255,255,255,0.1)', color: '#fff', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 10, cursor: 'pointer', fontSize: 13, fontFamily: 'Georgia, serif' }}>გამოსვლა</button>
+          </div>
+        </div>
+      )}
+
+      {/* MAIN AREA */}
+      <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
+
+      {/* HEADER (mobile only) */}
+      {!isDesktop && <div style={s.header} id="app-header">
         <div>
           <p style={s.headerTitle}>Medical Line Pro</p>
           <p style={s.headerSub}>{user.clinic_name} · {user.city}</p>
         </div>
         <div style={{ width: 36, height: 36, borderRadius: 18, background: 'rgba(255,255,255,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 13, fontWeight: 600 }}>{ini}</div>
-      </div>
+      </div>}
 
       <div style={s.content}>
         {/* ── CATALOG ── */}
@@ -780,6 +1093,234 @@ export default function ClinicApp() {
           </>
         )}
 
+        {/* ── PROPOSAL ── */}
+        {screen === 'proposal' && (
+          <div style={{ padding: 14 }} id="proposal-print-area">
+            <div className="print-header">
+              <div>
+                <h1 style={{ color: '#085041', fontSize: 22, margin: 0 }}>Medical Line Georgia</h1>
+                <p style={{ fontSize: 12, color: '#666', margin: '4px 0 0' }}>ოფიციალური ინვოისი • {new Date().toLocaleDateString('ka-GE')}</p>
+              </div>
+              <div style={{ textAlign: 'right', fontSize: 12 }}>
+                <p style={{ margin: 0 }}>ინვოისი: {proposalInvoiceNo}</p>
+                <p style={{ margin: 0 }}>კლინიკა: {user.clinic_name}</p>
+                <p style={{ margin: 2 }}>ექიმი: {user.full_name}</p>
+              </div>
+            </div>
+
+            <p style={{ fontSize: 18, fontWeight: 600, color: G, marginBottom: 14 }}>ჩემი ინვოისი ({proposalItems.length})</p>
+            {proposalItems.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: 40, background: '#fff', borderRadius: 20 }}>
+                <p style={{ fontSize: 40 }}>📄</p>
+                <p style={{ fontSize: 14, color: '#888' }}>ინვოისი ცარიელია. დაამატეთ პროდუქტები კატალოგიდან.</p>
+                <button style={{ ...s.btn, marginTop: 10 }} onClick={() => setScreen('catalog')}>კატალოგში დაბრუნება</button>
+              </div>
+            ) : (
+              <>
+                <div style={{ ...s.formCard, marginBottom: 14 }}>
+                  <p style={{ fontSize: 14, fontWeight: 600, marginBottom: 12 }}>ინვოისის ფორმა</p>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                    <div style={s.field}>
+                      <label style={s.label}>მიმღები პირი</label>
+                      <input style={s.input} value={proposalForm.recipientName} onChange={e => setProposalForm(prev => ({ ...prev, recipientName: e.target.value }))} placeholder="ექიმის სახელი" />
+                    </div>
+                    <div style={s.field}>
+                      <label style={s.label}>კლინიკა</label>
+                      <input style={s.input} value={proposalForm.clinicName} onChange={e => setProposalForm(prev => ({ ...prev, clinicName: e.target.value }))} placeholder="კლინიკის დასახელება" />
+                    </div>
+                    <div style={s.field}>
+                      <label style={s.label}>ტელეფონი</label>
+                      <input style={s.input} value={proposalForm.phone} onChange={e => setProposalForm(prev => ({ ...prev, phone: e.target.value }))} placeholder="5XX XX XX XX" />
+                    </div>
+                    <div style={s.field}>
+                      <label style={s.label}>ელფოსტა</label>
+                      <input style={s.input} value={proposalForm.email} onChange={e => setProposalForm(prev => ({ ...prev, email: e.target.value }))} placeholder="clinic@example.com" />
+                    </div>
+                    <div style={s.field}>
+                      <label style={s.label}>საიდენტიფიკაციო კოდი</label>
+                      <input style={s.input} value={proposalForm.taxId} onChange={e => setProposalForm(prev => ({ ...prev, taxId: e.target.value }))} placeholder="კლინიკის კოდი" />
+                    </div>
+                    <div style={s.field}>
+                      <label style={s.label}>მოქმედების ვადა (დღე)</label>
+                      <input style={s.input} type="number" min={1} value={proposalForm.validDays} onChange={e => setProposalForm(prev => ({ ...prev, validDays: Math.max(1, Number(e.target.value) || 1) }))} />
+                    </div>
+                  </div>
+                  <div style={s.field}>
+                    <label style={s.label}>მისამართი</label>
+                    <input style={s.input} value={proposalForm.address} onChange={e => setProposalForm(prev => ({ ...prev, address: e.target.value }))} placeholder="ქალაქი, ქუჩა, ოფისი" />
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                    <div style={s.field}>
+                      <label style={s.label}>გადახდის პირობა</label>
+                      <input style={s.input} value={proposalForm.paymentTerms} onChange={e => setProposalForm(prev => ({ ...prev, paymentTerms: e.target.value }))} placeholder="მაგ. 100% გადარიცხვა" />
+                    </div>
+                    <div style={s.field}>
+                      <label style={s.label}>ფასდაკლება (%)</label>
+                      <input style={s.input} type="number" min={0} max={100} value={proposalDiscountPct} onChange={e => setProposalDiscountPct(Math.max(0, Math.min(100, Number(e.target.value) || 0)))} />
+                    </div>
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                    <div style={s.field}>
+                      <label style={s.label}>დღგ</label>
+                      <select style={s.select} value={proposalVatMode} onChange={e => setProposalVatMode(e.target.value as 'included' | 'excluded')}>
+                        <option value="included">ფასი შეიცავს დღგ-ს</option>
+                        <option value="excluded">ფასი დღგ-ს გარეშეა</option>
+                      </select>
+                    </div>
+                    <div style={s.field}>
+                      <label style={s.label}>შენიშვნა</label>
+                      <input style={s.input} value={proposalForm.note} onChange={e => setProposalForm(prev => ({ ...prev, note: e.target.value }))} placeholder="მონტაჟი, ტრენინგი, ვადა..." />
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 20 }}>
+                  {proposalRows.map(({ product: p, quantity, unitPrice, lineTotal }) => (
+                    <div key={p.id} style={{ ...s.svcCard, padding: 10 }} className="svc-card-print">
+                      <div style={{ width: 40, height: 40, background: '#f5f5f0', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        {getProductImage(p) ? <img src={getProductImage(p)} style={{ width: '80%', height: '80%', objectFit: 'contain' }} /> : '🦷'}
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <p style={{ fontSize: 13, fontWeight: 600, margin: 0 }}>{p.name}</p>
+                        <p style={{ fontSize: 11, color: G, margin: 0 }}>{unitPrice ? `${formatMoney(unitPrice)} / ერთეული` : 'ფასი მოთხოვნით'}</p>
+                        <p style={{ fontSize: 11, color: '#666', margin: '4px 0 0' }}>ჯამი: {formatMoney(lineTotal)}</p>
+                      </div>
+                      <div className="no-print" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', border: '1px solid rgba(0,0,0,0.12)', borderRadius: 10, overflow: 'hidden', background: '#fff' }}>
+                          <button
+                            onClick={() => setProposalQuantities(prev => ({ ...prev, [p.id]: Math.max(1, (prev[p.id] || 1) - 1) }))}
+                            style={{ border: 'none', background: '#f3f4f6', width: 28, height: 28, cursor: 'pointer', color: '#1f2937' }}
+                          >
+                            −
+                          </button>
+                          <span style={{ minWidth: 28, textAlign: 'center', fontSize: 12, fontWeight: 600 }}>{quantity}</span>
+                          <button
+                            onClick={() => setProposalQuantities(prev => ({ ...prev, [p.id]: Math.max(1, (prev[p.id] || 1) + 1) }))}
+                            style={{ border: 'none', background: '#f3f4f6', width: 28, height: 28, cursor: 'pointer', color: '#1f2937' }}
+                          >
+                            +
+                          </button>
+                        </div>
+                      </div>
+                      <button className="no-print" onClick={() => toggleProposalItem(p)} style={{ background: 'none', border: 'none', color: '#E24B4A', fontSize: 18 }}>✕</button>
+                    </div>
+                  ))}
+                </div>
+                <div style={{ background: '#fff', borderRadius: 16, padding: 16, border: '0.5px solid rgba(0,0,0,0.1)' }}>
+                  <p style={{ fontSize: 14, fontWeight: 600, marginBottom: 10 }}>ინვოისი / ჯამური ინფორმაცია</p>
+                  <div style={{ padding: 12, borderRadius: 12, background: '#f8fafc', marginBottom: 12 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, marginBottom: 6 }}>
+                      <span style={{ fontSize: 12, color: '#64748b' }}>ინვოისი №</span>
+                      <span style={{ fontSize: 12, fontWeight: 600 }}>{proposalInvoiceNo}</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, marginBottom: 6 }}>
+                      <span style={{ fontSize: 12, color: '#64748b' }}>მიმღები</span>
+                      <span style={{ fontSize: 12, fontWeight: 600 }}>{proposalForm.recipientName || user.full_name}</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, marginBottom: 6 }}>
+                      <span style={{ fontSize: 12, color: '#64748b' }}>კლინიკა</span>
+                      <span style={{ fontSize: 12, fontWeight: 600 }}>{proposalForm.clinicName || user.clinic_name}</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, marginBottom: 6 }}>
+                      <span style={{ fontSize: 12, color: '#64748b' }}>კომპანიის საიდენტიფიკაციო</span>
+                      <span style={{ fontSize: 12, fontWeight: 600 }}>{COMPANY_BILLING.taxId}</span>
+                    </div>
+                    {proposalForm.taxId && (
+                      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
+                        <span style={{ fontSize: 12, color: '#64748b' }}>საიდენტიფიკაციო</span>
+                        <span style={{ fontSize: 12, fontWeight: 600 }}>{proposalForm.taxId}</span>
+                      </div>
+                    )}
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
+                    <span style={{ fontSize: 13, color: '#888' }}>პროდუქტების რაოდენობა:</span>
+                    <span style={{ fontSize: 13, fontWeight: 600 }}>{proposalItems.length}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
+                    <span style={{ fontSize: 13, color: '#888' }}>ქვეჯამი:</span>
+                    <span style={{ fontSize: 13, fontWeight: 600 }}>{formatMoney(proposalSubtotal)}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
+                    <span style={{ fontSize: 13, color: '#888' }}>ფასდაკლება:</span>
+                    <span style={{ fontSize: 13, fontWeight: 600 }}>-{formatMoney(proposalDiscountValue)}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 15 }}>
+                    <span style={{ fontSize: 13, color: '#888' }}>{proposalVatMode === 'included' ? 'დღგ (ჩაშენებული):' : 'დღგ 18%:'}</span>
+                    <span style={{ fontSize: 13, fontWeight: 600 }}>{formatMoney(proposalVatValue)}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 15, paddingTop: 10, borderTop: '0.5px solid #eee' }}>
+                    <span style={{ fontSize: 14, fontWeight: 600 }}>საბოლოო ჯამი:</span>
+                    <span style={{ fontSize: 16, fontWeight: 700, color: G }}>
+                      {formatMoney(proposalGrandTotal)}
+                    </span>
+                  </div>
+                  <div style={{ padding: 12, borderRadius: 12, background: '#f9fafb', fontSize: 12, color: '#475569', lineHeight: 1.6, marginBottom: 12 }}>
+                    <div>გადახდის პირობა: {proposalForm.paymentTerms}</div>
+                    <div>მოქმედების ვადა: {proposalForm.validDays} დღე</div>
+                    {proposalForm.note && <div>შენიშვნა: {proposalForm.note}</div>}
+                  </div>
+                  <div style={{ padding: 12, borderRadius: 12, background: '#eef7f4', border: '1px solid #c7eadf', fontSize: 12, color: '#0f3f35', lineHeight: 1.7, marginBottom: 12 }}>
+                    <div style={{ fontWeight: 700, marginBottom: 6 }}>კომპანიის საბანკო რეკვიზიტები</div>
+                    <div>კომპანია: {COMPANY_BILLING.legalName}</div>
+                    <div>საიდენტიფიკაციო კოდი: {COMPANY_BILLING.taxId}</div>
+                    <div>მისამართი: {COMPANY_BILLING.address}</div>
+                    <div>ტელეფონი: {COMPANY_BILLING.phone}</div>
+                    <div>ბანკი: {COMPANY_BILLING.bankName}</div>
+                    <div>IBAN: {COMPANY_BILLING.iban}</div>
+                  </div>
+                  <div className="no-print" style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 12 }}>
+                    <div style={{ textAlign: 'center' }}>
+                      <img
+                        src="/images/invoice-stamp.jpg"
+                        alt="Medical Line stamp"
+                        style={{ width: 140, height: 140, objectFit: 'contain', display: 'block', margin: '0 auto' }}
+                      />
+                      <div style={{ marginTop: -8, fontSize: 12, fontWeight: 600, color: '#0f3f35' }}>დირექტორი: შ. სეფიშვილი</div>
+                    </div>
+                  </div>
+                  <div className="no-print" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginTop: 4 }}>
+                    <button style={{ ...s.btn, background: '#15803d', marginTop: 0, opacity: generatingPdf ? 0.6 : 1 }} onClick={shareInvoiceWA} disabled={generatingPdf}>
+                      {generatingPdf ? '⏳ მზადდება...' : '📱 WhatsApp'}
+                    </button>
+                    <button style={{ ...s.btn, background: '#1d4ed8', marginTop: 0, opacity: generatingPdf ? 0.6 : 1 }} onClick={shareInvoiceEmail} disabled={generatingPdf}>
+                      {generatingPdf ? '⏳ მზადდება...' : '✉️ ელ.ფოსტა'}
+                    </button>
+                    <button style={{ ...s.btn, background: '#1e293b', marginTop: 0 }} onClick={openInvoicePdf}>
+                      🖨️ PDF / ბეჭდვა
+                    </button>
+                  </div>
+                </div>
+
+                <div className="print-footer">
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <div>
+                      <p style={{ margin: 0 }}>ინვოისი ძალაშია {proposalForm.validDays} კალენდარული დღის განმავლობაში.</p>
+                      <p style={{ margin: '6px 0 0' }}>გადახდა: {proposalForm.paymentTerms}</p>
+                    </div>
+                    <p style={{ textAlign: 'right' }}>შოურუმი: {COMPANY_BILLING.address}<br/>ტელ: {COMPANY_BILLING.phone}</p>
+                  </div>
+                  <div style={{ marginTop: 12 }}>
+                    <p style={{ margin: 0 }}>კომპანია: {COMPANY_BILLING.legalName}</p>
+                    <p style={{ margin: '6px 0 0' }}>საიდენტიფიკაციო კოდი: {COMPANY_BILLING.taxId}</p>
+                    <p style={{ margin: '6px 0 0' }}>ბანკი: {COMPANY_BILLING.bankName} · IBAN: {COMPANY_BILLING.iban}</p>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 16 }}>
+                    <div style={{ textAlign: 'center' }}>
+                      <img
+                        src="/images/invoice-stamp.jpg"
+                        alt="Medical Line stamp"
+                        style={{ width: 150, height: 150, objectFit: 'contain', display: 'block', margin: '0 auto' }}
+                      />
+                      <p style={{ margin: '-8px 0 0', fontSize: 12, fontWeight: 600, color: '#0f3f35' }}>დირექტორი: შ. სეფიშვილი</p>
+                    </div>
+                  </div>
+                  <p style={{ textAlign: 'center', marginTop: 20, fontSize: 10 }}>გმადლობთ, რომ ირჩევთ Medical Line-ს!</p>
+                </div>
+              </>
+            )}
+          </div>
+        )}
+
         {/* ── SERVICE ── */}
         {screen === 'service' && (
           <div style={s.svcList}>
@@ -821,7 +1362,37 @@ export default function ClinicApp() {
                 <div style={s.field}><label style={s.label}>სერიული ნომერი (სურვილისამებრ)</label><input style={s.input} value={ticketSerial} onChange={e => setTicketSerial(e.target.value)} placeholder="SN-XXXXXXX" /></div>
                 <div style={s.field}><label style={s.label}>პრობლემის აღწერა *</label><textarea style={s.textarea} value={ticketDesc} onChange={e => setTicketDesc(e.target.value)} placeholder="მოკლედ აღწერე..." /></div>
                 <div style={s.field}><label style={s.label}>სასურველი ვიზიტის თარიღი</label><input style={s.input} type="date" value={ticketVisitDate} onChange={e => setTicketVisitDate(e.target.value)} /></div>
-                <button style={s.btn} onClick={sendTicket} disabled={loading}>{loading ? 'იგზავნება...' : '📨 ტიკეტის გაგზავნა'}</button>
+                <div style={s.field}>
+                  <label style={s.label}>ფოტო / ვიდეო (სურვილისამებრ)</label>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', border: `1.5px dashed ${G}`, borderRadius: 10, padding: '10px 14px', background: GL }}>
+                    <span style={{ fontSize: 18 }}>📎</span>
+                    <span style={{ fontSize: 12, color: G, fontWeight: 600 }}>
+                      {ticketFiles.length > 0 ? `${ticketFiles.length} ფაილი შერჩეული` : 'ფაილის არჩევა (jpg, png, mp4, mov)'}
+                    </span>
+                    <input
+                      type="file"
+                      accept="image/*,video/*"
+                      multiple
+                      style={{ display: 'none' }}
+                      onChange={e => setTicketFiles(Array.from(e.target.files || []))}
+                    />
+                  </label>
+                  {ticketFiles.length > 0 && (
+                    <div style={{ marginTop: 6, display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                      {ticketFiles.map((f, i) => (
+                        <span key={i} style={{ fontSize: 11, background: '#fff', border: '0.5px solid #ccc', borderRadius: 6, padding: '3px 8px', color: '#444' }}>
+                          {f.name.length > 20 ? f.name.slice(0, 18) + '…' : f.name}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                {uploadProgress > 0 && (
+                  <div style={{ height: 6, background: '#e0e0e0', borderRadius: 4, overflow: 'hidden', marginBottom: 8 }}>
+                    <div style={{ height: '100%', width: `${uploadProgress}%`, background: G, borderRadius: 4, transition: 'width 0.3s' }} />
+                  </div>
+                )}
+                <button style={s.btn} onClick={sendTicket} disabled={loading}>{loading ? `⏳ იტვირთება... ${uploadProgress > 0 ? uploadProgress + '%' : ''}` : '📨 ტიკეტის გაგზავნა'}</button>
               </div>
             )}
             <div style={s.formCard}>
@@ -845,6 +1416,20 @@ export default function ClinicApp() {
                       <p style={{ fontSize: 12, color: '#444', lineHeight: 1.5, margin: '8px 0 0' }}>{ticket.problem_desc}</p>
                       {ticket.visit_date && <p style={{ fontSize: 11, color: '#0C447C', margin: '8px 0 0' }}>Visit: {new Date(ticket.visit_date).toLocaleDateString('ka-GE')}</p>}
                       {ticket.resolution && <p style={{ fontSize: 11, color: '#085041', margin: '8px 0 0' }}>Update: {ticket.resolution}</p>}
+                      {ticket.attachments && ticket.attachments.length > 0 && (
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 8 }}>
+                          {ticket.attachments.map((url, i) => {
+                            const isVideo = url.match(/\.(mp4|mov|webm|avi)(\?|$)/i)
+                            return isVideo ? (
+                              <video key={i} src={url} controls style={{ width: 80, height: 60, borderRadius: 8, objectFit: 'cover', background: '#000' }} />
+                            ) : (
+                              <a key={i} href={url} target="_blank" rel="noreferrer">
+                                <img src={url} alt={`attachment-${i}`} style={{ width: 64, height: 64, borderRadius: 8, objectFit: 'cover', border: '0.5px solid #ddd' }} />
+                              </a>
+                            )
+                          })}
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -966,20 +1551,26 @@ export default function ClinicApp() {
         )}
       </div>
 
-      {/* BOTTOM NAV */}
-      <div style={s.bnav}>
-        {[
-          { id: 'catalog', ico: '🏪', label: 'კატალოგი' },
-          { id: 'service', ico: '🔧', label: 'სერვისი' },
-          { id: 'academy', ico: '🎓', label: 'Academy' },
-          { id: 'profile', ico: '👤', label: 'პროფილი' },
-        ].map(item => (
-          <button key={item.id} style={s.bn} onClick={() => setScreen(item.id as Screen)}>
-            <span style={s.bnIcon}>{item.ico}</span>
-            <span style={screen === item.id ? s.bnLabelOn : s.bnLabel}>{item.label}</span>
-          </button>
-        ))}
-      </div>
+      {/* BOTTOM NAV (mobile only) */}
+      {!isDesktop && (
+        <div style={s.bnav}>
+          {[
+            { id: 'catalog', ico: '🏪', label: 'კატალოგი' },
+            { id: 'proposal', ico: '📄', label: 'ინვოისი', badge: proposalItems.length },
+            { id: 'service', ico: '🔧', label: 'სერვისი' },
+            { id: 'profile', ico: '👤', label: 'პროფილი' },
+          ].map(item => (
+            <button key={item.id} style={s.bn} onClick={() => setScreen(item.id as Screen)}>
+              <span style={{ ...s.bnIcon, position: 'relative' }}>
+                {item.ico}
+                {(item.badge ?? 0) > 0 && <span style={{ position: 'absolute', top: -5, right: -10, background: '#E24B4A', color: '#fff', fontSize: 9, borderRadius: 10, padding: '2px 5px', fontWeight: 700 }}>{item.badge}</span>}
+              </span>
+              <span style={screen === item.id ? s.bnLabelOn : s.bnLabel}>{item.label}</span>
+            </button>
+          ))}
+        </div>
+      )}
+      </div>{/* end MAIN AREA */}
     </div>
   )
 }

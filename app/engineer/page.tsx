@@ -27,12 +27,27 @@ type EngineerTicket = {
   products?: { name: string }[] | null
 }
 
+type ManualItem = {
+  id: string
+  title: string
+  description: string | null
+  url: string | null
+  file_path: string | null
+  mime_type: string | null
+  audience: string
+  tags: string[] | null
+  created_at: string
+  products?: { name: string }[] | null
+}
+
 const BRAND = '#085041'
 const BRAND_LIGHT = '#E1F5EE'
 
 export default function EngineerPage() {
   const [profile, setProfile] = useState<EngineerProfile | null>(null)
   const [tickets, setTickets] = useState<EngineerTicket[]>([])
+  const [manuals, setManuals] = useState<ManualItem[]>([])
+  const [manualSearch, setManualSearch] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
@@ -59,6 +74,24 @@ export default function EngineerPage() {
     setTickets(data || [])
   }
 
+  async function loadManuals() {
+    const { data, error: manualError } = await supabase
+      .from('academy_items')
+      .select('id, title, description, url, file_path, mime_type, audience, tags, created_at, products(name)')
+      .eq('type', 'manual')
+      .eq('is_active', true)
+      .in('audience', ['all', 'engineer'])
+      .order('sort_order', { ascending: true })
+      .order('created_at', { ascending: false })
+
+    if (manualError) {
+      setError(manualError.message)
+      return
+    }
+
+    setManuals((data || []) as ManualItem[])
+  }
+
   async function loadProfile(userId: string) {
     const { data, error: profileError } = await supabase.from('profiles').select('*').eq('id', userId).single()
     if (profileError || !data) {
@@ -75,6 +108,7 @@ export default function EngineerPage() {
     setProfile(data)
     setError('')
     loadTickets(userId)
+    loadManuals()
   }
 
   useEffect(() => {
@@ -138,6 +172,13 @@ export default function EngineerPage() {
   const assignedTickets = tickets.filter(ticket => ticket.status === 'assigned')
   const activeTickets = tickets.filter(ticket => ticket.status === 'new' || ticket.status === 'inprogress')
   const completedTickets = tickets.filter(ticket => ticket.status === 'done')
+  const filteredManuals = manuals.filter((manual) => {
+    const q = manualSearch.trim().toLowerCase()
+    if (!q) return true
+
+    return [manual.title, manual.description || '', manual.products?.[0]?.name || '', ...(manual.tags || [])]
+      .some((value) => value.toLowerCase().includes(q))
+  })
 
   if (!profile) {
     return (
@@ -198,6 +239,56 @@ export default function EngineerPage() {
         <div style={{ background: '#fff', borderRadius: 16, padding: 14, border: '0.5px solid rgba(0,0,0,0.08)', marginBottom: 12 }}>
           <p style={{ fontSize: 14, fontWeight: 600, color: '#1a1a1a', margin: 0 }}>Engineering status board</p>
           <p style={{ fontSize: 12, color: '#666', margin: '6px 0 0' }}>Assigned jobs, active field work and completed cases are separated here so the engineering division can work independently from admin.</p>
+        </div>
+
+        <div style={{ background: '#fff', borderRadius: 16, padding: 14, border: '0.5px solid rgba(0,0,0,0.08)', marginBottom: 14 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'center', marginBottom: 10 }}>
+            <div>
+              <p style={{ fontSize: 14, fontWeight: 600, color: '#1a1a1a', margin: 0 }}>Manual Library</p>
+              <p style={{ fontSize: 12, color: '#666', margin: '6px 0 0' }}>Service manuals, wiring sheets and reference documents for field engineers.</p>
+            </div>
+            <div style={{ minWidth: 72, textAlign: 'center', background: BRAND_LIGHT, color: BRAND, borderRadius: 12, padding: '8px 10px', fontSize: 12, fontWeight: 700 }}>
+              {manuals.length} files
+            </div>
+          </div>
+
+          <input
+            value={manualSearch}
+            onChange={(e) => setManualSearch(e.target.value)}
+            placeholder="Search manual, product, tag..."
+            style={{ width: '100%', padding: '10px 12px', borderRadius: 12, border: '0.5px solid rgba(0,0,0,0.14)', boxSizing: 'border-box', fontSize: 13, marginBottom: 10 }}
+          />
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {filteredManuals.map((manual) => (
+              <a
+                key={manual.id}
+                href={manual.url || '#'}
+                target="_blank"
+                rel="noreferrer"
+                style={{ background: '#fafaf8', borderRadius: 14, padding: 12, textDecoration: 'none', border: '0.5px solid rgba(0,0,0,0.06)' }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'flex-start' }}>
+                  <div>
+                    <p style={{ fontSize: 13, fontWeight: 700, color: '#1a1a1a', margin: 0 }}>{manual.title}</p>
+                    <p style={{ fontSize: 12, color: '#666', margin: '6px 0 0' }}>{manual.description || 'Service manual file'}</p>
+                    <p style={{ fontSize: 11, color: '#888', margin: '6px 0 0' }}>
+                      {manual.products?.[0]?.name || 'General'} {manual.mime_type ? `· ${manual.mime_type.replace('application/', '').toUpperCase()}` : ''}
+                    </p>
+                  </div>
+                  <span style={{ fontSize: 11, padding: '5px 10px', borderRadius: 20, background: '#E6F1FB', color: '#0C447C', fontWeight: 700 }}>
+                    Open
+                  </span>
+                </div>
+              </a>
+            ))}
+
+            {filteredManuals.length === 0 && (
+              <div style={{ background: '#fafaf8', borderRadius: 14, padding: 14, color: '#888', fontSize: 12 }}>
+                No manuals found yet. Upload the first service manual from admin.
+              </div>
+            )}
+          </div>
         </div>
 
         {[

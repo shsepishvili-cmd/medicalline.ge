@@ -3,10 +3,12 @@ import Image from 'next/image';
 import {
   Home, Grid, MapPin,
   ChevronRight, MessageCircle, CheckCircle2, Phone, Mail,
-  ArrowRight, Star, Camera, BookOpen, Facebook,
+  ArrowRight, Star, Camera, BookOpen, Facebook, Gamepad2, Trophy, Sparkles, UserCircle2,
 } from 'lucide-react';
 import SiteHeader from '@/app/components/SiteHeader';
 import TopGe from '@/app/components/TopGe';
+import { buildPageMetadata, siteConfig } from '@/app/lib/seo';
+
 
 const WhatsappIcon = ({ size = 28, color = "currentColor" }: { size?: number; color?: string }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill={color} xmlns="http://www.w3.org/2000/svg">
@@ -31,9 +33,34 @@ const reviews = [
 
 const whatsappUrl = "https://wa.me/995514011116";
 
+export const metadata = buildPageMetadata({
+  path: '/',
+  title: siteConfig.title,
+  description: siteConfig.description,
+  keywords: ['სტომატოლოგიური აპარატურა საქართველოში', 'ინტრაორალური სკანერი georgia', 'cbct georgia'],
+});
+
 export default function MedicalLineHome() {
+  const homeSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'WebPage',
+    name: siteConfig.title,
+    url: siteConfig.url,
+    description: siteConfig.description,
+    about: [
+      'სტომატოლოგიური აპარატურა',
+      'ინტრაორალური სკანერები',
+      'CBCT სისტემები',
+      'ენდომოტორები',
+    ],
+  };
+
   return (
     <main className="min-h-screen bg-white font-sans text-slate-900 pb-24 md:pb-0 overflow-x-hidden selection:bg-blue-100 tracking-tighter relative">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(homeSchema) }}
+      />
 
       <SiteHeader />
 
@@ -145,6 +172,143 @@ export default function MedicalLineHome() {
               <p className="text-slate-500 font-bold group-hover:text-blue-50 transition-colors mt-2">{s.d}</p>
             </div>
           ))}
+        </div>
+      </section>
+
+      {/* --- ML GAME LOUNGE --- */}
+      <section className="py-20 md:py-24 bg-white px-6 border-b border-slate-100 overflow-hidden">
+        <div className="max-w-7xl mx-auto">
+          <div className="relative rounded-[2.75rem] overflow-hidden border border-slate-200 bg-[radial-gradient(circle_at_top_left,_rgba(59,130,246,0.15),_transparent_32%),linear-gradient(135deg,#020617_0%,#0f172a_55%,#172554_100%)] px-8 py-10 md:px-14 md:py-14 shadow-[0_30px_80px_-28px_rgba(15,23,42,0.55)]">
+            <div className="absolute -right-16 -top-14 h-48 w-48 rounded-full bg-cyan-400/10 blur-3xl" />
+            <div className="absolute -left-12 bottom-0 h-40 w-40 rounded-full bg-blue-500/10 blur-3xl" />
+            <div className="relative grid md:grid-cols-[1.15fr_0.85fr] gap-10 items-center">
+              <div className="text-center md:text-left">
+                <div className="inline-flex items-center gap-2 rounded-full border border-cyan-400/30 bg-cyan-400/10 px-4 py-2 text-[10px] font-black uppercase tracking-[0.35em] text-cyan-200">
+                  <Sparkles size={14} className="text-cyan-300" />
+                  New Interactive Zone
+                </div>
+                <h2 className="mt-5 text-4xl md:text-6xl font-black uppercase tracking-tight text-white leading-[0.92]">
+                  ML Game
+                  <span className="block text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 via-blue-300 to-blue-500">Lounge</span>
+                </h2>
+                <p className="mt-5 max-w-2xl text-sm md:text-lg font-bold text-slate-300 leading-relaxed">
+                  ითამაშე, ივარჯიშე და შეამოწმე შენი სიზუსტე Medical Line-ის ინტერაქციულ სივრცეში.
+                  მოკლე, სწრაფი და ბრენდთან იდეალურად მიბმული გამოცდილება ექიმებისთვის და სტუმრებისთვის.
+                </p>
+                <div className="mt-8 flex flex-col sm:flex-row gap-3 justify-center md:justify-start">
+                  <Link href="/game" className="inline-flex items-center justify-center gap-3 rounded-2xl bg-cyan-400 px-8 py-4 text-[11px] font-black uppercase tracking-[0.24em] text-slate-950 shadow-xl shadow-cyan-500/30 transition hover:bg-cyan-300 active:scale-95">
+                    დაიწყე თამაში <ArrowRight size={16} />
+                  </Link>
+                  <Link href="/game" className="inline-flex items-center justify-center gap-3 rounded-2xl border border-white/15 bg-white/5 px-8 py-4 text-[11px] font-black uppercase tracking-[0.24em] text-white backdrop-blur-sm transition hover:bg-white/10 active:scale-95">
+                    ნახე Game Lounge
+                  </Link>
+                </div>
+              </div>
+
+              <div className="relative flex justify-center">
+                <div className="relative w-full max-w-[420px] rounded-[2.5rem] border border-white/10 bg-white/5 p-6 md:p-8 backdrop-blur-md shadow-2xl">
+                  <div className="absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-cyan-300/70 to-transparent" />
+                  <div className="mx-auto flex h-28 w-28 items-center justify-center rounded-[2rem] border border-cyan-300/30 bg-gradient-to-br from-cyan-300/20 to-blue-500/20 shadow-[0_0_40px_rgba(34,211,238,0.18)]">
+                    <div className="relative flex h-20 w-20 items-center justify-center rounded-[1.6rem] border-4 border-white bg-slate-950/80">
+                      <div className="absolute -top-3 left-1/2 h-5 w-10 -translate-x-1/2 rounded-b-full border-x-4 border-b-4 border-white" />
+                      <Gamepad2 size={34} className="text-cyan-300" />
+                    </div>
+                  </div>
+                  <div className="mt-6 text-center">
+                    <p className="text-[11px] font-black uppercase tracking-[0.38em] text-cyan-200">ML Game Lounge</p>
+                    <p className="mt-2 text-sm font-bold text-slate-300">სტომატოლოგიური სიზუსტე, arcade ენერგია და Medical Line vibe.</p>
+                  </div>
+                  <div className="mt-6 grid grid-cols-2 gap-3">
+                    <div className="rounded-2xl border border-white/10 bg-slate-950/40 p-4 text-center">
+                      <p className="text-[10px] font-black uppercase tracking-[0.28em] text-slate-500">Mode</p>
+                      <p className="mt-2 text-base font-black uppercase text-white">Precision Play</p>
+                    </div>
+                    <div className="rounded-2xl border border-white/10 bg-slate-950/40 p-4 text-center">
+                      <p className="text-[10px] font-black uppercase tracking-[0.28em] text-slate-500">Badge</p>
+                      <p className="mt-2 inline-flex items-center gap-2 text-base font-black uppercase text-cyan-300"><Trophy size={16} /> Score Rush</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* --- CLINIC CABINET --- */}
+      <section className="py-20 md:py-24 bg-slate-50 px-6 border-b border-slate-100 overflow-hidden">
+        <div className="max-w-7xl mx-auto">
+          <div className="grid lg:grid-cols-[1.05fr_0.95fr] gap-8 items-stretch">
+            <div className="rounded-[2.75rem] border border-slate-200 bg-white p-8 md:p-12 shadow-[0_30px_80px_-40px_rgba(15,23,42,0.3)]">
+              <div className="inline-flex items-center gap-2 rounded-full bg-blue-50 px-4 py-2 text-[10px] font-black uppercase tracking-[0.28em] text-blue-700">
+                <UserCircle2 size={14} />
+                Clinic Cabinet
+              </div>
+              <h2 className="mt-5 text-4xl md:text-6xl font-black uppercase tracking-tight text-slate-950 leading-[0.92]">
+                კლინიკის
+                <span className="block text-blue-600">კაბინეტი</span>
+              </h2>
+              <p className="mt-5 max-w-2xl text-sm md:text-lg font-bold text-slate-600 leading-relaxed">
+                ერთი სივრცე კლინიკისთვის: პროდუქტები, სერვისი, შემოთავაზებები და საჭირო დოკუმენტები
+                უფრო სწრაფად, უფრო სუფთად და მობილურზეც კომფორტულად.
+              </p>
+              <div className="mt-8 grid sm:grid-cols-2 gap-4">
+                <div className="rounded-[2rem] border border-slate-200 bg-slate-50 p-5">
+                  <p className="text-[10px] font-black uppercase tracking-[0.28em] text-slate-500">Access</p>
+                  <p className="mt-3 text-lg font-black text-slate-950">ფასები, პროდუქტები და მოთხოვნები</p>
+                </div>
+                <div className="rounded-[2rem] border border-slate-200 bg-slate-50 p-5">
+                  <p className="text-[10px] font-black uppercase tracking-[0.28em] text-slate-500">Support</p>
+                  <p className="mt-3 text-lg font-black text-slate-950">სერვისის ბილეთები და სტატუსის კონტროლი</p>
+                </div>
+              </div>
+              <div className="mt-8 flex flex-col sm:flex-row gap-3">
+                <Link href="/clinic" className="inline-flex items-center justify-center gap-3 rounded-2xl bg-blue-600 px-8 py-4 text-[11px] font-black uppercase tracking-[0.22em] text-white shadow-xl shadow-blue-500/20 transition hover:bg-blue-700 active:scale-95">
+                  შესვლა კაბინეტში <ArrowRight size={16} />
+                </Link>
+                <Link href="#contact" className="inline-flex items-center justify-center gap-3 rounded-2xl border border-slate-200 bg-white px-8 py-4 text-[11px] font-black uppercase tracking-[0.22em] text-slate-900 transition hover:border-blue-200 hover:text-blue-700 active:scale-95">
+                  მოითხოვე წვდომა
+                </Link>
+              </div>
+            </div>
+
+            <div className="relative rounded-[2.75rem] border border-slate-200 bg-[linear-gradient(135deg,#eff6ff_0%,#ffffff_48%,#dbeafe_100%)] p-6 md:p-8 shadow-[0_30px_80px_-40px_rgba(37,99,235,0.35)]">
+              <div className="absolute right-0 top-0 h-40 w-40 rounded-full bg-blue-300/20 blur-3xl" />
+              <div className="relative rounded-[2.2rem] border border-white/80 bg-white/90 p-5 md:p-6 shadow-lg backdrop-blur">
+                <div className="flex items-center justify-between gap-4 border-b border-slate-100 pb-4">
+                  <div>
+                    <p className="text-[10px] font-black uppercase tracking-[0.28em] text-blue-600">Dashboard</p>
+                    <p className="mt-2 text-xl font-black text-slate-950">Medical Line Clinic</p>
+                  </div>
+                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-600 text-white shadow-lg shadow-blue-500/20">
+                    <UserCircle2 size={24} />
+                  </div>
+                </div>
+                <div className="mt-5 grid grid-cols-2 gap-3">
+                  <div className="rounded-2xl bg-slate-950 p-4 text-white">
+                    <p className="text-[10px] font-black uppercase tracking-[0.25em] text-slate-400">Catalog</p>
+                    <p className="mt-2 text-base font-black">პროდუქტები</p>
+                  </div>
+                  <div className="rounded-2xl bg-blue-600 p-4 text-white">
+                    <p className="text-[10px] font-black uppercase tracking-[0.25em] text-blue-100">Service</p>
+                    <p className="mt-2 text-base font-black">მოთხოვნები</p>
+                  </div>
+                  <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                    <p className="text-[10px] font-black uppercase tracking-[0.25em] text-slate-500">Offers</p>
+                    <p className="mt-2 text-base font-black text-slate-950">ინვოისები</p>
+                  </div>
+                  <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                    <p className="text-[10px] font-black uppercase tracking-[0.25em] text-slate-500">Account</p>
+                    <p className="mt-2 text-base font-black text-slate-950">პროფილი</p>
+                  </div>
+                </div>
+                <div className="mt-5 rounded-[1.8rem] border border-slate-200 bg-slate-50 p-4">
+                  <p className="text-[10px] font-black uppercase tracking-[0.25em] text-slate-500">Mobile Ready</p>
+                  <p className="mt-2 text-sm font-bold text-slate-600">კაბინეტი გათვლილია ტელეფონზეც, ასე რომ შესვლა და მართვა გზაში ყოფნის დროსაც მარტივია.</p>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -395,6 +559,10 @@ export default function MedicalLineHome() {
         <Link href="#contact" className="flex flex-col items-center gap-1 text-slate-400 hover:text-blue-600 transition w-14">
           <MapPin size={22} />
           <span className="text-[9px] font-black uppercase tracking-wider text-center">კონტაქტი</span>
+        </Link>
+        <Link href="/clinic" className="flex flex-col items-center gap-1 text-slate-400 hover:text-blue-600 transition w-14">
+          <UserCircle2 size={22} />
+          <span className="text-[9px] font-black uppercase tracking-wider text-center">შესვლა</span>
         </Link>
       </div>
 

@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { ArrowLeft, Search, CreditCard } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { trackEvent } from '@/app/lib/analytics';
 
 interface AiFeature {
   icon: string;
@@ -60,7 +61,13 @@ export default function CatalogClient({ initialProducts }: { initialProducts: Pr
             placeholder="მოძებნე (მაგ: ენდომოტორი)..."
             className="w-full pl-12 pr-4 py-4 rounded-2xl bg-white shadow-xl focus:ring-2 focus:ring-blue-500 font-bold text-sm outline-none text-slate-900"
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={(e) => {
+              const nextValue = e.target.value;
+              setSearchQuery(nextValue);
+              if (nextValue.trim().length >= 2) {
+                trackEvent('catalog_search', { query: nextValue.trim() });
+              }
+            }}
           />
         </div>
       </div>
@@ -70,7 +77,10 @@ export default function CatalogClient({ initialProducts }: { initialProducts: Pr
         {categories.map((c) => (
           <button
             key={c}
-            onClick={() => setFilter(c)}
+            onClick={() => {
+              setFilter(c);
+              trackEvent('catalog_filter_select', { category: c });
+            }}
             className={`px-6 py-2 rounded-full font-black text-[10px] tracking-widest uppercase transition-all ${filter === c ? 'bg-blue-600 text-white shadow-lg' : 'bg-white text-slate-500 border border-slate-100 hover:bg-slate-50'}`}
           >
             {c}
@@ -84,7 +94,7 @@ export default function CatalogClient({ initialProducts }: { initialProducts: Pr
           filteredProducts.map((item) => (
             <div key={item.id || item.slug} className="group bg-white rounded-[2.5rem] p-6 border border-slate-100 hover:shadow-2xl transition-all flex flex-col items-center overflow-hidden relative">
 
-              <Link href={`/catalog/${item.slug}`} className="cursor-pointer w-full flex flex-col items-center h-full">
+              <Link href={`/catalog/${item.slug}`} onClick={() => trackEvent('product_card_click', { product_name: item.name, product_category: item.cat, cta_location: 'catalog_grid' })} className="cursor-pointer w-full flex flex-col items-center h-full">
                 <div className="relative w-full h-48 mb-6 flex items-center justify-center bg-slate-50 rounded-[2rem] p-4 overflow-hidden">
                   <Image
                     src={item.img}
@@ -106,10 +116,10 @@ export default function CatalogClient({ initialProducts }: { initialProducts: Pr
               </Link>
 
               <div className="w-full grid grid-cols-2 gap-2 mt-auto relative z-10">
-                <Link href={`/catalog/${item.slug}`} className="flex items-center justify-center py-3 bg-slate-900 text-white rounded-xl font-black text-[9px] hover:bg-blue-600 transition uppercase text-center">
+                <Link href={`/catalog/${item.slug}`} onClick={() => trackEvent('product_card_click', { product_name: item.name, product_category: item.cat, cta_location: 'catalog_button' })} className="flex items-center justify-center py-3 bg-slate-900 text-white rounded-xl font-black text-[9px] hover:bg-blue-600 transition uppercase text-center">
                   ნახვა
                 </Link>
-                <a href="https://ganvadeba.credo.ge/account/landing/authorization" target="_blank" rel="noopener noreferrer" className="flex items-center justify-center py-3 bg-orange-500 text-white rounded-xl font-black text-[9px] shadow-lg hover:bg-orange-600 transition uppercase text-center">
+                <a href="https://ganvadeba.credo.ge/account/landing/authorization" target="_blank" rel="noopener noreferrer" onClick={() => trackEvent('financing_click', { product_name: item.name, product_category: item.cat, cta_location: 'catalog_grid' })} className="flex items-center justify-center py-3 bg-orange-500 text-white rounded-xl font-black text-[9px] shadow-lg hover:bg-orange-600 transition uppercase text-center">
                   <CreditCard size={12} className="mr-1"/> განვადება
                 </a>
               </div>

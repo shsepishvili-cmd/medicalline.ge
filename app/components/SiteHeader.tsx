@@ -2,7 +2,9 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Phone, Facebook, Instagram } from 'lucide-react';
+import { Phone, Facebook, Instagram, Menu, X } from 'lucide-react';
+import { supabase, isSupabaseReady } from '@/app/lib/supabase';
+import { trackEvent, trackLead } from '@/app/lib/analytics';
 
 const TiktokIcon = ({ size = 22, color = "currentColor" }: { size?: number; color?: string }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill={color} xmlns="http://www.w3.org/2000/svg">
@@ -25,12 +27,44 @@ const socialLinks = {
 
 export default function SiteHeader() {
   const [isScrolled, setIsScrolled] = useState(false);
+  const [userName, setUserName] = useState<string | null>(null);
+  const [userInitials, setUserInitials] = useState<string | null>(null);
+  const [showUserMenu, setShowUserMenu] = useState(false);
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
 
   useEffect(() => {
     const handleScroll = () => setIsScrolled(window.scrollY > 50);
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
+  useEffect(() => {
+    if (!isSupabaseReady) return;
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) loadProfile(session.user.id);
+    });
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) loadProfile(session.user.id);
+      else { setUserName(null); setUserInitials(null); }
+    });
+    return () => subscription.unsubscribe();
+  }, []);
+
+  async function loadProfile(uid: string) {
+    const { data } = await supabase.from('profiles').select('full_name').eq('id', uid).single();
+    if (data?.full_name) {
+      setUserName(data.full_name);
+      setUserInitials(data.full_name.split(' ').map((w: string) => w[0]).join('').substring(0, 2).toUpperCase());
+    }
+  }
+
+  async function handleLogout() {
+    await supabase.auth.signOut();
+    setShowUserMenu(false);
+    setShowMobileMenu(false);
+    setUserName(null);
+    setUserInitials(null);
+  }
 
   return (
     <>
@@ -40,6 +74,7 @@ export default function SiteHeader() {
           href="https://ganvadeba.credo.ge/account/landing/authorization"
           target="_blank"
           rel="noopener noreferrer"
+          onClick={() => trackEvent('financing_click', { cta_location: 'left_sidebar' })}
           className="w-12 h-44 bg-orange-500 text-white flex flex-col items-center justify-center rounded-r-2xl hover:w-16 transition-all shadow-lg shadow-orange-500/20"
         >
           <span className="[writing-mode:vertical-lr] rotate-180 font-black uppercase text-[10px] tracking-widest italic">
@@ -50,26 +85,26 @@ export default function SiteHeader() {
 
       {/* Social sidebar */}
       <div className="fixed right-0 top-1/2 -translate-y-1/2 z-[100] hidden md:flex flex-col gap-2">
-        <a href={socialLinks.whatsapp} target="_blank" rel="noopener noreferrer" className="w-12 h-12 bg-[#25D366] text-white flex items-center justify-center rounded-l-xl hover:w-16 transition-all shadow-lg">
+        <a href={socialLinks.whatsapp} target="_blank" rel="noopener noreferrer" onClick={() => trackLead('whatsapp', { cta_location: 'social_sidebar' })} className="w-12 h-12 bg-[#25D366] text-white flex items-center justify-center rounded-l-xl hover:w-16 transition-all shadow-lg">
           <WhatsappIcon size={24} />
         </a>
-        <a href={socialLinks.facebook} target="_blank" rel="noopener noreferrer" className="w-12 h-12 bg-[#1877F2] text-white flex items-center justify-center rounded-l-xl hover:w-16 transition-all shadow-lg">
+        <a href={socialLinks.facebook} target="_blank" rel="noopener noreferrer" onClick={() => trackEvent('social_click', { network: 'facebook', cta_location: 'social_sidebar' })} className="w-12 h-12 bg-[#1877F2] text-white flex items-center justify-center rounded-l-xl hover:w-16 transition-all shadow-lg">
           <Facebook size={22} />
         </a>
-        <a href={socialLinks.instagram} target="_blank" rel="noopener noreferrer" className="w-12 h-12 bg-black text-white flex items-center justify-center rounded-l-xl hover:w-16 transition-all shadow-lg">
+        <a href={socialLinks.instagram} target="_blank" rel="noopener noreferrer" onClick={() => trackEvent('social_click', { network: 'instagram', cta_location: 'social_sidebar' })} className="w-12 h-12 bg-black text-white flex items-center justify-center rounded-l-xl hover:w-16 transition-all shadow-lg">
           <Instagram size={22} />
         </a>
-        <a href={socialLinks.tiktok} target="_blank" rel="noopener noreferrer" className="w-12 h-12 bg-black text-white flex items-center justify-center rounded-l-xl hover:w-16 transition-all shadow-lg">
+        <a href={socialLinks.tiktok} target="_blank" rel="noopener noreferrer" onClick={() => trackEvent('social_click', { network: 'tiktok', cta_location: 'social_sidebar' })} className="w-12 h-12 bg-black text-white flex items-center justify-center rounded-l-xl hover:w-16 transition-all shadow-lg">
           <TiktokIcon size={20} color="white" />
         </a>
       </div>
 
       {/* Nav */}
-      <nav className={`fixed w-full z-50 transition-all duration-300 ${isScrolled ? 'bg-white shadow-sm py-3' : 'bg-transparent py-6'}`}>
+      <nav className={`fixed w-full z-50 transition-all duration-300 ${isScrolled || showMobileMenu ? 'bg-white shadow-sm py-3' : 'bg-transparent py-6'}`}>
         <div className="max-w-7xl mx-auto px-6 flex justify-between items-center">
           <Link
             href="/"
-            className={`text-lg md:text-2xl font-black uppercase tracking-tighter z-50 relative ${isScrolled ? 'text-blue-600' : 'text-white'}`}
+            className={`text-lg md:text-2xl font-black uppercase tracking-tighter z-50 relative ${isScrolled || showMobileMenu ? 'text-blue-600' : 'text-white'}`}
           >
             Medical Line Georgia
           </Link>
@@ -82,13 +117,103 @@ export default function SiteHeader() {
             <Link href="/blog" className={`${isScrolled ? 'text-slate-900' : 'text-white'} hover:text-blue-500 transition underline decoration-blue-500 underline-offset-4`}>ბლოგი</Link>
             <Link href="#contact" className={`${isScrolled ? 'text-slate-900' : 'text-white'} hover:text-blue-500 transition`}>კონტაქტი</Link>
           </div>
-          <a
-            href="tel:514011116"
-            className={`hidden md:flex items-center gap-2 font-black text-[14px] px-4 py-2 rounded-full border ${isScrolled ? 'text-slate-900 border-slate-200' : 'text-white border-white/30'}`}
-          >
-            <Phone size={16} className="text-blue-600" /> 514 011 116
-          </a>
+          <div className="hidden md:flex items-center gap-3">
+            <a
+              href="tel:514011116"
+              onClick={() => trackLead('phone', { cta_location: 'header_desktop' })}
+              className={`flex items-center gap-2 font-black text-[14px] px-4 py-2 rounded-full border ${isScrolled ? 'text-slate-900 border-slate-200' : 'text-white border-white/30'}`}
+            >
+              <Phone size={16} className="text-blue-600" /> 514 011 116
+            </a>
+            {userName ? (
+              <div className="relative">
+                <button
+                  onClick={() => setShowUserMenu(v => !v)}
+                  className="flex items-center gap-2 bg-blue-600 text-white px-3 py-2 rounded-full font-black text-[11px] uppercase tracking-widest hover:bg-blue-700 transition-all"
+                >
+                  <span className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center text-[10px] font-black">{userInitials}</span>
+                  {userName.split(' ')[0]}
+                </button>
+                {showUserMenu && (
+                  <div className="absolute right-0 top-full mt-2 bg-white rounded-2xl shadow-xl border border-slate-100 py-2 min-w-[160px] z-50">
+                    <Link href="/clinic" onClick={() => setShowUserMenu(false)} className="block px-4 py-2 text-[12px] font-bold text-slate-700 hover:bg-slate-50 transition">🏥 კლინიკის კაბინეტი</Link>
+                    <button onClick={handleLogout} className="w-full text-left px-4 py-2 text-[12px] font-bold text-red-500 hover:bg-red-50 transition">გამოსვლა</button>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <Link
+                href="/clinic"
+                className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-full font-black text-[11px] uppercase tracking-widest hover:bg-blue-700 transition-all"
+              >
+                🔐 კლინიკის კაბინეტი
+              </Link>
+            )}
+          </div>
+          <div className="flex md:hidden items-center gap-2">
+            <Link
+              href="/clinic"
+              className="flex items-center justify-center bg-blue-600 text-white min-w-[108px] px-3 py-2 rounded-full font-black text-[10px] uppercase tracking-[0.12em]"
+            >
+              {userName ? 'კაბინეტი' : 'შესვლა'}
+            </Link>
+            <button
+              type="button"
+              onClick={() => setShowMobileMenu(v => !v)}
+              aria-label={showMobileMenu ? 'Close menu' : 'Open menu'}
+              className={`w-10 h-10 rounded-full border flex items-center justify-center transition ${isScrolled || showMobileMenu ? 'border-slate-200 text-slate-900 bg-white' : 'border-white/30 text-white bg-white/10 backdrop-blur-sm'}`}
+            >
+              {showMobileMenu ? <X size={18} /> : <Menu size={18} />}
+            </button>
+          </div>
         </div>
+        {showMobileMenu && (
+          <div className="md:hidden px-6 pt-5 pb-6 border-t border-slate-100 bg-white shadow-lg">
+            <div className="flex flex-col gap-4 font-black text-[12px] uppercase tracking-widest">
+              <Link href="/" onClick={() => setShowMobileMenu(false)} className="text-slate-900 hover:text-blue-600 transition">მთავარი</Link>
+              <Link href="#about" onClick={() => setShowMobileMenu(false)} className="text-slate-900 hover:text-blue-600 transition">ჩვენს შესახებ</Link>
+              <Link href="#services" onClick={() => setShowMobileMenu(false)} className="text-slate-900 hover:text-blue-600 transition">სერვისი</Link>
+              <Link href="/catalog" onClick={() => setShowMobileMenu(false)} className="text-slate-900 hover:text-blue-600 transition">პროდუქცია</Link>
+              <Link href="/gallery" onClick={() => setShowMobileMenu(false)} className="text-slate-900 hover:text-blue-600 transition">გალერეა</Link>
+              <Link href="/blog" onClick={() => setShowMobileMenu(false)} className="text-slate-900 hover:text-blue-600 transition">ბლოგი</Link>
+              <Link href="#contact" onClick={() => setShowMobileMenu(false)} className="text-slate-900 hover:text-blue-600 transition">კონტაქტი</Link>
+            </div>
+            <div className="mt-5 flex flex-col gap-3">
+              {userName ? (
+                <>
+                  <Link
+                    href="/clinic"
+                    onClick={() => setShowMobileMenu(false)}
+                    className="flex items-center justify-center gap-2 bg-blue-600 text-white px-4 py-3 rounded-2xl font-black text-[11px] uppercase tracking-widest"
+                  >
+                    🏥 კლინიკის კაბინეტი
+                  </Link>
+                  <button
+                    onClick={handleLogout}
+                    className="w-full px-4 py-3 rounded-2xl border border-red-200 text-red-500 font-black text-[11px] uppercase tracking-widest"
+                  >
+                    გამოსვლა
+                  </button>
+                </>
+              ) : (
+                <Link
+                  href="/clinic"
+                  onClick={() => setShowMobileMenu(false)}
+                  className="flex items-center justify-center gap-2 bg-blue-600 text-white px-4 py-3 rounded-2xl font-black text-[11px] uppercase tracking-widest"
+                >
+                  🔐 კლინიკის კაბინეტი
+                </Link>
+              )}
+              <a
+                href="tel:514011116"
+                onClick={() => trackLead('phone', { cta_location: 'header_mobile_menu' })}
+                className="flex items-center justify-center gap-2 px-4 py-3 rounded-2xl border border-slate-200 text-slate-900 font-black text-[11px] uppercase tracking-widest"
+              >
+                <Phone size={16} className="text-blue-600" /> 514 011 116
+              </a>
+            </div>
+          </div>
+        )}
       </nav>
     </>
   );

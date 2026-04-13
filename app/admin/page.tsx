@@ -15,6 +15,13 @@ export default function AdminPage() {
   const [products, setProducts] = useState<any[]>([])
   const [requests, setRequests] = useState<any[]>([])
   const [serviceTickets, setServiceTickets] = useState<any[]>([])
+  const [manualItems, setManualItems] = useState<any[]>([])
+  const [manualTitle, setManualTitle] = useState('')
+  const [manualDescription, setManualDescription] = useState('')
+  const [manualAudience, setManualAudience] = useState<'all' | 'engineer' | 'doctor' | 'admin'>('engineer')
+  const [manualProductId, setManualProductId] = useState('')
+  const [manualTags, setManualTags] = useState('')
+  const [manualFile, setManualFile] = useState<File | null>(null)
   const [saved, setSaved] = useState<string | null>(null)
   const [saveError, setSaveError] = useState<string | null>(null)
   const [requestFilter, setRequestFilter] = useState<'all' | 'new' | 'inprogress' | 'done'>('all')
@@ -75,11 +82,12 @@ export default function AdminPage() {
   }
 
   async function loadAll() {
-    const [u, p, r, s] = await Promise.all([
+    const [u, p, r, s, a] = await Promise.all([
       supabase.from('profiles').select('*').order('created_at', { ascending: false }),
       supabase.from('products').select('*, prices(*)').order('sort_order'),
       supabase.from('requests').select('*, client:profiles!requests_user_id_fkey(full_name,clinic_name,phone), assignee:profiles!requests_assigned_to_fkey(full_name,phone), products(name)').order('created_at', { ascending: false }),
       supabase.from('service_tickets').select('*, client:profiles!service_tickets_user_id_fkey(full_name,clinic_name,phone), engineer:profiles!service_tickets_engineer_id_fkey(full_name,phone), products(name)').order('created_at', { ascending: false }),
+      supabase.from('academy_items').select('id, title, description, audience, mime_type, url, created_at, products(name)').eq('type', 'manual').order('created_at', { ascending: false }),
     ])
     if (u.data) setUsers(u.data)
     if (p.data) {
@@ -112,6 +120,7 @@ export default function AdminPage() {
     }
     if (r.data) setRequests(r.data)
     if (s.data) setServiceTickets(s.data)
+    if (a.data) setManualItems(a.data)
   }
 
   async function loginAsAdmin() {
@@ -170,13 +179,17 @@ export default function AdminPage() {
     if (!productId) return
 
     const baseMonthly = Math.round(price / 12)
-    const { error } = await supabase.from('prices').upsert({
+
+    // delete all existing price rows for this product (handles duplicates)
+    await supabase.from('prices').delete().eq('product_id', productId)
+
+    const { error } = await supabase.from('prices').insert({
       product_id: productId,
       price_gel: price,
       installment_monthly: baseMonthly,
       installment_months: 12,
       note: 'განვადება Credo-ს გავლით',
-    }, { onConflict: 'product_id' })
+    })
 
     if (error) {
       setSaveError(error.message)
@@ -215,6 +228,60 @@ export default function AdminPage() {
       return
     }
     setSaveError(null)
+    loadAll()
+  }
+
+  async function uploadManual() {
+    if (!manualTitle.trim() || !manualFile) {
+      setSaveError('Manual title and file are required.')
+      return
+    }
+
+    setSaveError(null)
+
+    const ext = manualFile.name.includes('.') ? manualFile.name.split('.').pop() : 'pdf'
+    const safeName = manualFile.name.replace(/[^a-zA-Z0-9._-]/g, '-')
+    const path = `manuals/${Date.now()}-${safeName || `manual.${ext}`}`
+
+    const { data: uploaded, error: uploadError } = await supabase.storage
+      .from('service-manuals')
+      .upload(path, manualFile, { upsert: true, contentType: manualFile.type || 'application/pdf' })
+
+    if (uploadError || !uploaded?.path) {
+      setSaveError(uploadError?.message || 'Manual upload failed.')
+      return
+    }
+
+    const { data: publicFile } = supabase.storage.from('service-manuals').getPublicUrl(uploaded.path)
+
+    const { error: insertError } = await supabase.from('academy_items').insert({
+      type: 'manual',
+      title: manualTitle.trim(),
+      description: manualDescription.trim() || null,
+      url: publicFile.publicUrl,
+      file_path: uploaded.path,
+      file_size_bytes: manualFile.size,
+      mime_type: manualFile.type || 'application/pdf',
+      product_id: manualProductId || null,
+      audience: manualAudience,
+      tags: manualTags.split(',').map(tag => tag.trim()).filter(Boolean),
+      is_active: true,
+      sort_order: 0,
+    })
+
+    if (insertError) {
+      setSaveError(insertError.message)
+      return
+    }
+
+    setManualTitle('')
+    setManualDescription('')
+    setManualAudience('engineer')
+    setManualProductId('')
+    setManualTags('')
+    setManualFile(null)
+    setSaved(`manual-${Date.now()}`)
+    setTimeout(() => setSaved(null), 2000)
     loadAll()
   }
 
@@ -426,6 +493,53 @@ export default function AdminPage() {
                   {saveError}
                 </div>
               )}
+              <div style={{ background: '#fff', borderRadius: 12, padding: '16px', border: '0.5px solid rgba(0,0,0,0.08)', marginBottom: 16 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'center', marginBottom: 12 }}>
+                  <div>
+                    <p style={{ fontSize: 14, fontWeight: 600, color: '#1a1a1a', margin: 0 }}>Manual Upload Base</p>
+                    <p style={{ fontSize: 12, color: '#666', margin: '6px 0 0' }}>Upload service manuals for the engineering cabinet. Files are saved in Supabase Storage and indexed in `academy_items`.</p>
+                  </div>
+                  <div style={{ background: '#E1F5EE', color: '#085041', borderRadius: 10, padding: '8px 10px', fontSize: 12, fontWeight: 700 }}>
+                    {manualItems.length} manuals
+                  </div>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr 1fr', gap: 10, marginBottom: 10 }}>
+                  <input value={manualTitle} onChange={e => setManualTitle(e.target.value)} placeholder="Manual title" style={{ padding: '9px 10px', borderRadius: 10, border: '0.5px solid rgba(0,0,0,0.15)', fontSize: 12 }} />
+                  <select value={manualAudience} onChange={e => setManualAudience(e.target.value as any)} style={{ padding: '9px 10px', borderRadius: 10, border: '0.5px solid rgba(0,0,0,0.15)', fontSize: 12 }}>
+                    <option value="engineer">Engineer only</option>
+                    <option value="all">All users</option>
+                    <option value="doctor">Doctors</option>
+                    <option value="admin">Admin only</option>
+                  </select>
+                  <select value={manualProductId} onChange={e => setManualProductId(e.target.value)} style={{ padding: '9px 10px', borderRadius: 10, border: '0.5px solid rgba(0,0,0,0.15)', fontSize: 12 }}>
+                    <option value="">General manual</option>
+                    {products.filter(product => Boolean(product.dbId)).map((product) => (
+                      <option key={product.dbId} value={product.dbId}>{product.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr auto', gap: 10, marginBottom: 12 }}>
+                  <input value={manualDescription} onChange={e => setManualDescription(e.target.value)} placeholder="Short description" style={{ padding: '9px 10px', borderRadius: 10, border: '0.5px solid rgba(0,0,0,0.15)', fontSize: 12 }} />
+                  <input value={manualTags} onChange={e => setManualTags(e.target.value)} placeholder="Tags: scanner, calibration" style={{ padding: '9px 10px', borderRadius: 10, border: '0.5px solid rgba(0,0,0,0.15)', fontSize: 12 }} />
+                  <input type="file" accept=".pdf,.doc,.docx,.png,.jpg,.jpeg" onChange={e => setManualFile(e.target.files?.[0] || null)} style={{ fontSize: 12 }} />
+                </div>
+                <button onClick={uploadManual} style={{ padding: '10px 14px', background: '#085041', color: '#fff', border: 'none', borderRadius: 10, fontSize: 12, cursor: 'pointer', fontWeight: 600 }}>
+                  {saved?.startsWith('manual-') ? 'Uploaded' : 'Upload manual'}
+                </button>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 14 }}>
+                  {manualItems.slice(0, 8).map((manual) => (
+                    <div key={manual.id} style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'center', background: '#fafaf8', borderRadius: 10, padding: '10px 12px', border: '0.5px solid rgba(0,0,0,0.06)' }}>
+                      <div>
+                        <p style={{ fontSize: 12, fontWeight: 600, color: '#1a1a1a', margin: 0 }}>{manual.title}</p>
+                        <p style={{ fontSize: 11, color: '#777', margin: '4px 0 0' }}>{manual.products?.name || 'General'} · {manual.audience || 'all'}</p>
+                      </div>
+                      <a href={manual.url} target="_blank" rel="noreferrer" style={{ fontSize: 12, color: '#085041', textDecoration: 'none', fontWeight: 600 }}>
+                        Open
+                      </a>
+                    </div>
+                  ))}
+                </div>
+              </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1.2fr .8fr', gap: 12, marginBottom: 16 }}>
                 <div style={{ background: '#fff', borderRadius: 12, padding: '14px 16px', border: '0.5px solid rgba(0,0,0,0.08)' }}>
                   <p style={{ fontSize: 14, fontWeight: 600, color: '#1a1a1a', margin: '0 0 8px' }}>Engineering Division</p>
@@ -558,6 +672,20 @@ export default function AdminPage() {
                     </div>
                     {ticket.serial_number && <p style={{ fontSize: 12, color: '#444', margin: '10px 0 0' }}>Serial: {ticket.serial_number}</p>}
                     <p style={{ fontSize: 13, color: '#444', lineHeight: 1.5, margin: '10px 0 0' }}>{ticket.problem_desc}</p>
+                    {ticket.attachments && ticket.attachments.length > 0 && (
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 10 }}>
+                        {ticket.attachments.map((url: string, i: number) => {
+                          const isVideo = url.match(/\.(mp4|mov|webm|avi)(\?|$)/i)
+                          return isVideo ? (
+                            <video key={i} src={url} controls style={{ width: 120, height: 90, borderRadius: 10, objectFit: 'cover', background: '#000' }} />
+                          ) : (
+                            <a key={i} href={url} target="_blank" rel="noreferrer">
+                              <img src={url} alt={`att-${i}`} style={{ width: 90, height: 90, borderRadius: 10, objectFit: 'cover', border: '0.5px solid #ddd', cursor: 'pointer' }} />
+                            </a>
+                          )
+                        })}
+                      </div>
+                    )}
                     <div style={{ display: 'grid', gridTemplateColumns: '220px 180px 1fr auto', gap: 8, marginTop: 12, alignItems: 'center' }}>
                       <select
                         defaultValue={ticket.engineer_id || ''}

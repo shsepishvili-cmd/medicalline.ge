@@ -1,45 +1,33 @@
+import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { blogArticles } from '../blogData';
 import BlogContent from './BlogContent';
+import { absoluteImageUrl, buildPageMetadata, siteConfig } from '@/app/lib/seo';
 
-export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}): Promise<Metadata> {
   const { slug } = await params;
-  const post = blogArticles.find((p) => p.slug === slug);
-  if (!post) return { title: 'სტატია ვერ მოიძებნა | Medical Line' };
+  const post = blogArticles.find((item) => item.slug === slug);
 
-  const absoluteImage = post.image.startsWith('http')
-    ? post.image
-    : `https://medicalline.ge${post.image}`;
+  if (!post) {
+    return buildPageMetadata({
+      path: `/blog/${slug}`,
+      title: 'Article Not Found | Medical Line',
+      description: 'Requested blog article could not be found.',
+    });
+  }
 
-  return {
-    title: `${post.title} | Medical Line`,
+  return buildPageMetadata({
+    path: `/blog/${slug}`,
+    title: post.title,
     description: post.excerpt,
-    alternates: {
-      canonical: `https://medicalline.ge/blog/${slug}`,
-    },
-    openGraph: {
-      title: post.title,
-      description: post.excerpt,
-      url: `https://medicalline.ge/blog/${slug}`,
-      siteName: 'Medical Line Georgia',
-      type: 'article',
-      publishedTime: post.date,
-      images: [
-        {
-          url: absoluteImage,
-          width: 1200,
-          height: 630,
-          alt: post.title,
-        },
-      ],
-    },
-    twitter: {
-      card: 'summary_large_image',
-      title: post.title,
-      description: post.excerpt,
-      images: [absoluteImage],
-    },
-  };
+    image: post.image,
+    keywords: [post.category, ...(post.tags || [])],
+    type: 'article',
+  });
 }
 
 export function generateStaticParams() {
@@ -48,11 +36,42 @@ export function generateStaticParams() {
 
 export default async function Page({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const post = blogArticles.find((p) => p.slug === slug);
+  const post = blogArticles.find((item) => item.slug === slug);
 
   if (!post) {
     notFound();
   }
 
-  return <BlogContent post={post!} />;
+  const articleSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'Article',
+    headline: post.title,
+    description: post.excerpt,
+    image: [absoluteImageUrl(post.image)],
+    author: {
+      '@type': 'Organization',
+      name: siteConfig.name,
+    },
+    publisher: {
+      '@type': 'Organization',
+      name: siteConfig.name,
+      logo: {
+        '@type': 'ImageObject',
+        url: absoluteImageUrl('/images/ml-logo.png'),
+      },
+    },
+    mainEntityOfPage: `${siteConfig.url}/blog/${slug}`,
+    articleSection: post.category,
+    keywords: (post.tags || []).join(', '),
+  };
+
+  return (
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(articleSchema) }}
+      />
+      <BlogContent post={post} />
+    </>
+  );
 }
