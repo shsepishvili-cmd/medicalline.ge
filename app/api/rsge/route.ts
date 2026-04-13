@@ -158,8 +158,10 @@ async function saveWaybillHeader(
   invoiceType: number
 ): Promise<number> {
   const opDate  = (String(inv.date || '').split('T')[0] || new Date().toISOString().split('T')[0]) + 'T00:00:00'
+  const rawTime = String(meta.docTime || '00:00:00')
+  const docTime = rawTime.length === 5 ? rawTime + ':00' : rawTime   // HH:MM → HH:MM:SS
   const docDate = meta.docDate
-    ? `${meta.docDate}T${String(meta.docTime || '00:00:00')}`
+    ? `${meta.docDate}T${docTime}`
     : opDate
 
   const res = await soapCall('save_invoice_b_n', `
