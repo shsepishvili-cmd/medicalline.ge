@@ -2724,11 +2724,22 @@ async function rsSearch() {
   }
 }
 
+function toggleRsWaybillBox() {
+  const isWaybill = document.getElementById('rs-type-waybill')?.checked;
+  const box = document.querySelector('.rs-waybill-box');
+  if (box) box.style.display = isWaybill ? '' : 'none';
+  const invLabel = document.getElementById('rs-type-invoice-label');
+  const wbLabel  = document.getElementById('rs-type-waybill-label');
+  if (invLabel) invLabel.style.borderColor = isWaybill ? 'var(--border)' : 'var(--brand)';
+  if (wbLabel)  wbLabel.style.borderColor  = isWaybill ? 'var(--brand)' : 'var(--border)';
+}
+
 async function confirmRsUpload() {
   const { username, password, senderTin, driverInfo, driverNo, transportMark, docDate, docTime, transportType, transportKind, senderName, recipientName, senderAddress, recipientAddress, waybillNote } = getRsRuntimeValues();
   if(!username || !password){ alert('Rs.ge მომხმარებელი და პაროლი სავალდებულოა'); return; }
   if(!senderTin){ alert('კომპანიის ს/კ სავალდებულოა'); return; }
   if(!pendingRsInvoice){ alert('ინვოისი არ არის შერჩეული'); return; }
+  const isWaybill = document.getElementById('rs-type-waybill')?.checked;
 
   await persistRsSettings({
     rsUser: username,
@@ -2769,7 +2780,7 @@ async function confirmRsUpload() {
 
   try {
     const data = await callRsProxy({
-      action:'upload_invoice',
+      action: isWaybill ? 'upload_waybill' : 'upload_invoice',
       username, password, senderTin,
       invoice: invoicePayload
     });
@@ -2815,6 +2826,16 @@ loadAll();
       <button class="btn btn-ghost btn-sm" onclick="closeModal('rsge-creds-modal')">✕</button>
     </div>
     <div class="modal-body">
+      <div style="display:flex;gap:8px;margin-bottom:14px">
+        <label style="flex:1;display:flex;align-items:center;gap:8px;padding:10px 14px;border:2px solid var(--border);border-radius:8px;cursor:pointer;font-size:13px;font-weight:500" id="rs-type-invoice-label">
+          <input type="radio" name="rs-doc-type" value="invoice" id="rs-type-invoice" onchange="toggleRsWaybillBox()" checked style="accent-color:var(--brand)">
+          ანგარიშ-ფაქტურა
+        </label>
+        <label style="flex:1;display:flex;align-items:center;gap:8px;padding:10px 14px;border:2px solid var(--border);border-radius:8px;cursor:pointer;font-size:13px;font-weight:500" id="rs-type-waybill-label">
+          <input type="radio" name="rs-doc-type" value="waybill" id="rs-type-waybill" onchange="toggleRsWaybillBox()" style="accent-color:var(--brand)">
+          ზედნადები
+        </label>
+      </div>
       <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:12px 14px;margin-bottom:16px;font-size:12px;color:#1d4ed8;line-height:1.7">
         <strong>მნიშვნელოვანი:</strong> Rs.ge-ს ეს მონაცემები ინახება ამ პლატფორმის სეთინგებში, რომ ყოველ ჯერზე თავიდან აღარ შეგიყვანოთ.
       </div>
@@ -2826,7 +2847,7 @@ loadAll();
         <div class="field"><label>მძღოლის პირადი ნომერი</label><input type="text" id="rs-driver-no" placeholder="01001010101"></div>
         <div class="field"><label>მანქანის ნომერი</label><input type="text" id="rs-transport-mark" placeholder="AA-123-BB"></div>
       </div>
-        <div class="rs-waybill-box">
+        <div class="rs-waybill-box" style="display:none">
           <div class="rs-waybill-title">ზედნადების მონაცემები</div>
           <div class="rs-form-grid-2">
             <div class="field"><label>დოკუმენტის თარიღი</label><input type="date" id="rs-doc-date"></div>
