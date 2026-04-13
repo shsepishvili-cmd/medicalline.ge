@@ -1,0 +1,2877 @@
+﻿<!DOCTYPE html>
+<html lang="ka">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>áƒ›áƒ”áƒ“áƒ˜áƒ¥áƒáƒš áƒšáƒáƒ˜áƒœ áƒ¯áƒáƒ áƒ¯áƒ˜áƒ â€” áƒ˜áƒœáƒ•áƒáƒ˜áƒ¡áƒ”áƒ‘áƒ˜áƒ¡ áƒžáƒšáƒáƒ¢áƒ¤áƒáƒ áƒ›áƒ</title>
+<style>
+:root {
+  --brand: #2563eb;
+  --brand-light: #eff6ff;
+  --brand-dark: #1d4ed8;
+  --text: #0f172a;
+  --text-muted: #64748b;
+  --text-light: #94a3b8;
+  --border: #e2e8f0;
+  --bg: #ffffff;
+  --bg-soft: #f8fafc;
+  --bg-card: #ffffff;
+  --success: #16a34a;
+  --success-bg: #f0fdf4;
+  --warning: #d97706;
+  --warning-bg: #fffbeb;
+  --danger: #dc2626;
+  --danger-bg: #fef2f2;
+  --radius: 10px;
+  --radius-lg: 16px;
+  --shadow: 0 1px 3px rgba(0,0,0,.06), 0 1px 2px rgba(0,0,0,.04);
+  --shadow-md: 0 4px 16px rgba(0,0,0,.08);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif; background: var(--bg-soft); color: var(--text); font-size: 14px; line-height: 1.5; }
+a { color: var(--brand); text-decoration: none; }
+
+/* LAYOUT */
+.app { display: flex; height: 100vh; overflow: hidden; }
+.sidebar {
+  width: 220px; flex-shrink: 0;
+  background: var(--bg);
+  border-right: 1px solid var(--border);
+  display: flex; flex-direction: column;
+  overflow-y: auto;
+}
+.content { flex: 1; overflow-y: auto; }
+
+/* SIDEBAR */
+.sidebar-logo {
+  padding: 20px 20px 16px;
+  border-bottom: 1px solid var(--border);
+}
+.logo-mark {
+  display: flex; align-items: center; gap: 8px;
+}
+.logo-icon {
+  width: 32px; height: 32px; border-radius: 8px;
+  background: var(--brand);
+  display: flex; align-items: center; justify-content: center;
+  color: #fff; font-weight: 700; font-size: 14px;
+}
+.logo-name { font-size: 15px; font-weight: 700; color: var(--text); letter-spacing: -.3px; }
+.logo-sub { font-size: 11px; color: var(--text-muted); margin-top: 1px; }
+
+.nav-section { padding: 12px 12px 4px; font-size: 10px; font-weight: 600; color: var(--text-light); text-transform: uppercase; letter-spacing: .8px; }
+.nav-item {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 12px; border-radius: 8px; margin: 1px 8px;
+  cursor: pointer; color: var(--text-muted); font-size: 13px; font-weight: 500;
+  transition: all .15s;
+}
+.nav-item:hover { background: var(--bg-soft); color: var(--text); }
+.nav-item.active { background: var(--brand-light); color: var(--brand); }
+.nav-item svg { width: 16px; height: 16px; flex-shrink: 0; }
+.nav-badge {
+  margin-left: auto; background: var(--brand); color: #fff;
+  font-size: 10px; font-weight: 600; padding: 1px 6px; border-radius: 20px;
+}
+
+
+/* TOPBAR */
+.topbar {
+  background: var(--bg); border-bottom: 1px solid var(--border);
+  padding: 0 24px; height: 56px;
+  display: flex; align-items: center; justify-content: space-between;
+  position: sticky; top: 0; z-index: 10;
+}
+.topbar-title { font-size: 16px; font-weight: 700; color: var(--text); }
+.topbar-actions { display: flex; align-items: center; gap: 8px; }
+
+/* BUTTONS */
+.btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 7px 14px; border-radius: 8px; font-size: 13px; font-weight: 500;
+  cursor: pointer; border: 1px solid transparent; transition: all .15s;
+  font-family: inherit; white-space: nowrap;
+}
+.btn-primary { background: var(--brand); color: #fff; border-color: var(--brand); }
+.btn-primary:hover { background: var(--brand-dark); border-color: var(--brand-dark); }
+.btn-secondary { background: var(--bg); color: var(--text); border-color: var(--border); }
+.btn-secondary:hover { background: var(--bg-soft); }
+.btn-ghost { background: transparent; color: var(--text-muted); border-color: transparent; }
+.btn-ghost:hover { background: var(--bg-soft); color: var(--text); }
+.btn-sm { padding: 5px 10px; font-size: 12px; }
+.btn-danger { background: var(--danger-bg); color: var(--danger); border-color: #fecaca; }
+.btn-success { background: var(--success-bg); color: var(--success); border-color: #bbf7d0; }
+.btn svg { width: 14px; height: 14px; }
+
+/* PAGES */
+.page { display: none; padding: 24px; }
+.page.active { display: block; }
+
+/* STATS */
+.stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 24px; }
+.stat-card {
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: var(--radius-lg); padding: 18px 20px;
+  box-shadow: var(--shadow);
+}
+.stat-label { font-size: 12px; color: var(--text-muted); font-weight: 500; margin-bottom: 6px; display: flex; align-items: center; gap: 6px; }
+.stat-label svg { width: 14px; height: 14px; }
+.stat-value { font-size: 26px; font-weight: 700; color: var(--text); letter-spacing: -.5px; line-height: 1; }
+.stat-sub { font-size: 11px; color: var(--text-light); margin-top: 4px; }
+.stat-card.green .stat-value { color: var(--success); }
+.stat-card.blue .stat-value { color: var(--brand); }
+.stat-card.orange .stat-value { color: var(--warning); }
+.stat-card.red .stat-value { color: var(--danger); }
+
+/* CARD */
+.card {
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: var(--radius-lg); box-shadow: var(--shadow);
+  overflow: hidden; margin-bottom: 20px;
+}
+.card-header {
+  padding: 14px 20px; border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+}
+.card-title { font-size: 14px; font-weight: 600; color: var(--text); }
+
+/* TABLE */
+table { width: 100%; border-collapse: collapse; }
+th {
+  padding: 10px 16px; text-align: left;
+  font-size: 11px; font-weight: 600; color: var(--text-muted);
+  text-transform: uppercase; letter-spacing: .5px;
+  background: var(--bg-soft); border-bottom: 1px solid var(--border);
+}
+td {
+  padding: 12px 16px; border-bottom: 1px solid var(--border);
+  color: var(--text); vertical-align: middle;
+}
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: #fafbfc; }
+.td-muted { color: var(--text-muted); font-size: 12px; }
+
+/* STATUS BADGES */
+.badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 3px 8px; border-radius: 20px; font-size: 11px; font-weight: 600;
+}
+.badge-dot { width: 5px; height: 5px; border-radius: 50%; }
+.badge-paid { background: var(--success-bg); color: var(--success); }
+.badge-paid .badge-dot { background: var(--success); }
+.badge-sent { background: var(--brand-light); color: var(--brand); }
+.badge-sent .badge-dot { background: var(--brand); }
+.badge-draft { background: var(--bg-soft); color: var(--text-muted); border: 1px solid var(--border); }
+.badge-draft .badge-dot { background: var(--text-light); }
+.badge-overdue { background: var(--danger-bg); color: var(--danger); }
+.badge-overdue .badge-dot { background: var(--danger); }
+
+/* FORM */
+.form-section { padding: 20px; }
+.form-section + .form-section { border-top: 1px solid var(--border); }
+.section-label { font-size: 12px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: .6px; margin-bottom: 14px; }
+.form-grid { display: grid; gap: 14px; }
+.form-grid-2 { grid-template-columns: 1fr 1fr; }
+.form-grid-3 { grid-template-columns: 1fr 1fr 1fr; }
+.form-grid-4 { grid-template-columns: 2fr 1fr 1fr 1fr; }
+.field label { display: block; font-size: 12px; font-weight: 500; color: var(--text-muted); margin-bottom: 5px; }
+.field input, .field select, .field textarea {
+  width: 100%; padding: 8px 11px;
+  border: 1px solid var(--border); border-radius: 8px;
+  font-size: 13px; font-family: inherit; color: var(--text);
+  background: var(--bg); transition: border-color .15s;
+}
+.field input:focus, .field select:focus, .field textarea:focus {
+  outline: none; border-color: var(--brand);
+  box-shadow: 0 0 0 3px rgba(37,99,235,.1);
+}
+.field textarea { resize: vertical; }
+.field-full { grid-column: 1/-1; }
+
+/* ITEMS TABLE */
+.items-wrap { padding: 0 20px 16px; }
+.items-table { width: 100%; border-collapse: collapse; margin-bottom: 10px; }
+.items-table th {
+  padding: 8px 8px; font-size: 11px; background: var(--bg-soft);
+  border-bottom: 1px solid var(--border); text-transform: uppercase;
+  letter-spacing: .4px; color: var(--text-muted); font-weight: 600;
+}
+.items-table td { padding: 5px 4px; border-bottom: none; }
+.items-table td input, .items-table td select {
+  width: 100%; padding: 7px 8px; border: 1px solid var(--border); border-radius: 7px;
+  font-size: 13px; font-family: inherit; background: var(--bg); color: var(--text);
+}
+.items-table .col-prod input[list="line-product-options"],
+.items-table .col-prod input[placeholder*="Ã¡Æ’â€œÃ¡Æ’ÂÃ¡Æ’Â¡Ã¡Æ’ÂÃ¡Æ’Â®Ã¡Æ’â€Ã¡Æ’Å¡"],
+.items-table .col-prod select + input[type="text"] {
+  display: none;
+}
+.items-table td input:focus, .items-table td select:focus {
+  outline: none; border-color: var(--brand); box-shadow: 0 0 0 2px rgba(37,99,235,.1);
+}
+.items-table .col-no { width: 36px; text-align: center; }
+.items-table .col-prod { width: 34%; }
+.items-table .col-desc { width: 26%; }
+.items-table .col-qty { width: 70px; }
+.items-table .col-price { width: 100px; }
+.items-table .col-total { width: 100px; text-align: right; }
+.items-table .col-del { width: 32px; text-align: center; }
+.item-total { text-align: right; font-weight: 600; font-size: 13px; padding-right: 8px !important; color: var(--text); }
+.del-btn {
+  background: none; border: none; cursor: pointer; color: var(--text-light);
+  width: 26px; height: 26px; display: flex; align-items: center; justify-content: center;
+  border-radius: 6px; transition: all .15s;
+}
+.del-btn:hover { color: var(--danger); background: var(--danger-bg); }
+
+/* TOTALS */
+.totals-box { margin-left: auto; width: 280px; padding: 14px 16px; background: var(--bg-soft); border-radius: 10px; border: 1px solid var(--border); }
+.total-row { display: flex; justify-content: space-between; font-size: 13px; padding: 4px 0; color: var(--text-muted); }
+.total-row span:last-child { font-weight: 500; color: var(--text); }
+.total-grand { display: flex; justify-content: space-between; font-size: 15px; font-weight: 700; color: var(--text); padding-top: 10px; margin-top: 6px; border-top: 2px solid var(--border); }
+
+/* MODAL */
+.modal-bg {
+  display: none; position: fixed; inset: 0;
+  background: rgba(15,23,42,.5); backdrop-filter: blur(2px);
+  z-index: 100; align-items: center; justify-content: center;
+}
+.modal-bg.open { display: flex; }
+.modal {
+  background: var(--bg); border-radius: var(--radius-lg);
+  border: 1px solid var(--border); box-shadow: var(--shadow-md);
+  width: 95%; max-width: 660px; max-height: 90vh; overflow-y: auto;
+}
+.modal-head {
+  padding: 18px 20px; border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+}
+.modal-head h3 { font-size: 15px; font-weight: 700; }
+.modal-body { padding: 20px; }
+.modal-foot { padding: 14px 20px; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 8px; }
+
+/* PRODUCT FORM */
+.retro-modal {
+  max-width: 840px;
+  border-radius: 0;
+  border: 2px solid #7b7b7b;
+  box-shadow: 0 18px 40px rgba(15,23,42,.28);
+  background: #d9d4d4;
+  overflow: hidden;
+}
+.retro-titlebar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 7px 10px;
+  background: linear-gradient(180deg, #b9cde6 0%, #7e9ec4 100%);
+  color: #13263e;
+  border-bottom: 1px solid #6f859f;
+}
+.retro-titlebar h3 { font-size: 15px; font-weight: 700; margin: 0; }
+.retro-title-actions { display: flex; gap: 4px; }
+.retro-window-btn {
+  width: 24px;
+  height: 22px;
+  border: 1px solid #6f6f6f;
+  background: linear-gradient(180deg, #fdfdfd 0%, #d9d9d9 100%);
+  color: #1f2937;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+}
+.retro-body {
+  padding: 18px 18px 12px;
+  background: #d9d4d4;
+}
+.retro-banner {
+  margin-bottom: 14px;
+  border: 1px solid #c9c2c2;
+  background: #efefef;
+  color: #1847cc;
+  text-align: center;
+  font-size: 13px;
+  padding: 10px 12px;
+}
+.retro-grid { display: grid; grid-template-columns: 1.1fr .9fr; gap: 18px; }
+.retro-panel {
+  border: 1px solid #b6afaf;
+  background: rgba(255,255,255,.18);
+  padding: 14px;
+}
+.retro-panel .field label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: #3b2f2f;
+  margin-bottom: 5px;
+}
+.retro-panel .field input,
+.retro-panel .field select,
+.retro-panel .field textarea {
+  width: 100%;
+  border: 2px solid #9f9f9f;
+  border-top-color: #f8f8f8;
+  border-left-color: #f8f8f8;
+  background: #ffffff;
+  color: #111827;
+  padding: 8px 10px;
+  font-size: 13px;
+  font-family: 'Segoe UI', Tahoma, sans-serif;
+  border-radius: 0;
+  box-shadow: inset 1px 1px 0 #c8c8c8;
+}
+.retro-panel .field textarea { min-height: 92px; resize: vertical; }
+.retro-fieldset { display: grid; gap: 12px; }
+.retro-field label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: #3b2f2f;
+  margin-bottom: 5px;
+}
+.retro-field input,
+.retro-field select,
+.retro-field textarea {
+  width: 100%;
+  border: 2px solid #9f9f9f;
+  border-top-color: #f8f8f8;
+  border-left-color: #f8f8f8;
+  background: #ffffff;
+  color: #111827;
+  padding: 8px 10px;
+  font-size: 13px;
+  font-family: 'Segoe UI', Tahoma, sans-serif;
+  border-radius: 0;
+  box-shadow: inset 1px 1px 0 #c8c8c8;
+}
+.retro-field textarea { min-height: 92px; resize: vertical; }
+.retro-inline { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.retro-code-row { display: grid; grid-template-columns: 1.2fr auto .9fr; gap: 10px; align-items: end; }
+.retro-scan-btn {
+  height: 38px;
+  width: 42px;
+  border: 2px solid #7c7c7c;
+  background: linear-gradient(180deg, #ffffff 0%, #d4d4d4 100%);
+  cursor: pointer;
+  font-size: 18px;
+}
+.retro-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-top: 24px;
+  color: #2f2f2f;
+  font-size: 12px;
+  font-weight: 600;
+}
+.retro-check input { width: 16px; height: 16px; accent-color: #1847cc; }
+.retro-sidecard {
+  border: 1px solid #a8a0a0;
+  background: #ebe7e7;
+  padding: 14px;
+}
+.retro-sidecard h4 {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: .4px;
+  color: #5a5353;
+  margin: 0 0 10px;
+}
+.retro-note { font-size: 12px; line-height: 1.6; color: #4b5563; }
+.retro-note strong { color: #1f2937; }
+.retro-actions {
+  padding: 12px 18px 18px;
+  background: #d9d4d4;
+  border-top: 1px solid #b8b0b0;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+.retro-btn {
+  min-width: 100px;
+  padding: 9px 16px;
+  border: 2px solid #7c7c7c;
+  background: linear-gradient(180deg, #fefefe 0%, #d6d6d6 100%);
+  color: #111827;
+  font-size: 13px;
+  cursor: pointer;
+  box-shadow: inset 1px 1px 0 #ffffff;
+}
+.retro-btn.primary {
+  background: linear-gradient(180deg, #eef4ff 0%, #c8d7f3 100%);
+  color: #163d98;
+}
+.line-entry-hint {
+  margin-top: 10px;
+  padding: 10px 12px;
+  border: 1px dashed #bfdbfe;
+  border-radius: 10px;
+  background: #eff6ff;
+  color: #1d4ed8;
+  font-size: 12px;
+}
+.line-entry-hint strong { color: #1e3a8a; }
+.manual-line-box {
+  margin-top: 6px;
+  padding: 8px;
+  border: 1px solid #bfdbfe;
+  border-radius: 8px;
+  background: #f8fbff;
+}
+.manual-line-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: #1d4ed8;
+  text-transform: uppercase;
+  letter-spacing: .4px;
+  margin-bottom: 6px;
+}
+.rs-form-grid {
+  display: grid;
+  gap: 14px;
+}
+.rs-form-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+.rs-waybill-box {
+  margin-top: 16px;
+  padding: 14px;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  background: #f8fafc;
+}
+.rs-waybill-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--brand);
+  margin-bottom: 10px;
+}
+
+/* RS.GE search */
+.rs-search-row { display: flex; gap: 8px; margin-bottom: 14px; }
+.rs-search-row input { flex: 1; }
+.rs-result {
+  padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px;
+  margin-bottom: 6px; cursor: pointer; transition: all .15s;
+}
+.rs-result:hover, .rs-result.selected { border-color: var(--brand); background: var(--brand-light); }
+.rs-result-name { font-size: 13px; font-weight: 600; color: var(--text); }
+.rs-result-id { font-size: 11px; color: var(--text-muted); }
+
+/* PREVIEW */
+.preview-page { padding: 32px; background: #fff; max-width: 720px; margin: 0 auto; }
+.preview-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 28px; padding-bottom: 20px; border-bottom: 3px solid var(--brand-color, var(--brand)); }
+.preview-logo-area .company-name { font-size: 20px; font-weight: 800; color: var(--brand-color, var(--brand)); }
+.preview-logo-area .company-meta { font-size: 12px; color: var(--text-muted); line-height: 1.7; margin-top: 4px; }
+.preview-inv-title { font-size: 32px; font-weight: 800; color: var(--brand-color, var(--brand)); text-align: right; }
+.preview-inv-meta { font-size: 12px; color: var(--text-muted); text-align: right; line-height: 1.9; margin-top: 4px; }
+.preview-parties { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 24px; }
+.preview-party-label { font-size: 10px; font-weight: 700; color: var(--text-light); text-transform: uppercase; letter-spacing: .6px; margin-bottom: 6px; }
+.preview-party-name { font-size: 14px; font-weight: 700; color: var(--text); }
+.preview-party-meta { font-size: 12px; color: var(--text-muted); line-height: 1.7; }
+.preview-tbl { width: 100%; border-collapse: collapse; margin-bottom: 16px; }
+.preview-tbl th { padding: 9px 12px; background: var(--brand-color, var(--brand)); color: #fff; font-size: 11px; text-align: left; font-weight: 600; }
+.preview-tbl th:last-child { text-align: right; }
+.preview-tbl td { padding: 9px 12px; border-bottom: 1px solid var(--border); font-size: 13px; }
+.preview-tbl td:last-child { text-align: right; font-weight: 600; }
+.preview-totals { max-width: 260px; margin-left: auto; }
+.preview-total-row { display: flex; justify-content: space-between; font-size: 13px; padding: 4px 0; color: var(--text-muted); }
+.preview-total-grand { display: flex; justify-content: space-between; font-size: 16px; font-weight: 800; color: var(--brand-color, var(--brand)); padding-top: 10px; margin-top: 8px; border-top: 2px solid var(--brand-color, var(--brand)); }
+.preview-note { margin-top: 24px; padding: 12px 14px; background: var(--bg-soft); border-left: 3px solid var(--brand-color, var(--brand)); border-radius: 0 6px 6px 0; font-size: 12px; color: var(--text-muted); }
+.preview-bank { margin-top: 10px; font-size: 12px; color: var(--text-muted); line-height: 1.7; }
+
+/* COLOR PICKER */
+.color-options { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 6px; }
+.color-swatch {
+  width: 28px; height: 28px; border-radius: 50%; cursor: pointer;
+  border: 2px solid transparent; transition: all .15s;
+}
+.color-swatch.active { border-color: var(--text); transform: scale(1.1); }
+
+/* EMPTY */
+.empty-state { padding: 48px 24px; text-align: center; }
+.empty-icon { font-size: 36px; margin-bottom: 12px; }
+.empty-title { font-size: 15px; font-weight: 600; color: var(--text); margin-bottom: 6px; }
+.empty-sub { font-size: 13px; color: var(--text-muted); }
+
+/* TAB BAR */
+.tab-bar { display: flex; gap: 0; border-bottom: 1px solid var(--border); margin-bottom: 20px; }
+.tab {
+  padding: 10px 16px; font-size: 13px; font-weight: 500; cursor: pointer;
+  color: var(--text-muted); border-bottom: 2px solid transparent; margin-bottom: -1px;
+  transition: all .15s;
+}
+.tab:hover { color: var(--text); }
+.tab.active { color: var(--brand); border-bottom-color: var(--brand); }
+.tab-count { display: inline-block; background: var(--bg-soft); color: var(--text-muted); font-size: 10px; font-weight: 700; padding: 1px 5px; border-radius: 10px; margin-left: 4px; }
+.tab.active .tab-count { background: var(--brand-light); color: var(--brand); }
+
+/* SEARCH BAR */
+.search-bar { position: relative; }
+.search-bar svg { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); width: 14px; height: 14px; color: var(--text-light); }
+.search-bar input { padding-left: 32px; width: 220px; }
+
+/* ACTIONS */
+.row-actions { display: flex; gap: 4px; }
+
+/* Responsive tweaks */
+@media (max-width: 1100px) {
+  .stats-grid { grid-template-columns: repeat(2,1fr); }
+}
+@media (max-width: 820px) {
+  body { font-size: 13px; }
+  .app { display: block; height: auto; min-height: 100vh; overflow: visible; }
+  .sidebar {
+    width: 100%;
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+  }
+  .content { overflow: visible; }
+  .topbar {
+    height: auto;
+    padding: 14px 16px;
+    align-items: flex-start;
+    gap: 10px;
+    flex-direction: column;
+  }
+  .topbar-actions {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+  .page { padding: 16px; }
+  .stats-grid,
+  .form-grid-2,
+  .form-grid-3,
+  .form-grid-4 {
+    grid-template-columns: 1fr;
+  }
+  .card-header {
+    padding: 14px 16px;
+    align-items: flex-start;
+    gap: 10px;
+    flex-direction: column;
+  }
+  .items-wrap,
+  .form-section,
+  .modal-body,
+  .modal-head,
+  .modal-foot {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+  .card { border-radius: 14px; }
+  .totals-box {
+    width: 100%;
+    margin-top: 12px;
+  }
+  .rs-search-row {
+    flex-direction: column;
+  }
+  .modal {
+    width: calc(100% - 20px);
+    max-height: calc(100vh - 24px);
+  }
+  table {
+    min-width: 760px;
+  }
+  .card > div[style*="overflow:auto"] {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+@media (max-width: 560px) {
+  .sidebar-logo { padding: 16px; }
+  .nav-section { padding-left: 16px; padding-right: 16px; }
+  .nav-item { margin-left: 12px; margin-right: 12px; }
+  .stats-grid { grid-template-columns: 1fr; }
+  .btn { width: 100%; justify-content: center; }
+  .topbar-actions .btn { width: auto; }
+  .modal-foot {
+    flex-direction: column;
+  }
+  .modal-foot .btn {
+    width: 100%;
+  }
+}
+@media print {
+  .sidebar, .topbar, .no-print { display: none !important; }
+  .content { overflow: visible; }
+  .page { display: block !important; padding: 0; }
+  #page-preview { display: block !important; }
+}
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+</head>
+<body>
+<div class="app">
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-mark">
+      <div class="logo-icon">ML</div>
+      <div>
+        <div class="logo-name">áƒ›áƒ”áƒ“áƒ˜áƒ¥áƒáƒš áƒšáƒáƒ˜áƒœ áƒ¯áƒáƒ áƒ¯áƒ˜áƒ</div>
+        <div class="logo-sub">áƒ˜áƒœáƒ•áƒáƒ˜áƒ¡áƒ”áƒ‘áƒ˜áƒ¡ áƒžáƒšáƒáƒ¢áƒ¤áƒáƒ áƒ›áƒ</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="nav-section">áƒ›áƒ—áƒáƒ•áƒáƒ áƒ˜</div>
+  <div class="nav-item active" onclick="nav('dashboard')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+    áƒžáƒáƒœáƒ”áƒšáƒ˜
+  </div>
+
+  <div class="nav-section">áƒ˜áƒœáƒ•áƒáƒ˜áƒ¡áƒ”áƒ‘áƒ˜</div>
+  <div class="nav-item" onclick="nav('invoices')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><line x1="10" y1="9" x2="8" y2="9"/></svg>
+    áƒ˜áƒœáƒ•áƒáƒ˜áƒ¡áƒ”áƒ‘áƒ˜
+    <span class="nav-badge" id="nb-invoices">0</span>
+  </div>
+  <div class="nav-item" onclick="nav('new-invoice')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+    áƒáƒ®áƒáƒšáƒ˜ áƒ˜áƒœáƒ•áƒáƒ˜áƒ¡áƒ˜
+  </div>
+
+  <div class="nav-section">áƒ‘áƒáƒ–áƒ</div>
+  <div class="nav-item" onclick="nav('clients')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+    áƒ™áƒšáƒ˜áƒ”áƒœáƒ¢áƒ”áƒ‘áƒ˜
+  </div>
+  <div class="nav-item" onclick="nav('products')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg>
+    áƒžáƒ áƒáƒ“áƒ£áƒ¥áƒ¢áƒ”áƒ‘áƒ˜
+  </div>
+
+  <div class="nav-section">áƒ˜áƒ›áƒžáƒáƒ áƒ¢áƒ˜</div>
+  <div class="nav-item" onclick="nav('import')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+    áƒ‘áƒáƒ–áƒ˜áƒ¡ áƒáƒ¢áƒ•áƒ˜áƒ áƒ—áƒ•áƒ
+  </div>
+
+  <div class="nav-section">áƒžáƒáƒ áƒáƒ›áƒ”áƒ¢áƒ áƒ”áƒ‘áƒ˜</div>
+  <div class="nav-item" onclick="nav('settings')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93l-1.41 1.41M4.93 4.93l1.41 1.41M19.07 19.07l-1.41-1.41M4.93 19.07l1.41-1.41M12 2v2M12 20v2M2 12h2M20 12h2"/></svg>
+    áƒžáƒáƒ áƒáƒ›áƒ”áƒ¢áƒ áƒ”áƒ‘áƒ˜
+  </div>
+</aside>
+
+<!-- MAIN -->
+<div class="content">
+
+  <!-- DASHBOARD -->
+  <div class="page active" id="page-dashboard">
+    <div class="topbar">
+      <div class="topbar-title">áƒ›áƒ—áƒáƒ•áƒáƒ áƒ˜ áƒžáƒáƒœáƒ”áƒšáƒ˜</div>
+      <div class="topbar-actions">
+        <button class="btn btn-primary" onclick="nav('new-invoice')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          áƒ˜áƒœáƒ•áƒáƒ˜áƒ¡áƒ˜áƒ¡ áƒ¨áƒ”áƒ¥áƒ›áƒœáƒ
+        </button>
+      </div>
+    </div>
+    <div style="padding:24px">
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-label">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            áƒ¡áƒ£áƒš áƒ˜áƒœáƒ•áƒáƒ˜áƒ¡áƒ˜
+          </div>
+          <div class="stat-value" id="st-total">0</div>
+          <div class="stat-sub">áƒ§áƒ•áƒ”áƒšáƒ áƒ¡áƒ¢áƒáƒ¢áƒ£áƒ¡áƒ˜</div>
+        </div>
+        <div class="stat-card green">
+          <div class="stat-label">âœ“ áƒ’áƒáƒ“áƒáƒ®áƒ“áƒ˜áƒšáƒ˜</div>
+          <div class="stat-value" id="st-paid-val">â‚¾0</div>
+          <div class="stat-sub" id="st-paid-c">0 áƒ˜áƒœáƒ•áƒáƒ˜áƒ¡áƒ˜</div>
+        </div>
+        <div class="stat-card blue">
+          <div class="stat-label">â†— áƒ’áƒáƒ’áƒ–áƒáƒ•áƒœáƒ˜áƒšáƒ˜</div>
+          <div class="stat-value" id="st-sent-val">â‚¾0</div>
+          <div class="stat-sub" id="st-sent-c">0 áƒ˜áƒœáƒ•áƒáƒ˜áƒ¡áƒ˜</div>
+        </div>
+        <div class="stat-card red">
+          <div class="stat-label">âš  áƒ•áƒáƒ“áƒáƒ’áƒáƒ“áƒáƒªáƒ˜áƒšáƒ”áƒ‘áƒ£áƒšáƒ˜</div>
+          <div class="stat-value" id="st-over-val">â‚¾0</div>
+          <div class="stat-sub" id="st-over-c">0 áƒ˜áƒœáƒ•áƒáƒ˜áƒ¡áƒ˜</div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">áƒ‘áƒáƒšáƒ áƒ˜áƒœáƒ•áƒáƒ˜áƒ¡áƒ”áƒ‘áƒ˜</span>
+          <button class="btn btn-ghost btn-sm" onclick="nav('invoices')">áƒ§áƒ•áƒ”áƒšáƒ â†’</button>
+        </div>
+        <table>
+          <thead><tr><th>áƒœáƒáƒ›.</th><th>áƒ™áƒšáƒ˜áƒ”áƒœáƒ¢áƒ˜</th><th>áƒžáƒ áƒáƒ“áƒ£áƒ¥áƒ¢áƒ˜</th><th>áƒ—áƒáƒœáƒ®áƒ</th><th>áƒ¡áƒ¢áƒáƒ¢áƒ£áƒ¡áƒ˜</th><th>áƒ•áƒáƒ“áƒ</th><th></th></tr></thead>
+          <tbody id="dash-table"><tr><td colspan="7"><div class="empty-state"><div class="empty-icon">ðŸ“„</div><div class="empty-title">áƒ˜áƒœáƒ•áƒáƒ˜áƒ¡áƒ˜ áƒáƒ  áƒáƒ áƒ˜áƒ¡</div><div class="empty-sub">áƒ¨áƒ”áƒ¥áƒ›áƒ”áƒœáƒ˜áƒ— áƒžáƒ˜áƒ áƒ•áƒ”áƒšáƒ˜ áƒ˜áƒœáƒ•áƒáƒ˜áƒ¡áƒ˜</div></div></td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- INVOICES LIST -->
+  <div class="page" id="page-invoices">
+    <div class="topbar">
+      <div class="topbar-title">áƒ˜áƒœáƒ•áƒáƒ˜áƒ¡áƒ”áƒ‘áƒ˜</div>
+      <div class="topbar-actions">
+        <div class="search-bar">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="text" placeholder="áƒ«áƒ˜áƒ”áƒ‘áƒ..." id="inv-search" oninput="renderInvoices()" style="width:200px">
+        </div>
+        <button class="btn btn-primary" onclick="nav('new-invoice')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          áƒáƒ®áƒáƒšáƒ˜
+        </button>
+      </div>
+    </div>
+    <div style="padding:24px">
+      <div class="tab-bar">
+        <div class="tab active" onclick="filterStatus(this,'all')">áƒ§áƒ•áƒ”áƒšáƒ <span class="tab-count" id="tc-all">0</span></div>
+        <div class="tab" onclick="filterStatus(this,'draft')">áƒ›áƒáƒœáƒáƒ®áƒáƒ–áƒ˜ <span class="tab-count" id="tc-draft">0</span></div>
+        <div class="tab" onclick="filterStatus(this,'sent')">áƒ’áƒáƒ’áƒ–áƒáƒ•áƒœáƒ˜áƒšáƒ˜ <span class="tab-count" id="tc-sent">0</span></div>
+        <div class="tab" onclick="filterStatus(this,'paid')">áƒ’áƒáƒ“áƒáƒ®áƒ“áƒ˜áƒšáƒ˜ <span class="tab-count" id="tc-paid">0</span></div>
+        <div class="tab" onclick="filterStatus(this,'overdue')">áƒ•áƒáƒ“áƒáƒ’áƒáƒ“áƒáƒª. <span class="tab-count" id="tc-overdue">0</span></div>
+      </div>
+      <div class="card">
+        <table>
+          <thead><tr><th>áƒœáƒáƒ›.</th><th>áƒ™áƒšáƒ˜áƒ”áƒœáƒ¢áƒ˜</th><th>áƒ—áƒáƒœáƒ®áƒ</th><th>áƒ¡áƒ¢áƒáƒ¢áƒ£áƒ¡áƒ˜</th><th>áƒ—áƒáƒ áƒ˜áƒ¦áƒ˜</th><th>áƒ•áƒáƒ“áƒ</th><th></th></tr></thead>
+          <tbody id="invoices-table"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- NEW / EDIT INVOICE -->
+  <div class="page" id="page-new-invoice">
+    <div class="topbar">
+      <div class="topbar-title" id="inv-form-title">áƒáƒ®áƒáƒšáƒ˜ áƒ˜áƒœáƒ•áƒáƒ˜áƒ¡áƒ˜</div>
+      <div class="topbar-actions">
+        <button class="btn btn-secondary" onclick="saveInv('draft')">áƒ›áƒáƒœáƒáƒ®áƒáƒ–áƒ˜áƒ¡ áƒ¨áƒ”áƒœáƒáƒ®áƒ•áƒ</button>
+        <button class="btn btn-secondary" onclick="doPreview()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          áƒ’áƒáƒ“áƒáƒ®áƒ”áƒ“áƒ•áƒ
+        </button>
+        <button class="btn btn-primary" onclick="saveInv('sent')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+          áƒ¨áƒ”áƒ¥áƒ›áƒœáƒ
+        </button>
+        <button class="btn" style="background:#dc2626;color:#fff;border-color:#dc2626" onclick="openRsUpload()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          áƒ¨áƒ”áƒœáƒáƒ®áƒ•áƒ + Rs.ge â†—
+        </button>
+      </div>
+    </div>
+    <input type="hidden" id="edit-id">
+    <div style="padding:24px; display:grid; grid-template-columns:1fr 340px; gap:20px; align-items:start;">
+      <div>
+        <div class="card">
+          <div class="form-section">
+            <div class="section-label">áƒ™áƒšáƒ˜áƒ”áƒœáƒ¢áƒ˜</div>
+            <div class="form-grid form-grid-2">
+              <div class="field" style="position:relative">
+                <label>áƒ™áƒšáƒ˜áƒ”áƒœáƒ¢áƒ˜áƒ¡ áƒ«áƒ˜áƒ”áƒ‘áƒ / Rs.ge-áƒ¡ áƒ¡áƒ˜áƒœáƒ¥áƒ áƒáƒœáƒ˜áƒ–áƒáƒªáƒ˜áƒ</label>
+                <div style="display:flex;gap:8px">
+                  <input type="text" id="client-q" placeholder="áƒ¡áƒáƒ®áƒ”áƒšáƒ˜ áƒáƒœ áƒ¡áƒáƒ˜áƒ“. áƒ™áƒáƒ“áƒ˜..." oninput="searchClients()">
+                  <button class="btn btn-secondary btn-sm" onclick="openRsSearch()" style="white-space:nowrap;flex-shrink:0">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                    Rs.ge
+                  </button>
+                </div>
+                <div id="client-dropdown" style="display:none;position:absolute;z-index:20;background:var(--bg);border:1px solid var(--border);border-radius:8px;box-shadow:var(--shadow-md);width:calc(100% - 94px);top:62px;left:0;max-height:200px;overflow-y:auto;"></div>
+              </div>
+              <div id="sel-client-box" style="display:none" class="field">
+                <label>áƒáƒ áƒ©áƒ”áƒ£áƒšáƒ˜ áƒ™áƒšáƒ˜áƒ”áƒœáƒ¢áƒ˜</label>
+                <div style="padding:8px 11px;border:1px solid var(--brand);border-radius:8px;background:var(--brand-light);font-size:13px">
+                  <div style="font-weight:600" id="sel-client-name"></div>
+                  <div style="font-size:11px;color:var(--text-muted)" id="sel-client-detail"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="form-section">
+            <div class="section-label">áƒ˜áƒœáƒ•áƒáƒ˜áƒ¡áƒ˜áƒ¡ áƒ“áƒ”áƒ¢áƒáƒšáƒ”áƒ‘áƒ˜</div>
+            <div class="form-grid form-grid-3">
+              <div class="field"><label>áƒ˜áƒœáƒ•áƒáƒ˜áƒ¡áƒ˜áƒ¡ áƒœáƒáƒ›áƒ”áƒ áƒ˜</label><input type="text" id="f-number" placeholder="INV-001"></div>
+              <div class="field"><label>áƒ’áƒáƒ›áƒáƒ¬áƒ”áƒ áƒ˜áƒ¡ áƒ—áƒáƒ áƒ˜áƒ¦áƒ˜</label><input type="date" id="f-date"></div>
+              <div class="field"><label>áƒ’áƒáƒ“áƒáƒ®áƒ“áƒ˜áƒ¡ áƒ•áƒáƒ“áƒ</label><input type="date" id="f-due"></div>
+              <div class="field"><label>áƒ•áƒáƒšáƒ£áƒ¢áƒ</label>
+                <select id="f-currency" onchange="recalc()">
+                  <option value="GEL">â‚¾ GEL â€” áƒšáƒáƒ áƒ˜</option>
+                  <option value="USD">$ USD â€” áƒ“áƒáƒšáƒáƒ áƒ˜</option>
+                  <option value="EUR">â‚¬ EUR â€” áƒ”áƒ•áƒ áƒ</option>
+                </select>
+              </div>
+              <div class="field"><label>áƒ’áƒáƒ“áƒáƒ®áƒ“áƒ˜áƒ¡ áƒžáƒ˜áƒ áƒáƒ‘áƒ”áƒ‘áƒ˜</label>
+                <select id="f-terms">
+                  <option value="immediate">áƒ“áƒáƒ£áƒ§áƒáƒ•áƒœáƒ”áƒ‘áƒšáƒ˜áƒ•</option>
+                  <option value="net7">7 áƒ“áƒ¦áƒ”áƒ¨áƒ˜</option>
+                  <option value="net14">14 áƒ“áƒ¦áƒ”áƒ¨áƒ˜</option>
+                  <option value="net30" selected>30 áƒ“áƒ¦áƒ”áƒ¨áƒ˜</option>
+                  <option value="net60">60 áƒ“áƒ¦áƒ”áƒ¨áƒ˜</option>
+                </select>
+              </div>
+              <div class="field"><label>áƒ˜áƒœáƒ•áƒáƒ˜áƒ¡áƒ˜áƒ¡ áƒ¤áƒ”áƒ áƒ˜ (áƒ‘áƒ áƒ”áƒœáƒ“áƒ˜)</label>
+                <div class="color-options" id="color-picker">
+                  <div class="color-swatch active" style="background:#2563eb" data-color="#2563eb" onclick="pickColor(this)"></div>
+                  <div class="color-swatch" style="background:#0891b2" data-color="#0891b2" onclick="pickColor(this)"></div>
+                  <div class="color-swatch" style="background:#059669" data-color="#059669" onclick="pickColor(this)"></div>
+                  <div class="color-swatch" style="background:#7c3aed" data-color="#7c3aed" onclick="pickColor(this)"></div>
+                  <div class="color-swatch" style="background:#dc2626" data-color="#dc2626" onclick="pickColor(this)"></div>
+                  <div class="color-swatch" style="background:#d97706" data-color="#d97706" onclick="pickColor(this)"></div>
+                  <div class="color-swatch" style="background:#0f172a" data-color="#0f172a" onclick="pickColor(this)"></div>
+                  <input type="color" id="custom-color" oninput="customColor(this)" style="width:28px;height:28px;padding:0;border:1px solid var(--border);border-radius:50%;cursor:pointer">
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="form-section" style="padding-bottom:8px">
+            <div class="section-label">áƒžáƒáƒ–áƒ˜áƒªáƒ˜áƒ”áƒ‘áƒ˜ / áƒ¡áƒ”áƒ áƒ•áƒ˜áƒ¡áƒ”áƒ‘áƒ˜</div>
+          </div>
+          <div class="items-wrap">
+            <table class="items-table">
+              <thead>
+                <tr>
+                  <th class="col-no">#</th>
+                  <th class="col-prod">áƒžáƒ áƒáƒ“áƒ£áƒ¥áƒ¢áƒ˜</th>
+                  <th class="col-desc">áƒáƒ¦áƒ¬áƒ”áƒ áƒ</th>
+                  <th class="col-qty">áƒ áƒáƒáƒ“.</th>
+                  <th class="col-price">áƒ”áƒ áƒ—. áƒ¤áƒáƒ¡áƒ˜</th>
+                  <th class="col-total">áƒ¡áƒ£áƒš</th>
+                  <th class="col-del"></th>
+                </tr>
+              </thead>
+              <tbody id="items-body"></tbody>
+            </table>
+            <button class="btn btn-ghost btn-sm" onclick="addLine()">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              áƒžáƒáƒ–áƒ˜áƒªáƒ˜áƒ˜áƒ¡ áƒ“áƒáƒ›áƒáƒ¢áƒ”áƒ‘áƒ
+            </button>
+          </div>
+          <div style="padding:0 20px 20px">
+            <div class="totals-box">
+              <div class="total-row"><span>áƒ¨áƒ£áƒáƒšáƒ”áƒ“áƒ£áƒ áƒ˜ áƒ¯áƒáƒ›áƒ˜</span><span id="t-sub">â‚¾0.00</span></div>
+              <div class="total-row">
+                <span>áƒ¤áƒáƒ¡áƒ“áƒáƒ™áƒšáƒ”áƒ‘áƒ <input type="number" id="f-disc" value="0" min="0" max="100" oninput="recalc()" style="width:44px;padding:2px 6px;font-size:12px;display:inline;vertical-align:middle;margin:0 2px">%</span>
+                <span id="t-disc">-â‚¾0.00</span>
+              </div>
+              <div class="total-row">
+                <span>áƒ“áƒ¦áƒ’ <select id="f-vat" onchange="recalc()" style="width:auto;padding:2px 6px;font-size:12px;display:inline;vertical-align:middle">
+                  <option value="0">0%</option>
+                  <option value="18" selected>18%</option>
+                  <option value="20">20%</option>
+                </select>
+                <select id="f-vat-mode" onchange="setVatMode(this.value)" style="width:auto;padding:2px 6px;font-size:12px;display:inline;vertical-align:middle;margin-left:4px">
+                  <option value="exclusive">áƒ“áƒ¦áƒ’-áƒ¡ áƒ’áƒáƒ áƒ”áƒ¨áƒ”</option>
+                  <option value="inclusive">áƒ“áƒ¦áƒ’ áƒ©áƒáƒ—áƒ•áƒšáƒ˜áƒ—</option>
+                </select></span>
+                <span id="t-vat">â‚¾0.00</span>
+              </div>
+              <div class="total-grand"><span>áƒ¡áƒ£áƒš áƒ¡áƒáƒ›áƒ®áƒ“áƒ”áƒšáƒ</span><span id="t-grand">â‚¾0.00</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="form-section">
+            <div class="section-label">áƒ¨áƒ”áƒœáƒ˜áƒ¨áƒ•áƒœáƒ”áƒ‘áƒ˜</div>
+            <div class="form-grid form-grid-2">
+              <div class="field"><label>áƒ¨áƒ”áƒœáƒ˜áƒ¨áƒ•áƒœáƒ áƒ™áƒšáƒ˜áƒ”áƒœáƒ¢áƒ˜áƒ¡áƒ—áƒ•áƒ˜áƒ¡</label><textarea id="f-note" rows="3" placeholder="áƒ’áƒ›áƒáƒ“áƒšáƒáƒ‘áƒ— áƒ¨áƒ”áƒ«áƒ”áƒœáƒ˜áƒ¡áƒ—áƒ•áƒ˜áƒ¡..."></textarea></div>
+              <div class="field"><label>áƒ‘áƒáƒœáƒ™áƒ˜áƒ¡ áƒ áƒ”áƒ™áƒ•áƒ˜áƒ–áƒ˜áƒ¢áƒ”áƒ‘áƒ˜</label><textarea id="f-bank" rows="3" placeholder="áƒ‘áƒáƒœáƒ™áƒ˜: TBC&#10;áƒáƒœáƒ’: GE00TB...&#10;áƒ¡/áƒ™: xxxxxxxxxx"></textarea></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT PANEL -->
+      <div>
+        <div class="card">
+          <div class="card-header"><span class="card-title">áƒ’áƒáƒ›áƒ’áƒ–áƒáƒ•áƒœáƒ˜ áƒ™áƒáƒ›áƒžáƒáƒœáƒ˜áƒ</span></div>
+          <div class="form-section">
+            <div class="form-grid">
+              <div class="field"><label>áƒ™áƒáƒ›áƒžáƒáƒœáƒ˜áƒ˜áƒ¡ áƒ¡áƒáƒ®áƒ”áƒšáƒ˜</label><input type="text" id="f-comp" placeholder="áƒ—áƒ¥áƒ•áƒ”áƒœáƒ˜ áƒ™áƒáƒ›áƒžáƒáƒœáƒ˜áƒ"></div>
+              <div class="field"><label>áƒ¡/áƒ™ áƒáƒœ áƒž/áƒœ</label><input type="text" id="f-comp-id" placeholder="01xxxxxxxx"></div>
+              <div class="field"><label>áƒ›áƒ˜áƒ¡áƒáƒ›áƒáƒ áƒ—áƒ˜</label><input type="text" id="f-comp-addr" placeholder="áƒ¥. áƒ—áƒ‘áƒ˜áƒšáƒ˜áƒ¡áƒ˜..."></div>
+              <div class="field"><label>áƒ”áƒš-áƒ¤áƒáƒ¡áƒ¢áƒ</label><input type="email" id="f-comp-email" placeholder="info@company.ge"></div>
+              <div class="field"><label>áƒ¢áƒ”áƒšáƒ”áƒ¤áƒáƒœáƒ˜</label><input type="text" id="f-comp-phone" placeholder="+995 5xx xxx xxx"></div>
+            </div>
+          </div>
+        </div>
+        <div class="card" style="background:var(--brand-light);border-color:#bfdbfe">
+          <div class="form-section">
+            <div style="font-size:13px;font-weight:600;color:var(--brand);margin-bottom:6px">Rs.ge áƒ¡áƒ˜áƒœáƒ¥áƒ áƒáƒœáƒ˜áƒ–áƒáƒªáƒ˜áƒ</div>
+            <div style="font-size:12px;color:var(--text-muted);line-height:1.6">áƒ¡áƒáƒ˜áƒ“áƒ”áƒœáƒ¢. áƒ™áƒáƒ“áƒ˜áƒ— áƒ™áƒáƒ›áƒžáƒáƒœáƒ˜áƒ˜áƒ¡ áƒ¡áƒáƒ®áƒ”áƒšáƒ˜ áƒ“áƒ áƒ“áƒ”áƒ¢áƒáƒšáƒ”áƒ‘áƒ˜ áƒáƒ•áƒ¢áƒáƒ›áƒáƒ¢áƒ£áƒ áƒáƒ“ áƒ˜áƒ•áƒ¡áƒ”áƒ‘áƒ Rs.ge-áƒ¡ áƒžáƒáƒ áƒ¢áƒáƒšáƒ˜áƒ“áƒáƒœ.</div>
+            <button class="btn btn-secondary btn-sm" style="margin-top:10px;width:100%;justify-content:center" onclick="openRsSearch()">Rs.ge-áƒ¡ áƒ«áƒ˜áƒ”áƒ‘áƒ</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CLIENTS -->
+  <div class="page" id="page-clients">
+    <div class="topbar">
+      <div class="topbar-title">áƒ™áƒšáƒ˜áƒ”áƒœáƒ¢áƒ”áƒ‘áƒ˜</div>
+      <div class="topbar-actions">
+        <button class="btn btn-primary" onclick="openAddClient()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          áƒ™áƒšáƒ˜áƒ”áƒœáƒ¢áƒ˜áƒ¡ áƒ“áƒáƒ›áƒáƒ¢áƒ”áƒ‘áƒ
+        </button>
+      </div>
+    </div>
+    <div style="padding:24px">
+      <div class="card">
+        <table>
+          <thead><tr><th>áƒ¡áƒáƒ®áƒ”áƒšáƒ˜</th><th>áƒ™áƒáƒ›áƒžáƒáƒœáƒ˜áƒ</th><th>áƒ¥áƒáƒšáƒáƒ¥áƒ˜</th><th>áƒ¢áƒ”áƒš.</th><th>áƒ”áƒš-áƒ¤áƒáƒ¡áƒ¢áƒ</th><th>áƒ˜áƒœáƒ•.</th><th></th></tr></thead>
+          <tbody id="clients-table"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- PRODUCTS -->
+  <div class="page" id="page-products">
+    <div class="topbar">
+      <div class="topbar-title">áƒžáƒ áƒáƒ“áƒ£áƒ¥áƒ¢áƒ”áƒ‘áƒ˜</div>
+      <div class="topbar-actions">
+        <button class="btn btn-primary" onclick="openAddProduct()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          áƒžáƒ áƒáƒ“áƒ£áƒ¥áƒ¢áƒ˜áƒ¡ áƒ“áƒáƒ›áƒáƒ¢áƒ”áƒ‘áƒ
+        </button>
+      </div>
+    </div>
+    <div style="padding:24px">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px">
+        <div class="search-bar">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="text" id="products-q" placeholder="áƒžáƒ áƒáƒ“áƒ£áƒ¥áƒ¢áƒ˜áƒ¡ áƒ«áƒ˜áƒ”áƒ‘áƒ..." oninput="renderProducts()">
+        </div>
+        <div id="products-count" style="font-size:12px;color:var(--text-muted)"></div>
+      </div>
+      <div class="card">
+        <table>
+          <thead><tr><th>áƒ™áƒáƒ“áƒ˜</th><th>áƒ“áƒáƒ¡áƒáƒ®áƒ”áƒšáƒ”áƒ‘áƒ</th><th>áƒ™áƒáƒ¢áƒ”áƒ’áƒáƒ áƒ˜áƒ</th><th>áƒ¤áƒáƒ¡áƒ˜</th><th>áƒ•áƒáƒš.</th><th>áƒ¡áƒáƒ’. áƒ”áƒ áƒ—.</th><th></th></tr></thead>
+          <tbody id="products-table"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- SETTINGS -->
+  <div class="page" id="page-settings">
+    <div class="topbar"><div class="topbar-title">áƒžáƒáƒ áƒáƒ›áƒ”áƒ¢áƒ áƒ”áƒ‘áƒ˜</div></div>
+    <div style="padding:24px;max-width:680px">
+      <div class="card">
+        <div class="card-header"><span class="card-title">áƒ™áƒáƒ›áƒžáƒáƒœáƒ˜áƒ˜áƒ¡ áƒ˜áƒœáƒ¤áƒáƒ áƒ›áƒáƒªáƒ˜áƒ</span></div>
+        <div class="form-section">
+          <div class="form-grid">
+            <div class="field"><label>áƒ™áƒáƒ›áƒžáƒáƒœáƒ˜áƒ˜áƒ¡ áƒ¡áƒáƒ®áƒ”áƒšáƒ˜</label><input type="text" id="s-comp" placeholder="áƒ—áƒ¥áƒ•áƒ”áƒœáƒ˜ áƒ™áƒáƒ›áƒžáƒáƒœáƒ˜áƒ" oninput="updateSettings()"></div>
+            <div class="field"><label>áƒ¡/áƒ™ áƒáƒœ áƒž/áƒœ</label><input type="text" id="s-comp-id" placeholder="01xxxxxxxx" oninput="updateSettings()"></div>
+            <div class="field"><label>áƒ”áƒš-áƒ¤áƒáƒ¡áƒ¢áƒ</label><input type="email" id="s-email" placeholder="info@company.ge" oninput="updateSettings()"></div>
+            <div class="field"><label>áƒ¢áƒ”áƒšáƒ”áƒ¤áƒáƒœáƒ˜</label><input type="text" id="s-phone" placeholder="+995..." oninput="updateSettings()"></div>
+            <div class="field field-full"><label>áƒ›áƒ˜áƒ¡áƒáƒ›áƒáƒ áƒ—áƒ˜</label><input type="text" id="s-addr" placeholder="áƒ¥. áƒ—áƒ‘áƒ˜áƒšáƒ˜áƒ¡áƒ˜..." oninput="updateSettings()"></div>
+            <div class="field field-full"><label>áƒ‘áƒáƒœáƒ™áƒ˜áƒ¡ áƒ¡áƒ¢áƒáƒœáƒ“áƒáƒ áƒ¢áƒ£áƒšáƒ˜ áƒ áƒ”áƒ™áƒ•áƒ˜áƒ–áƒ˜áƒ¢áƒ”áƒ‘áƒ˜</label><textarea id="s-bank" rows="3" oninput="updateSettings()"></textarea></div>
+            <div class="field field-full" style="border-top:1px solid var(--border);margin-top:8px;padding-top:14px">
+              <div style="font-size:12px;font-weight:700;color:var(--brand);margin-bottom:10px;display:flex;align-items:center;gap:6px">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+                Rs.ge áƒ¡áƒ”áƒ áƒ•áƒ˜áƒ¡áƒ˜áƒ¡ áƒ›áƒáƒ›áƒ®áƒ›áƒáƒ áƒ”áƒ‘áƒ”áƒšáƒ˜
+              </div>
+              <div style="font-size:11px;color:var(--text-muted);margin-bottom:10px;line-height:1.7;background:var(--bg-soft);padding:8px 10px;border-radius:6px">
+                eservices.rs.ge â†’ áƒáƒ•áƒ¢áƒáƒ áƒ˜áƒ–áƒáƒªáƒ˜áƒ â†’ áƒ¡áƒ”áƒ áƒ•áƒ˜áƒ¡áƒ˜áƒ¡ áƒ›áƒáƒ›áƒ®áƒ›áƒáƒ áƒ”áƒ‘áƒšáƒ”áƒ‘áƒ˜ â†’ áƒáƒ®áƒáƒšáƒ˜ áƒ›áƒáƒ›áƒ®áƒ›áƒáƒ áƒ”áƒ‘áƒ”áƒšáƒ˜.<br>
+                áƒ”áƒ¡ <strong>áƒáƒ  áƒáƒ áƒ˜áƒ¡</strong> áƒ—áƒ¥áƒ•áƒ”áƒœáƒ˜ áƒ›áƒ—áƒáƒ•áƒáƒ áƒ˜ áƒžáƒáƒ áƒáƒšáƒ˜ â€” áƒªáƒáƒšáƒ™áƒ” áƒ¡áƒ”áƒ áƒ•áƒ˜áƒ¡-áƒ˜áƒ£áƒ–áƒ”áƒ áƒ˜!
+              </div>
+            </div>
+            <div class="field"><label>áƒ¡áƒ”áƒ áƒ•áƒ˜áƒ¡áƒ˜áƒ¡ áƒ›áƒáƒ›áƒ®áƒ›áƒáƒ áƒ”áƒ‘áƒ”áƒšáƒ˜ (su)</label><input type="text" id="s-rsuser" placeholder="service_user" oninput="updateSettings()"></div>
+            <div class="field"><label>áƒ¡áƒ”áƒ áƒ•áƒ˜áƒ¡áƒ˜áƒ¡ áƒžáƒáƒ áƒáƒšáƒ˜ (sp)</label><input type="password" id="s-rspass" placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢" oninput="updateSettings()"></div>
+            <div class="field"><label>Rs.ge áƒ’áƒáƒ›áƒ’áƒ–áƒáƒ•áƒœáƒ˜áƒ¡ áƒ¡/áƒ™</label><input type="text" id="s-rssender-tin" placeholder="01xxxxxxxx" oninput="updateSettings()"></div>
+            <div class="field"><label>áƒ›áƒ«áƒ¦áƒáƒšáƒ˜áƒ¡ áƒ¡áƒáƒ®áƒ”áƒšáƒ˜ / áƒ’áƒ•áƒáƒ áƒ˜</label><input type="text" id="s-driver-info" placeholder="áƒ¡áƒáƒ®áƒ”áƒšáƒ˜ áƒ’áƒ•áƒáƒ áƒ˜" oninput="updateSettings()"></div>
+            <div class="field"><label>áƒ›áƒ«áƒ¦áƒáƒšáƒ˜áƒ¡ áƒžáƒ˜áƒ áƒáƒ“áƒ˜ áƒœáƒáƒ›áƒ”áƒ áƒ˜</label><input type="text" id="s-driver-no" placeholder="01001010101" oninput="updateSettings()"></div>
+            <div class="field"><label>áƒ›áƒáƒœáƒ¥áƒáƒœáƒ˜áƒ¡ áƒœáƒáƒ›áƒ”áƒ áƒ˜</label><input type="text" id="s-transport-mark" placeholder="AA-123-BB" oninput="updateSettings()"></div>
+            <div class="field field-full">
+              <button class="btn btn-secondary btn-sm" onclick="testRsConnection()" id="rs-test-btn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:13px;height:13px"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+                áƒ™áƒáƒ•áƒ¨áƒ˜áƒ áƒ˜áƒ¡ áƒ¨áƒ”áƒ›áƒáƒ¬áƒ›áƒ”áƒ‘áƒ
+              </button>
+              <span id="rs-status" style="font-size:12px;margin-left:10px"></span>
+            </div>
+            <div class="field"><label>áƒ“áƒ˜áƒ áƒ”áƒ¥áƒ¢áƒáƒ áƒ˜ (áƒ˜áƒœáƒ•áƒáƒ˜áƒ¡áƒ–áƒ”)</label><input type="text" id="s-director" placeholder="áƒ¨. áƒ¡áƒ”áƒ¤áƒ˜áƒ¨áƒ•áƒ˜áƒšáƒ˜" value="áƒ¨. áƒ¡áƒ”áƒ¤áƒ˜áƒ¨áƒ•áƒ˜áƒšáƒ˜" oninput="updateSettings()"></div>
+            <div class="field"><label>áƒ—áƒáƒœáƒáƒ›áƒ“áƒ”áƒ‘áƒáƒ‘áƒ</label><input type="text" id="s-director-title" placeholder="áƒ“áƒ˜áƒ áƒ”áƒ¥áƒ¢áƒáƒ áƒ˜" value="áƒ“áƒ˜áƒ áƒ”áƒ¥áƒ¢áƒáƒ áƒ˜" oninput="updateSettings()"></div>
+          </div>
+          <button class="btn btn-primary" style="margin-top:12px" onclick="saveSettings()">áƒ¨áƒ”áƒœáƒáƒ®áƒ•áƒ</button>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:20px">
+        <div class="card-header"><span class="card-title">&#128271; áƒ‘áƒ”áƒ­áƒ”áƒ“áƒ˜ áƒ“áƒ áƒ®áƒ”áƒšáƒ›áƒáƒ¬áƒ”áƒ áƒ</span></div>
+        <div class="form-section">
+          <div style="font-size:12px;color:var(--text-muted);margin-bottom:16px;line-height:1.7">
+            áƒáƒ¢áƒ•áƒ˜áƒ áƒ—áƒ”áƒ— áƒ™áƒáƒ›áƒžáƒáƒœáƒ˜áƒ˜áƒ¡ áƒ‘áƒ”áƒ­áƒ”áƒ“áƒ˜ (PNG áƒ’áƒáƒ›áƒ­áƒ•áƒ˜áƒ áƒ•áƒáƒšáƒ” áƒ¤áƒáƒœáƒ˜áƒ— áƒ¡áƒ¯áƒáƒ‘áƒ¡). áƒ‘áƒ”áƒ­áƒ”áƒ“áƒ˜ áƒáƒ•áƒ¢áƒáƒ›áƒáƒ¢áƒ£áƒ áƒáƒ“ áƒ’áƒáƒ›áƒáƒ©áƒœáƒ“áƒ”áƒ‘áƒ áƒ§áƒ•áƒ”áƒšáƒ áƒ˜áƒœáƒ•áƒáƒ˜áƒ¡áƒ˜áƒ¡ áƒ¥áƒ•áƒ”áƒ“áƒ áƒœáƒáƒ¬áƒ˜áƒšáƒ¨áƒ˜.
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:start">
+            <div>
+              <div id="seal-drop" onclick="document.getElementById('seal-file').click()"
+                ondragover="dragOver(event,'seal-drop')" ondragleave="dragLeave('seal-drop')" ondrop="dropSeal(event)"
+                style="border:2px dashed var(--border);border-radius:10px;padding:28px 16px;text-align:center;cursor:pointer;transition:all .15s">
+                <div id="seal-preview-wrap">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="var(--text-light)" stroke-width="1.5" style="width:36px;height:36px;margin:0 auto 8px;display:block"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/><line x1="12" y1="3" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="21"/><line x1="3" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="21" y2="12"/></svg>
+                  <div style="font-size:13px;font-weight:500;color:var(--text-muted)">áƒ‘áƒ”áƒ­áƒ“áƒ˜áƒ¡ áƒáƒ¢áƒ•áƒ˜áƒ áƒ—áƒ•áƒ</div>
+                  <div style="font-size:11px;color:var(--text-light);margin-top:4px">PNG, JPG &#183; áƒ©áƒáƒáƒ’áƒ“áƒ”áƒ— áƒáƒœ áƒ“áƒáƒáƒ­áƒ˜áƒ áƒ”áƒ—</div>
+                </div>
+              </div>
+              <input type="file" id="seal-file" accept="image/*" style="display:none" onchange="loadSeal(this)">
+              <button id="seal-remove-btn" class="btn btn-danger btn-sm" style="margin-top:8px;display:none;width:100%;justify-content:center" onclick="removeSeal()">
+                &#10005; áƒ‘áƒ”áƒ­áƒ“áƒ˜áƒ¡ áƒ¬áƒáƒ¨áƒšáƒ
+              </button>
+            </div>
+            <div>
+              <div style="font-size:12px;font-weight:600;color:var(--text-muted);margin-bottom:10px;text-transform:uppercase;letter-spacing:.5px">áƒ’áƒáƒ“áƒáƒ®áƒ”áƒ“áƒ•áƒ</div>
+              <div style="border:1px solid var(--border);border-radius:8px;padding:16px;background:var(--bg-soft)">
+                <div style="display:flex;align-items:flex-end;justify-content:flex-end">
+                  <div style="text-align:center;min-width:110px">
+                    <div style="width:90px;height:90px;border:1px dashed var(--border);border-radius:50%;margin:0 auto 6px;display:flex;align-items:center;justify-content:center;overflow:hidden;background:#fff" id="seal-sample">
+                      <span style="font-size:10px;color:var(--text-light)">áƒ‘áƒ”áƒ­áƒ”áƒ“áƒ˜</span>
+                    </div>
+                    <div style="font-size:10px;color:var(--text-muted);border-top:1px solid #999;padding-top:5px;margin-top:4px" id="s-sample-title">áƒ“áƒ˜áƒ áƒ”áƒ¥áƒ¢áƒáƒ áƒ˜</div>
+                    <div style="font-size:11px;font-weight:700;color:var(--text);margin-top:2px" id="s-sample-name">áƒ¨. áƒ¡áƒ”áƒ¤áƒ˜áƒ¨áƒ•áƒ˜áƒšáƒ˜</div>
+                  </div>
+                </div>
+              </div>
+              <div style="font-size:11px;color:var(--text-light);margin-top:8px;line-height:1.6">
+                PNG áƒ’áƒáƒ›áƒ­áƒ•áƒ˜áƒ áƒ•áƒáƒšáƒ” áƒ¤áƒáƒœáƒ˜áƒ— áƒ§áƒ•áƒ”áƒšáƒáƒ–áƒ” áƒ™áƒáƒ áƒ’áƒáƒ“ áƒ’áƒáƒ›áƒáƒ˜áƒ§áƒ£áƒ áƒ”áƒ‘áƒ.
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="card" style="margin-top:20px">
+        <div class="card-header"><span class="card-title">ðŸ“± áƒ‘áƒáƒ–áƒ˜áƒ¡ áƒ¡áƒ˜áƒœáƒ¥áƒ áƒáƒœáƒ˜áƒ–áƒáƒªáƒ˜áƒ (áƒ›áƒáƒ¬áƒ§áƒáƒ‘áƒ˜áƒšáƒáƒ‘áƒ”áƒ‘áƒ¡ áƒ¨áƒáƒ áƒ˜áƒ¡)</span></div>
+        <div style="padding:20px">
+          <div style="font-size:12px;color:var(--text-muted);margin-bottom:16px;line-height:1.7;background:var(--bg-soft);padding:10px 12px;border-radius:8px">
+            áƒ›áƒáƒœáƒáƒªáƒ”áƒ›áƒ”áƒ‘áƒ˜ áƒ‘áƒ áƒáƒ£áƒ–áƒ”áƒ áƒ¨áƒ˜ áƒ˜áƒœáƒáƒ®áƒ”áƒ‘áƒ. áƒ¡áƒ®áƒ•áƒ áƒ›áƒáƒ¬áƒ§áƒáƒ‘áƒ˜áƒšáƒáƒ‘áƒáƒ–áƒ” áƒ’áƒáƒ“áƒáƒ¡áƒáƒ¢áƒáƒœáƒáƒ“ â€” áƒ’áƒáƒ“áƒ›áƒáƒ¬áƒ”áƒ áƒ”áƒ— JSON áƒ“áƒ áƒáƒ¢áƒ•áƒ˜áƒ áƒ—áƒ”áƒ— áƒ¡áƒ®áƒ•áƒ áƒ›áƒáƒ¬áƒ§áƒáƒ‘áƒ˜áƒšáƒáƒ‘áƒáƒ–áƒ”.
+          </div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap">
+            <button class="btn btn-secondary" onclick="exportDB()">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              áƒ‘áƒáƒ–áƒ˜áƒ¡ áƒ’áƒáƒ“áƒ›áƒáƒ¬áƒ”áƒ áƒ (JSON)
+            </button>
+            <label for="import-db-file" class="btn btn-secondary" style="cursor:pointer">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+              áƒ‘áƒáƒ–áƒ˜áƒ¡ áƒáƒ¢áƒ•áƒ˜áƒ áƒ—áƒ•áƒ (JSON)
+            </label>
+            <input type="file" id="import-db-file" accept=".json" style="display:none" onchange="importDB(this)">
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PREVIEW PAGE (for print) -->
+  <!-- IMPORT PAGE -->
+  <div class="page" id="page-import">
+    <div class="topbar">
+      <div class="topbar-title">áƒ‘áƒáƒ–áƒ˜áƒ¡ áƒáƒ¢áƒ•áƒ˜áƒ áƒ—áƒ•áƒ</div>
+    </div>
+    <div style="padding:24px;max-width:860px">
+
+      <!-- Info card -->
+      <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:12px;padding:16px 20px;margin-bottom:20px;display:flex;gap:14px;align-items:flex-start">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2" style="width:20px;height:20px;flex-shrink:0;margin-top:2px"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        <div>
+          <div style="font-size:13px;font-weight:600;color:#1d4ed8;margin-bottom:4px">Excel / CSV áƒ¤áƒáƒ˜áƒšáƒ˜áƒ¡ áƒáƒ¢áƒ•áƒ˜áƒ áƒ—áƒ•áƒ</div>
+          <div style="font-size:12px;color:#3b82f6;line-height:1.7">
+            áƒžáƒ áƒáƒ’áƒ áƒáƒ›áƒáƒ¡ Web API áƒáƒ  áƒáƒ¥áƒ•áƒ¡, áƒ›áƒáƒ’áƒ áƒáƒ› Excel-áƒ˜áƒ¡ áƒ”áƒ¥áƒ¡áƒžáƒáƒ áƒ¢áƒ˜ áƒáƒ¥áƒ•áƒ¡. <br>
+            <strong>áƒžáƒ áƒáƒ“áƒ£áƒ¥áƒ¢áƒ”áƒ‘áƒ˜:</strong> áƒ›áƒ”áƒ“áƒ˜áƒ¥áƒáƒš áƒšáƒáƒ˜áƒœáƒ˜áƒ¡ áƒžáƒ áƒáƒ’áƒ áƒáƒ›áƒ â†’ áƒ›áƒáƒ áƒáƒ’áƒ”áƒ‘áƒ˜/áƒ¡áƒáƒ¥áƒáƒœáƒ”áƒšáƒ˜ â†’ áƒáƒœáƒ’áƒáƒ áƒ˜áƒ¨áƒ”áƒ‘áƒ˜áƒ¡ áƒ©áƒáƒ›áƒáƒœáƒáƒ—áƒ•áƒáƒšáƒ˜ â†’ Excel-áƒ¨áƒ˜ áƒ”áƒ¥áƒ¡áƒžáƒáƒ áƒ¢áƒ˜<br>
+            <strong>áƒ™áƒšáƒ˜áƒ”áƒœáƒ¢áƒ”áƒ‘áƒ˜:</strong> áƒ›áƒ”áƒ“áƒ˜áƒ¥áƒáƒš áƒšáƒáƒ˜áƒœáƒ˜áƒ¡ áƒžáƒ áƒáƒ’áƒ áƒáƒ›áƒ â†’ áƒ™áƒáƒœáƒ¢áƒ áƒáƒ’áƒ”áƒœáƒ¢áƒ”áƒ‘áƒ˜ â†’ áƒ©áƒáƒ›áƒáƒœáƒáƒ—áƒ•áƒáƒšáƒ˜ â†’ Excel-áƒ¨áƒ˜ áƒ”áƒ¥áƒ¡áƒžáƒáƒ áƒ¢áƒ˜<br>
+            áƒ¨áƒ”áƒ›áƒ“áƒ”áƒ’ áƒ¥áƒ•áƒ”áƒ›áƒáƒ— áƒáƒ¢áƒ•áƒ˜áƒ áƒ—áƒ”áƒ— áƒ¤áƒáƒ˜áƒšáƒ˜.
+          </div>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+
+        <!-- PRODUCTS import -->
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">ðŸ“¦ áƒžáƒ áƒáƒ“áƒ£áƒ¥áƒ¢áƒ”áƒ‘áƒ˜áƒ¡ áƒ˜áƒ›áƒžáƒáƒ áƒ¢áƒ˜</span>
+          </div>
+          <div style="padding:20px">
+            <div style="font-size:12px;color:var(--text-muted);margin-bottom:14px;line-height:1.7">
+              Excel/CSV áƒ¤áƒáƒ˜áƒšáƒ˜ áƒ›áƒ”áƒ“áƒ˜áƒ¥áƒáƒš áƒšáƒáƒ˜áƒœáƒ˜áƒ¡ áƒžáƒ áƒáƒ’áƒ áƒáƒ›áƒ˜áƒ“áƒáƒœ. áƒ›áƒáƒ¡áƒáƒšáƒáƒ“áƒœáƒ”áƒšáƒ˜ áƒ¡áƒ•áƒ”áƒ¢áƒ”áƒ‘áƒ˜:<br>
+              <code style="background:var(--bg-soft);padding:2px 6px;border-radius:4px;font-size:11px">áƒ™áƒáƒ“áƒ˜, áƒ“áƒáƒ¡áƒáƒ®áƒ”áƒšáƒ”áƒ‘áƒ, áƒ¤áƒáƒ¡áƒ˜, áƒ•áƒáƒšáƒ£áƒ¢áƒ</code><br>
+              áƒ¡áƒ•áƒ”áƒ¢áƒ”áƒ‘áƒ˜áƒ¡ áƒ áƒ£áƒ¥áƒ áƒáƒ¢áƒ•áƒ˜áƒ áƒ—áƒ•áƒ˜áƒ¡ áƒ¨áƒ”áƒ›áƒ“áƒ”áƒ’ áƒ®áƒ”áƒšáƒ˜áƒ— áƒ“áƒáƒáƒ áƒ”áƒ’áƒ£áƒšáƒ˜áƒ áƒ”áƒ—.
+            </div>
+
+            <label for="prod-file" id="prod-drop-zone" style="display:block;border:2px dashed var(--border);border-radius:10px;padding:28px 20px;text-align:center;cursor:pointer;transition:all .15s;margin-bottom:14px" ondragover="dragOver(event,'prod-drop-zone')" ondragleave="dragLeave('prod-drop-zone')" ondrop="dropFile(event,'prod')">
+              <svg viewBox="0 0 24 24" fill="none" stroke="var(--text-light)" stroke-width="1.5" style="width:32px;height:32px;margin:0 auto 8px;display:block"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+              <div style="font-size:13px;font-weight:500;color:var(--text-muted)">Excel / CSV áƒáƒ¢áƒ•áƒ˜áƒ áƒ—áƒ•áƒ</div>
+              <div style="font-size:11px;color:var(--text-light);margin-top:4px">.xlsx, .xls, .csv â€¢ áƒáƒœ áƒ©áƒáƒáƒ’áƒ“áƒ”áƒ— áƒáƒ¥</div>
+            </label>
+            <input type="file" id="prod-file" accept=".xlsx,.xls,.csv" style="display:none" onchange="handleFile(this,'prod')">
+
+            <div id="prod-mapping" style="display:none">
+              <div style="font-size:12px;font-weight:600;color:var(--text-muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px">áƒ¡áƒ•áƒ”áƒ¢áƒ”áƒ‘áƒ˜áƒ¡ áƒ áƒ£áƒ¥áƒ</div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px" id="prod-map-fields"></div>
+              <div id="prod-preview-table" style="margin-bottom:14px;overflow-x:auto;max-height:200px;overflow-y:auto"></div>
+              <button class="btn btn-primary" style="width:100%;justify-content:center" onclick="importData('prod')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px"><polyline points="20 6 9 17 4 12"/></svg>
+                áƒžáƒ áƒáƒ“áƒ£áƒ¥áƒ¢áƒ”áƒ‘áƒ˜áƒ¡ áƒ˜áƒ›áƒžáƒáƒ áƒ¢áƒ˜
+              </button>
+            </div>
+            <div id="prod-result" style="display:none"></div>
+          </div>
+        </div>
+
+        <!-- CLIENTS import -->
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">ðŸ‘¥ áƒ™áƒšáƒ˜áƒ”áƒœáƒ¢áƒ”áƒ‘áƒ˜áƒ¡ áƒ˜áƒ›áƒžáƒáƒ áƒ¢áƒ˜</span>
+          </div>
+          <div style="padding:20px">
+            <div style="font-size:12px;color:var(--text-muted);margin-bottom:14px;line-height:1.7">
+              Excel/CSV áƒ¤áƒáƒ˜áƒšáƒ˜ áƒ›áƒ”áƒ“áƒ˜áƒ¥áƒáƒš áƒšáƒáƒ˜áƒœáƒ˜áƒ¡ áƒžáƒ áƒáƒ’áƒ áƒáƒ›áƒ˜áƒ“áƒáƒœ. áƒ›áƒáƒ¡áƒáƒšáƒáƒ“áƒœáƒ”áƒšáƒ˜ áƒ¡áƒ•áƒ”áƒ¢áƒ”áƒ‘áƒ˜:<br>
+              <code style="background:var(--bg-soft);padding:2px 6px;border-radius:4px;font-size:11px">áƒ¡áƒáƒ®áƒ”áƒšáƒ˜, áƒ™áƒáƒ›áƒžáƒáƒœáƒ˜áƒ, áƒ¡/áƒ™, áƒ¢áƒ”áƒš, áƒ”áƒš-áƒ¤áƒáƒ¡áƒ¢áƒ, áƒ¥-áƒ¥áƒ˜</code><br>
+              áƒ¡áƒ•áƒ”áƒ¢áƒ”áƒ‘áƒ˜áƒ¡ áƒ áƒ£áƒ¥áƒ áƒáƒ¢áƒ•áƒ˜áƒ áƒ—áƒ•áƒ˜áƒ¡ áƒ¨áƒ”áƒ›áƒ“áƒ”áƒ’ áƒ®áƒ”áƒšáƒ˜áƒ— áƒ“áƒáƒáƒ áƒ”áƒ’áƒ£áƒšáƒ˜áƒ áƒ”áƒ—.
+            </div>
+
+            <label for="client-file" id="client-drop-zone" style="display:block;border:2px dashed var(--border);border-radius:10px;padding:28px 20px;text-align:center;cursor:pointer;transition:all .15s;margin-bottom:14px" ondragover="dragOver(event,'client-drop-zone')" ondragleave="dragLeave('client-drop-zone')" ondrop="dropFile(event,'client')">
+              <svg viewBox="0 0 24 24" fill="none" stroke="var(--text-light)" stroke-width="1.5" style="width:32px;height:32px;margin:0 auto 8px;display:block"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+              <div style="font-size:13px;font-weight:500;color:var(--text-muted)">Excel / CSV áƒáƒ¢áƒ•áƒ˜áƒ áƒ—áƒ•áƒ</div>
+              <div style="font-size:11px;color:var(--text-light);margin-top:4px">.xlsx, .xls, .csv â€¢ áƒáƒœ áƒ©áƒáƒáƒ’áƒ“áƒ”áƒ— áƒáƒ¥</div>
+            </label>
+            <input type="file" id="client-file" accept=".xlsx,.xls,.csv" style="display:none" onchange="handleFile(this,'client')">
+
+            <div id="client-mapping" style="display:none">
+              <div style="font-size:12px;font-weight:600;color:var(--text-muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px">áƒ¡áƒ•áƒ”áƒ¢áƒ”áƒ‘áƒ˜áƒ¡ áƒ áƒ£áƒ¥áƒ</div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px" id="client-map-fields"></div>
+              <div id="client-preview-table" style="margin-bottom:14px;overflow-x:auto;max-height:200px;overflow-y:auto"></div>
+              <button class="btn btn-primary" style="width:100%;justify-content:center" onclick="importData('client')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px"><polyline points="20 6 9 17 4 12"/></svg>
+                áƒ™áƒšáƒ˜áƒ”áƒœáƒ¢áƒ”áƒ‘áƒ˜áƒ¡ áƒ˜áƒ›áƒžáƒáƒ áƒ¢áƒ˜
+              </button>
+            </div>
+            <div id="client-result" style="display:none"></div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Template download -->
+      <div class="card" style="margin-top:0">
+        <div class="card-header"><span class="card-title">ðŸ“‹ áƒ¨áƒáƒ‘áƒšáƒáƒœáƒ”áƒ‘áƒ˜áƒ¡ áƒ©áƒáƒ›áƒáƒ¢áƒ•áƒ˜áƒ áƒ—áƒ•áƒ</span></div>
+        <div style="padding:16px 20px;display:flex;gap:12px;flex-wrap:wrap">
+          <button class="btn btn-secondary" onclick="downloadTemplate('prod')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            áƒžáƒ áƒáƒ“áƒ£áƒ¥áƒ¢áƒ”áƒ‘áƒ˜áƒ¡ áƒ¨áƒáƒ‘áƒšáƒáƒœáƒ˜ (.csv)
+          </button>
+          <button class="btn btn-secondary" onclick="downloadTemplate('client')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            áƒ™áƒšáƒ˜áƒ”áƒœáƒ¢áƒ”áƒ‘áƒ˜áƒ¡ áƒ¨áƒáƒ‘áƒšáƒáƒœáƒ˜ (.csv)
+          </button>
+          <div style="font-size:12px;color:var(--text-muted);display:flex;align-items:center">áƒ¨áƒáƒ‘áƒšáƒáƒœáƒ˜ áƒ›áƒ”áƒ“áƒ˜áƒ¥áƒáƒš áƒšáƒáƒ˜áƒœáƒ˜áƒ¡ áƒžáƒ áƒáƒ’áƒ áƒáƒ›áƒ˜áƒ¡ áƒ”áƒ¥áƒ¡áƒžáƒáƒ áƒ¢áƒ˜áƒ¡ áƒ¤áƒáƒ áƒ›áƒáƒ¢áƒ–áƒ”áƒ áƒ›áƒáƒ áƒ’áƒ”áƒ‘áƒ£áƒšáƒ˜</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="page" id="page-preview">
+    <div class="topbar no-print">
+      <div class="topbar-title">áƒ˜áƒœáƒ•áƒáƒ˜áƒ¡áƒ˜áƒ¡ áƒ’áƒáƒ“áƒáƒ®áƒ”áƒ“áƒ•áƒ</div>
+      <div class="topbar-actions">
+        <button class="btn btn-secondary" onclick="nav('invoices')">â† áƒ£áƒ™áƒáƒœ</button>
+        <button class="btn btn-primary" onclick="window.print()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+          PDF / áƒ‘áƒ”áƒ­áƒ“áƒ•áƒ
+        </button>
+        <button class="btn" id="rsge-upload-btn" onclick="openRsUpload()" style="background:#dc2626;color:#fff;border-color:#dc2626">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+          Rs.ge-áƒ–áƒ” áƒáƒ¢áƒ•áƒ˜áƒ áƒ—áƒ•áƒ
+        </button>
+      </div>
+    </div>
+    <div style="padding:24px" id="preview-outer"></div>
+  </div>
+
+</div>
+</div>
+
+<!-- MODALS -->
+
+<!-- Rs.ge Search -->
+<div class="modal-bg" id="rs-modal">
+  <div class="modal" style="max-width:500px">
+    <div class="modal-head">
+      <h3>Rs.ge áƒ¡áƒ˜áƒœáƒ¥áƒ áƒáƒœáƒ˜áƒ–áƒáƒªáƒ˜áƒ</h3>
+      <button class="btn btn-ghost btn-sm" onclick="closeModal('rs-modal')">âœ•</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:13px;color:var(--text-muted);margin-bottom:14px">áƒ¨áƒ”áƒ˜áƒ§áƒ•áƒáƒœáƒ”áƒ— áƒ¡áƒáƒ˜áƒ“áƒ”áƒœáƒ¢áƒ˜áƒ¤áƒ˜áƒ™áƒáƒªáƒ˜áƒ áƒ™áƒáƒ“áƒ˜ áƒáƒœ áƒ™áƒáƒ›áƒžáƒáƒœáƒ˜áƒ˜áƒ¡ áƒ¡áƒáƒ®áƒ”áƒšáƒ˜ áƒ™áƒáƒ›áƒžáƒáƒœáƒ˜áƒ˜áƒ¡ áƒ˜áƒœáƒ¤áƒáƒ áƒ›áƒáƒªáƒ˜áƒ˜áƒ¡ Rs.ge-áƒ“áƒáƒœ áƒ©áƒáƒ›áƒáƒ¡áƒáƒ¢áƒ•áƒ˜áƒ áƒ—áƒáƒ“.</p>
+      <div class="rs-search-row">
+        <input type="text" id="rs-q" placeholder="áƒ¡áƒáƒ˜áƒ“. áƒ™áƒáƒ“áƒ˜ áƒáƒœ áƒ™áƒáƒ›áƒžáƒáƒœáƒ˜áƒ˜áƒ¡ áƒ¡áƒáƒ®áƒ”áƒšáƒ˜..." onkeydown="if(event.key==='Enter')rsSearch()">
+        <button class="btn btn-primary" onclick="rsSearch()">áƒ«áƒ˜áƒ”áƒ‘áƒ</button>
+      </div>
+      <div id="rs-results"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Add Client -->
+<div class="modal-bg" id="add-client-modal">
+  <div class="modal">
+    <div class="modal-head"><h3>áƒ™áƒšáƒ˜áƒ”áƒœáƒ¢áƒ˜áƒ¡ áƒ“áƒáƒ›áƒáƒ¢áƒ”áƒ‘áƒ</h3><button class="btn btn-ghost btn-sm" onclick="closeModal('add-client-modal')">âœ•</button></div>
+    <div class="modal-body">
+      <div class="form-grid form-grid-2" style="display:grid;gap:14px">
+        <div class="field"><label>áƒ¡áƒáƒ®áƒ”áƒšáƒ˜ áƒ’áƒ•áƒáƒ áƒ˜ *</label><input type="text" id="nc-name" placeholder="áƒ’áƒ˜áƒáƒ áƒ’áƒ˜ áƒ‘áƒ”áƒ áƒ˜áƒ«áƒ”"></div>
+        <div class="field"><label>áƒ™áƒáƒ›áƒžáƒáƒœáƒ˜áƒ / áƒ™áƒšáƒ˜áƒœáƒ˜áƒ™áƒ</label><input type="text" id="nc-company" placeholder="áƒ™áƒšáƒ˜áƒœáƒ˜áƒ™áƒ áƒ¡áƒáƒ"></div>
+        <div class="field"><label>áƒ¡áƒáƒ˜áƒ“. áƒ™áƒáƒ“áƒ˜</label><input type="text" id="nc-id" placeholder="01xxxxxxxx"></div>
+        <div class="field"><label>áƒ¥áƒáƒšáƒáƒ¥áƒ˜</label>
+          <select id="nc-city"><option>áƒ—áƒ‘áƒ˜áƒšáƒ˜áƒ¡áƒ˜</option><option>áƒ‘áƒáƒ—áƒ£áƒ›áƒ˜</option><option>áƒ¥áƒ£áƒ—áƒáƒ˜áƒ¡áƒ˜</option><option>áƒ’áƒáƒ áƒ˜</option><option>áƒ áƒ£áƒ¡áƒ—áƒáƒ•áƒ˜</option><option>áƒ–áƒ£áƒ’áƒ“áƒ˜áƒ“áƒ˜</option><option>áƒ¡áƒ®áƒ•áƒ</option></select>
+        </div>
+        <div class="field"><label>áƒ¢áƒ”áƒšáƒ”áƒ¤áƒáƒœáƒ˜</label><input type="text" id="nc-phone" placeholder="+995 5xx xxx xxx"></div>
+        <div class="field"><label>áƒ”áƒš-áƒ¤áƒáƒ¡áƒ¢áƒ</label><input type="email" id="nc-email" placeholder="email@mail.com"></div>
+        <div class="field" style="grid-column:1/-1"><label>áƒ›áƒ˜áƒ¡áƒáƒ›áƒáƒ áƒ—áƒ˜</label><input type="text" id="nc-addr" placeholder="áƒ¥. áƒ—áƒ‘áƒ˜áƒšáƒ˜áƒ¡áƒ˜, áƒ¥. áƒ‘áƒáƒ áƒáƒ—áƒáƒ¨áƒ•áƒ˜áƒšáƒ˜ 7"></div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-secondary" onclick="closeModal('add-client-modal')">áƒ’áƒáƒ£áƒ¥áƒ›áƒ”áƒ‘áƒ</button>
+      <button class="btn btn-primary" onclick="saveClient()">áƒ¨áƒ”áƒœáƒáƒ®áƒ•áƒ</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add Product -->
+<div class="modal-bg" id="add-product-modal">
+  <div class="modal">
+    <div class="modal-head"><h3>áƒžáƒ áƒáƒ“áƒ£áƒ¥áƒ¢áƒ˜áƒ¡ áƒ“áƒáƒ›áƒáƒ¢áƒ”áƒ‘áƒ</h3><button class="btn btn-ghost btn-sm" onclick="closeModal('add-product-modal')">âœ•</button></div>
+    <div class="modal-body">
+      <div class="form-grid form-grid-2" style="display:grid;gap:14px">
+        <div class="field"><label>áƒ™áƒáƒ“áƒ˜</label><input type="text" id="np-code" placeholder="HLS-680"></div>
+        <div class="field"><label>áƒ™áƒáƒ¢áƒ”áƒ’áƒáƒ áƒ˜áƒ</label>
+          <select id="np-cat"><option>áƒ¡áƒ™áƒáƒœáƒ”áƒ áƒ˜</option><option>X-Ray</option><option>áƒáƒ•áƒ¢áƒáƒ™áƒšáƒáƒ•áƒ˜</option><option>áƒ‘áƒ£áƒ áƒ˜/áƒœáƒáƒœáƒáƒ›áƒáƒ¢áƒáƒ áƒ˜</option><option>CT áƒ¡áƒ™áƒáƒœáƒ”áƒ áƒ˜</option><option>áƒ¡áƒ¢áƒáƒ›. áƒ¡áƒ™áƒáƒ›áƒ˜</option><option>áƒ›áƒ˜áƒ™áƒ áƒáƒ¡áƒ™áƒáƒžáƒ˜</option><option>áƒ¡áƒ”áƒ áƒ•áƒ˜áƒ¡áƒ˜</option><option>áƒ¡áƒ®áƒ•áƒ</option></select>
+        </div>
+        <div class="field" style="grid-column:1/-1"><label>áƒ“áƒáƒ¡áƒáƒ®áƒ”áƒšáƒ”áƒ‘áƒ *</label><input type="text" id="np-name" placeholder="Helios 680 Intraoral Scanner"></div>
+        <div class="field"><label>áƒ¤áƒáƒ¡áƒ˜</label><input type="number" id="np-price" placeholder="4500"></div>
+        <div class="field"><label>áƒ•áƒáƒšáƒ£áƒ¢áƒ</label><select id="np-cur"><option value="GEL">â‚¾ GEL</option><option value="USD">$ USD</option><option value="EUR">â‚¬ EUR</option></select></div>
+        <div class="field"><label>áƒ¡áƒáƒ’. áƒ”áƒ áƒ—.</label><input type="text" id="np-unit" placeholder="áƒª., áƒ™áƒáƒ›áƒž., áƒ¡áƒ”áƒ áƒ•..."></div>
+        <div class="field" style="display:flex;align-items:center;gap:10px;padding-top:22px">
+          <input type="checkbox" id="np-vat" style="width:18px;height:18px;cursor:pointer;accent-color:#2563eb">
+          <label for="np-vat" style="cursor:pointer;font-size:13px;font-weight:600;color:var(--text);margin:0">áƒ“áƒ¦áƒ’ áƒ©áƒáƒ—áƒ•áƒšáƒ˜áƒ—</label>
+        </div>
+        <div class="field" style="grid-column:1/-1"><label>áƒáƒ¦áƒ¬áƒ”áƒ áƒ</label><textarea id="np-desc" rows="2" placeholder="áƒ›áƒáƒ™áƒšáƒ” áƒáƒ¦áƒ¬áƒ”áƒ áƒ..."></textarea></div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-secondary" onclick="closeModal('add-product-modal')">áƒ’áƒáƒ£áƒ¥áƒ›áƒ”áƒ‘áƒ</button>
+      <button class="btn btn-primary" onclick="saveProduct()">áƒ¨áƒ”áƒœáƒáƒ®áƒ•áƒ</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// =========== SUPABASE CONFIG ===========
+const SB_URL = 'https://ijliierecnvzurdzmunp.supabase.co';
+const SB_KEY = 'sb_publishable_xFGfr-GxarCndR2Zda3kSQ_X7-G5E0B';
+
+async function sb(path, opts = {}) {
+  const res = await fetch(SB_URL + '/rest/v1' + path, {
+    method: opts.method || 'GET',
+    headers: {
+      'apikey': SB_KEY,
+      'Authorization': 'Bearer ' + SB_KEY,
+      'Content-Type': 'application/json',
+      'Prefer': opts.prefer || (opts.method === 'GET' ? '' : 'return=representation'),
+    },
+    body: opts.body !== undefined ? JSON.stringify(opts.body) : undefined,
+  });
+  if (!res.ok) { const t = await res.text(); throw new Error(t); }
+  const text = await res.text();
+  return text ? JSON.parse(text) : null;
+}
+
+// =========== DATA STORE (in-memory cache) ===========
+const db = {
+  clients: [],
+  products: [],
+  invoices: [],
+  settings: {company:'',compId:'',email:'',phone:'',address:'',bank:'',director:'áƒ¨. áƒ¡áƒ”áƒ¤áƒ˜áƒ¨áƒ•áƒ˜áƒšáƒ˜',directorTitle:'áƒ“áƒ˜áƒ áƒ”áƒ¥áƒ¢áƒáƒ áƒ˜',sealImg:'',rsUser:'',rsPass:'',rsUserId:0,rsSenderTin:'',rsDriverInfo:'',rsDriverNo:'',rsTransportMark:'',rsDriverIsGeo:1},
+  nextInv: 1,
+};
+
+function mapClient(c) {
+  return {id:c.id,name:c.name,company:c.company||'',idNum:c.id_num||'',phone:c.phone||'',email:c.email||'',city:c.city||'',address:c.address||''};
+}
+function mapProduct(p) {
+  return {id:p.id,code:p.code||'',name:p.name,category:p.category||'áƒ¡áƒ®áƒ•áƒ',price:+p.price||0,currency:p.currency||'GEL',unit:p.unit||'',desc:p.description||'',vatIncluded:!!p.vat_included};
+}
+function mapInvoice(i) {
+  return {id:i.id,number:i.number,status:i.status||'draft',clientId:i.client_id,date:i.date||'',due:i.due||'',currency:i.currency||'GEL',terms:i.terms||'',vatRate:+i.vat_rate||0,discount:+i.discount||0,note:i.note||'',bank:i.bank||'',senderName:i.sender_name||'',senderIdNum:i.sender_id_num||'',senderAddr:i.sender_addr||'',senderEmail:i.sender_email||'',senderPhone:i.sender_phone||'',items:i.items||[],subtotal:+i.subtotal||0,discountAmount:+i.discount_amount||0,vatAmount:+i.vat_amount||0,total:+i.total||0,color:i.color||'#2563eb',createdAt:i.created_at};
+}
+
+function normalizeSearchText(value) {
+  return String(value || '').trim().toLowerCase();
+}
+
+function getVatIncludedByCode(code, fallback) {
+  const normalized = String(code || '').trim();
+  if (normalized === '1610') return true;
+  if (normalized === '1611') return false;
+  return !!fallback;
+}
+
+function productUniqueKey(product) {
+  const code = normalizeSearchText(product.code);
+  if (code) return `code:${code}`;
+  return `id:${product.id}`;
+}
+
+function pickBetterProduct(current, next) {
+  const currentScore = [current.code, current.desc, current.unit].filter(Boolean).length;
+  const nextScore = [next.code, next.desc, next.unit].filter(Boolean).length;
+  return nextScore > currentScore ? next : current;
+}
+
+function dedupeProducts(products) {
+  const seen = new Map();
+  for (const product of products || []) {
+    const key = productUniqueKey(product);
+    const existing = seen.get(key);
+    seen.set(key, existing ? pickBetterProduct(existing, product) : product);
+  }
+  return Array.from(seen.values()).sort((a, b) => productOptionLabel(a).localeCompare(productOptionLabel(b), 'ka'));
+}
+
+function showLoading(on) {
+  let el = document.getElementById('sb-loading');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'sb-loading';
+    el.style.cssText = 'position:fixed;inset:0;background:rgba(255,255,255,.75);z-index:9999;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:600;color:#2563eb;gap:10px';
+    el.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:22px;height:22px;animation:spin 1s linear infinite"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>áƒ˜áƒ¢áƒ•áƒ˜áƒ áƒ—áƒ”áƒ‘áƒ...';
+    document.body.appendChild(el);
+    const style = document.createElement('style');
+    style.textContent = '@keyframes spin{to{transform:rotate(360deg)}}';
+    document.head.appendChild(style);
+  }
+  el.style.display = on ? 'flex' : 'none';
+}
+
+async function loadAll() {
+  showLoading(true);
+  const warnings = [];
+  try {
+    const [clientsRes, productsRes, invoicesRes, settingsRes] = await Promise.allSettled([
+      sb('/inv_clients?order=name'),
+      sb('/inv_products?order=name'),
+      sb('/inv_invoices?order=created_at.desc'),
+      sb('/inv_settings?id=eq.1'),
+    ]);
+
+    if (clientsRes.status === 'fulfilled') db.clients = (clientsRes.value || []).map(mapClient);
+    else { db.clients = []; warnings.push('áƒ™áƒšáƒ˜áƒ”áƒœáƒ¢áƒ”áƒ‘áƒ˜'); console.error(clientsRes.reason); }
+
+    if (productsRes.status === 'fulfilled') db.products = dedupeProducts((productsRes.value || []).map(mapProduct).map(product => ({ ...product, vatIncluded: getVatIncludedByCode(product.code, product.vatIncluded) })));
+    else { db.products = []; warnings.push('áƒžáƒ áƒáƒ“áƒ£áƒ¥áƒ¢áƒ”áƒ‘áƒ˜'); console.error(productsRes.reason); }
+
+    if (invoicesRes.status === 'fulfilled') db.invoices = (invoicesRes.value || []).map(mapInvoice);
+    else { db.invoices = []; warnings.push('áƒ˜áƒœáƒ•áƒáƒ˜áƒ¡áƒ”áƒ‘áƒ˜'); console.error(invoicesRes.reason); }
+
+    if (settingsRes.status === 'fulfilled') {
+      const settingsRows = Array.isArray(settingsRes.value) ? settingsRes.value : [];
+      const settingsRow = settingsRows[0];
+      if (settingsRow && typeof settingsRow.data === 'object' && settingsRow.data) Object.assign(db.settings, settingsRow.data);
+    } else {
+      warnings.push('áƒžáƒáƒ áƒáƒ›áƒ”áƒ¢áƒ áƒ”áƒ‘áƒ˜');
+      console.error(settingsRes.reason);
+    }
+
+    db.nextInv = db.invoices.length + 1;
+  } catch(e) {
+    console.error(e);
+    alert('Supabase-áƒ—áƒáƒœ áƒ™áƒáƒ•áƒ¨áƒ˜áƒ áƒ˜ áƒ•áƒ”áƒ  áƒ›áƒáƒ®áƒ”áƒ áƒ®áƒ“áƒ: ' + e.message);
+  }
+  showLoading(false);
+  if (warnings.length) {
+    alert('áƒ–áƒáƒ’áƒ˜ áƒ›áƒáƒœáƒáƒªáƒ”áƒ›áƒ˜ áƒ•áƒ”áƒ  áƒ©áƒáƒ˜áƒ¢áƒ•áƒ˜áƒ áƒ—áƒ: ' + warnings.join(', '));
+  }
+  renderDashboard();
+  initForm(null);
+}
+
+async function saveSettingsToDB() {
+  try {
+    await sb('/inv_settings', {method:'POST', body:{id:1,data:db.settings}, prefer:'resolution=merge-duplicates,return=representation'});
+  } catch(e) { console.error(e); throw e; }
+}
+
+function persist() { /* replaced by Supabase */ }
+
+let currentStatusFilter = 'all';
+let currentLines = [];
+let currentColor = '#2563eb';
+
+const MONTHS = ['áƒ˜áƒáƒœáƒ•','áƒ—áƒ”áƒ‘','áƒ›áƒáƒ ','áƒáƒžáƒ ','áƒ›áƒáƒ˜','áƒ˜áƒ•áƒœ','áƒ˜áƒ•áƒš','áƒáƒ’áƒ•','áƒ¡áƒ”áƒ¥','áƒáƒ¥áƒ¢','áƒœáƒáƒ”','áƒ“áƒ”áƒ™'];
+const sym = c => ({GEL:'â‚¾',USD:'$',EUR:'â‚¬'}[c]||'â‚¾');
+const fmtDate = d => { if(!d)return'â€”'; const dt=new Date(d); return dt.getDate()+' '+MONTHS[dt.getMonth()]+' '+dt.getFullYear(); };
+const fmtAmt = (v,c) => sym(c)+Number(v).toFixed(2);
+const statusLabel = s => ({draft:'áƒ›áƒáƒœáƒáƒ®áƒáƒ–áƒ˜',sent:'áƒ’áƒáƒ’áƒ–áƒáƒ•áƒœáƒ˜áƒšáƒ˜',paid:'áƒ’áƒáƒ“áƒáƒ®áƒ“áƒ˜áƒšáƒ˜',overdue:'áƒ•áƒáƒ“áƒáƒ’áƒáƒ“áƒáƒª.'}[s]||s);
+const badgeClass = s => 'badge badge-'+s;
+const escH = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+
+// =========== NAV ===========
+function nav(p) {
+  document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));
+  document.getElementById('page-'+p).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(x=>x.classList.remove('active'));
+  const m={dashboard:'áƒžáƒáƒœáƒ”áƒšáƒ˜',invoices:'áƒ˜áƒœáƒ•áƒáƒ˜áƒ¡áƒ”áƒ‘áƒ˜','new-invoice':'áƒáƒ®áƒáƒšáƒ˜ áƒ˜áƒœáƒ•áƒáƒ˜áƒ¡áƒ˜',clients:'áƒ™áƒšáƒ˜áƒ”áƒœáƒ¢áƒ”áƒ‘áƒ˜',products:'áƒžáƒ áƒáƒ“áƒ£áƒ¥áƒ¢áƒ”áƒ‘áƒ˜',import:'áƒ‘áƒáƒ–áƒ˜áƒ¡ áƒáƒ¢áƒ•áƒ˜áƒ áƒ—áƒ•áƒ',settings:'áƒžáƒáƒ áƒáƒ›áƒ”áƒ¢áƒ áƒ”áƒ‘áƒ˜'};
+  document.querySelectorAll('.nav-item').forEach(x=>{if(x.textContent.trim()===m[p])x.classList.add('active')});
+  if(p==='dashboard')renderDashboard();
+  if(p==='invoices')renderInvoices();
+  if(p==='clients')renderClients();
+  if(p==='products')renderProducts();
+  if(p==='new-invoice')initForm(null);
+  if(p==='settings')loadSettings();
+  if(p==='import'){parsedData={prod:null,client:null};['prod','client'].forEach(t=>{const m=document.getElementById(t+'-mapping');if(m)m.style.display='none';const r=document.getElementById(t+'-result');if(r)r.style.display='none';});}
+}
+
+// =========== DASHBOARD ===========
+function renderDashboard() {
+  updateMetrics();
+  const rows = db.invoices.slice(0,6);
+  document.getElementById('dash-table').innerHTML = rows.length ? rows.map(inv=>{
+    const c=db.clients.find(x=>x.id===inv.clientId)||{name:'â€”'};
+    return `<tr>
+      <td><strong>${escH(inv.number)}</strong></td>
+      <td>${escH(c.name)}<div class="td-muted">${escH(c.company||'')}</div></td>
+      <td class="td-muted">${inv.items.filter(i=>i.name).slice(0,2).map(i=>escH(i.name)).join(', ')||'â€”'}</td>
+      <td><strong>${fmtAmt(inv.total,inv.currency)}</strong></td>
+      <td><span class="${badgeClass(inv.status)}"><span class="badge-dot"></span>${statusLabel(inv.status)}</span></td>
+      <td class="td-muted">${fmtDate(inv.due)}</td>
+      <td><button class="btn btn-ghost btn-sm" onclick="previewInv(${inv.id})">áƒ’áƒáƒ“áƒáƒ®.</button></td>
+    </tr>`;
+  }).join('') : '<tr><td colspan="7"><div class="empty-state"><div class="empty-icon">ðŸ“„</div><div class="empty-title">áƒ˜áƒœáƒ•áƒáƒ˜áƒ¡áƒ˜ áƒáƒ  áƒáƒ áƒ˜áƒ¡</div><div class="empty-sub">áƒ¨áƒ”áƒ¥áƒ›áƒ”áƒœáƒ˜áƒ— áƒžáƒ˜áƒ áƒ•áƒ”áƒšáƒ˜ áƒ˜áƒœáƒ•áƒáƒ˜áƒ¡áƒ˜</div></div></td></tr>';
+}
+
+function updateMetrics() {
+  const all=db.invoices;
+  const paid=all.filter(i=>i.status==='paid');
+  const sent=all.filter(i=>i.status==='sent');
+  const over=all.filter(i=>i.status==='overdue');
+  const sum=(arr,c)=>arr.reduce((s,i)=>s+i.total,0);
+  document.getElementById('st-total').textContent=all.length;
+  document.getElementById('st-paid-val').textContent='â‚¾'+sum(paid).toFixed(0);
+  document.getElementById('st-paid-c').textContent=paid.length+' áƒ˜áƒœáƒ•áƒáƒ˜áƒ¡áƒ˜';
+  document.getElementById('st-sent-val').textContent='â‚¾'+sum(sent).toFixed(0);
+  document.getElementById('st-sent-c').textContent=sent.length+' áƒ˜áƒœáƒ•áƒáƒ˜áƒ¡áƒ˜';
+  document.getElementById('st-over-val').textContent='â‚¾'+sum(over).toFixed(0);
+  document.getElementById('st-over-c').textContent=over.length+' áƒ˜áƒœáƒ•áƒáƒ˜áƒ¡áƒ˜';
+  document.getElementById('nb-invoices').textContent=all.length;
+  ['all','draft','sent','paid','overdue'].forEach(s=>{
+    const el=document.getElementById('tc-'+s);
+    if(el) el.textContent=s==='all'?all.length:all.filter(i=>i.status===s).length;
+  });
+}
+
+// =========== INVOICES LIST ===========
+function filterStatus(el,s) {
+  currentStatusFilter=s;
+  document.querySelectorAll('.tab-bar .tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  renderInvoices();
+}
+
+function renderInvoices() {
+  const q=(document.getElementById('inv-search')||{value:''}).value.toLowerCase();
+  let list=db.invoices.filter(inv=>{
+    if(currentStatusFilter!=='all'&&inv.status!==currentStatusFilter)return false;
+    if(q){const c=db.clients.find(x=>x.id===inv.clientId)||{name:''};if(!inv.number.toLowerCase().includes(q)&&!c.name.toLowerCase().includes(q)&&!(c.company||'').toLowerCase().includes(q))return false;}
+    return true;
+  });
+  const tb=document.getElementById('invoices-table');
+  if(!list.length){tb.innerHTML='<tr><td colspan="7"><div class="empty-state"><div class="empty-icon">ðŸ”</div><div class="empty-title">áƒ˜áƒœáƒ•áƒáƒ˜áƒ¡áƒ˜ áƒ•áƒ”áƒ  áƒ›áƒáƒ˜áƒ«áƒ”áƒ‘áƒœáƒ</div></div></td></tr>';return;}
+  tb.innerHTML=list.map(inv=>{
+    const c=db.clients.find(x=>x.id===inv.clientId)||{name:'â€”',company:''};
+    const s=sym(inv.currency);
+    return `<tr>
+      <td><strong>${escH(inv.number)}</strong></td>
+      <td>${escH(c.name)}<div class="td-muted">${escH(c.company||'')}</div></td>
+      <td><strong>${fmtAmt(inv.total,inv.currency)}</strong></td>
+      <td><span class="${badgeClass(inv.status)}"><span class="badge-dot"></span>${statusLabel(inv.status)}</span></td>
+      <td class="td-muted">${fmtDate(inv.date)}</td>
+      <td class="td-muted">${fmtDate(inv.due)}</td>
+      <td>
+        <div class="row-actions">
+          <button class="btn btn-ghost btn-sm" onclick="previewInv(${inv.id})">ðŸ‘</button>
+          <button class="btn btn-ghost btn-sm" onclick="editInv(${inv.id})">âœï¸</button>
+          <button class="btn btn-sm" style="background:#fef2f2;color:#dc2626;border-color:#fecaca" onclick="openRsUploadForInv(${inv.id})">Rs.ge â†—</button>
+          ${inv.status==='draft'?`<button class="btn btn-secondary btn-sm" onclick="changeStatus(${inv.id},'sent')">áƒ’áƒáƒ’áƒ–.</button>`:''}
+          ${inv.status==='sent'?`<button class="btn btn-success btn-sm" onclick="changeStatus(${inv.id},'paid')">âœ“ áƒ’áƒáƒ“áƒáƒ®.</button>`:''}
+          <button class="btn btn-danger btn-sm" onclick="delInv(${inv.id})">âœ•</button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+  updateMetrics();
+}
+
+async function changeStatus(id,s) {
+  try { await sb('/inv_invoices?id=eq.'+id,{method:'PATCH',body:{status:s},prefer:'return=minimal'}); const inv=db.invoices.find(i=>i.id===id); if(inv)inv.status=s; renderInvoices(); } catch(e){alert('áƒ¨áƒ”áƒªáƒ“áƒáƒ›áƒ: '+e.message);return null;}
+}
+async function delInv(id) {
+  if(!confirm('áƒ¬áƒáƒ¨áƒšáƒ?'))return;
+  try { await sb('/inv_invoices?id=eq.'+id,{method:'DELETE',prefer:'return=minimal'}); db.invoices=db.invoices.filter(i=>i.id!==id); renderInvoices(); updateMetrics(); } catch(e){alert('áƒ¨áƒ”áƒªáƒ“áƒáƒ›áƒ: '+e.message);return null;}
+}
+function editInv(id) { nav('new-invoice'); setTimeout(()=>initForm(id),50); }
+
+// =========== FORM ===========
+function initForm(editId) {
+  document.getElementById('edit-id').value=editId||'';
+  document.getElementById('inv-form-title').textContent=editId?'áƒ˜áƒœáƒ•áƒáƒ˜áƒ¡áƒ˜áƒ¡ áƒ áƒ”áƒ“áƒáƒ¥áƒ¢áƒ˜áƒ áƒ”áƒ‘áƒ':'áƒáƒ®áƒáƒšáƒ˜ áƒ˜áƒœáƒ•áƒáƒ˜áƒ¡áƒ˜';
+  const today=new Date().toISOString().split('T')[0];
+  const due30=new Date(Date.now()+30*864e5).toISOString().split('T')[0];
+  if(editId) {
+    const inv=db.invoices.find(i=>i.id===editId);
+    if(inv){
+      ['number','date','due','currency','terms','note','bank'].forEach(f=>{ const el=document.getElementById('f-'+f); if(el)el.value=inv[f]||''; });
+      document.getElementById('f-vat').value=inv.vatRate||18;
+      currentVatMode=inv.items?.[0]?.vatMode||'exclusive';
+      document.getElementById('f-vat-mode').value=currentVatMode;
+      document.getElementById('f-disc').value=inv.discount||0;
+      document.getElementById('f-comp').value=inv.senderName||db.settings.company||'';
+      document.getElementById('f-comp-id').value=inv.senderIdNum||db.settings.compId||'';
+      document.getElementById('f-comp-addr').value=inv.senderAddr||db.settings.address||'';
+      document.getElementById('f-comp-email').value=inv.senderEmail||db.settings.email||'';
+      document.getElementById('f-comp-phone').value=inv.senderPhone||db.settings.phone||'';
+      currentColor=inv.color||'#2563eb';
+      currentLines=JSON.parse(JSON.stringify(inv.items));
+      const c=db.clients.find(x=>x.id===inv.clientId);
+      selectedClientId=inv.clientId||null;
+      if(c) selectClient(c);
+    }
+  } else {
+    document.getElementById('f-number').value='INV-'+String(db.nextInv).padStart(3,'0');
+    document.getElementById('f-date').value=today;
+    document.getElementById('f-due').value=due30;
+    document.getElementById('f-currency').value='GEL';
+    document.getElementById('f-terms').value='net30';
+    document.getElementById('f-note').value='áƒ’áƒ›áƒáƒ“áƒšáƒáƒ‘áƒ— áƒ¨áƒ”áƒ«áƒ”áƒœáƒ˜áƒ¡áƒ—áƒ•áƒ˜áƒ¡!';
+    document.getElementById('f-bank').value=db.settings.bank||'';
+    document.getElementById('f-vat').value=18;
+    currentVatMode='exclusive';
+    document.getElementById('f-vat-mode').value=currentVatMode;
+    document.getElementById('f-disc').value=0;
+    document.getElementById('f-comp').value=db.settings.company||'';
+    document.getElementById('f-comp-id').value=db.settings.compId||'';
+    document.getElementById('f-comp-addr').value=db.settings.address||'';
+    document.getElementById('f-comp-email').value=db.settings.email||'';
+    document.getElementById('f-comp-phone').value=db.settings.phone||'';
+    currentColor='#2563eb';
+    currentLines=[{prodId:null,name:'',desc:'',qty:1,price:0,unit:''}];
+    selectedClientId=null;
+    document.getElementById('selected-client-id-hidden')&&(document.getElementById('selected-client-id-hidden').value='');
+    document.getElementById('sel-client-box').style.display='none';
+    document.getElementById('client-q').value='';
+  }
+  updateColorPicker();
+  renderLines();
+  recalc();
+}
+
+let selectedClientId=null;
+let productSearchQuery='';
+let currentVatMode='exclusive';
+function selectClient(c) {
+  selectedClientId=c.id;
+  document.getElementById('sel-client-box').style.display='';
+  document.getElementById('sel-client-name').textContent=c.name;
+  document.getElementById('sel-client-detail').textContent=(c.company?c.company+' Â· ':'')+c.city+(c.idNum?' Â· '+c.idNum:'');
+  document.getElementById('client-dropdown').style.display='none';
+  document.getElementById('client-q').value='';
+}
+
+function searchClients() {
+  const q=normalizeSearchText(document.getElementById('client-q').value);
+  const dd=document.getElementById('client-dropdown');
+  if(!q){dd.style.display='none';return;}
+  if(!db.clients.length){
+    dd.innerHTML='<div style="padding:10px 12px;font-size:12px;color:var(--text-muted)">áƒ™áƒšáƒ˜áƒ”áƒœáƒ¢áƒ”áƒ‘áƒ˜ áƒ‘áƒáƒ–áƒáƒ¨áƒ˜ áƒ•áƒ”áƒ  áƒ›áƒáƒ˜áƒ«áƒ”áƒ‘áƒœáƒ. áƒ¨áƒ”áƒáƒ›áƒáƒ¬áƒ›áƒ”áƒ— Supabase import/backup.</div>';
+    dd.style.display='block';
+    return;
+  }
+  const found=db.clients.filter(c=>
+    normalizeSearchText(c.name).includes(q) ||
+    normalizeSearchText(c.company).includes(q) ||
+    normalizeSearchText(c.idNum).includes(q) ||
+    normalizeSearchText(c.phone).includes(q) ||
+    normalizeSearchText(c.email).includes(q) ||
+    normalizeSearchText(c.city).includes(q)
+  );
+  if(!found.length){
+    dd.innerHTML='<div style="padding:10px 12px;font-size:12px;color:var(--text-muted)">áƒ™áƒšáƒ˜áƒ”áƒœáƒ¢áƒ˜ áƒ•áƒ”áƒ  áƒ›áƒáƒ˜áƒ«áƒ”áƒ‘áƒœáƒ.</div>';
+    dd.style.display='block';
+    return;
+  }
+  dd.innerHTML=found.map(c=>`<div style="padding:9px 12px;cursor:pointer;border-bottom:1px solid var(--border);font-size:13px" onpointerdown="event.preventDefault();selectClient(${JSON.stringify(c).replace(/"/g,'&quot;')})"><div style="font-weight:600">${escH(c.name)}</div><div style="font-size:11px;color:var(--text-muted)">${escH(c.company||'')} ${c.city?'Â· '+c.city:''}</div></div>`).join('');
+  dd.style.display='block';
+}
+
+function addLine() { currentLines.push({prodId:null,name:'',desc:'',qty:1,price:0,unit:''}); renderLines(); recalc(); }
+function removeLine(i) { currentLines.splice(i,1); if(!currentLines.length)currentLines.push({prodId:null,name:'',desc:'',qty:1,price:0,unit:''}); renderLines(); recalc(); }
+
+function lineProduct(i,pid) {
+  if(pid) {
+    const p=db.products.find(x=>x.id===+pid);
+    if(p){
+      currentLines[i].name=p.name;currentLines[i].desc=p.desc||'';currentLines[i].price=p.price;currentLines[i].unit=p.unit||'';currentLines[i].prodId=p.id;
+      currentVatMode=getVatIncludedByCode(p.code, p.vatIncluded)?'inclusive':'exclusive';
+      const modeEl=document.getElementById('f-vat-mode');
+      if(modeEl) modeEl.value=currentVatMode;
+    }
+  } else {
+    currentLines[i].prodId = null;
+  }
+  renderLines(); recalc();
+}
+function productOptionLabel(p){ return `${p.code ? p.code+' | ' : ''}${p.name}`; }
+function productVatLabel(p){ return p.vatIncluded ? 'áƒ“áƒ¦áƒ’ áƒ©áƒáƒ—áƒ•áƒšáƒ˜áƒ—' : 'áƒ“áƒ¦áƒ’-áƒ¡ áƒ’áƒáƒ áƒ”áƒ¨áƒ”'; }
+function lineProductSearch(i, value) {
+  const q = normalizeSearchText(value);
+  if(!q) {
+    currentLines[i].prodId = null;
+    currentLines[i].name = value;
+    renderLines();
+    recalc();
+    return;
+  }
+  const p = db.products.find(x => normalizeSearchText(productOptionLabel(x)) === q)
+    || db.products.find(x =>
+      normalizeSearchText(x.name).includes(q) ||
+      normalizeSearchText(x.code).includes(q)
+    );
+  if(p) lineProduct(i, p.id);
+  else {
+    currentLines[i].prodId = null;
+    currentLines[i].name = value;
+    recalc();
+  }
+}
+function setVatMode(mode) {
+  currentVatMode = mode === 'inclusive' ? 'inclusive' : 'exclusive';
+  recalc();
+}
+function lineChange(i,f,v) { currentLines[i][f]=f==='qty'||f==='price'?+v:v; recalc(); }
+
+function renderLines() {
+  const body=document.getElementById('items-body');
+  const c=document.getElementById('f-currency').value;
+  const taxedProducts = db.products.filter(p=>getVatIncludedByCode(p.code, p.vatIncluded));
+  const untaxedProducts = db.products.filter(p=>!getVatIncludedByCode(p.code, p.vatIncluded));
+  body.innerHTML=currentLines.map((ln,i)=>`
+    <tr>
+      <td class="col-no" style="text-align:center;color:var(--text-muted);font-size:12px;padding-top:10px">${i+1}</td>
+      <td class="col-prod">
+        <input type="text" list="line-product-options" value="${escH(ln.prodId ? productOptionLabel(db.products.find(p=>p.id===ln.prodId) || {code:'',name:ln.name}) : ln.name)}" oninput="lineProductSearch(${i},this.value)" placeholder="áƒžáƒ áƒáƒ“áƒ£áƒ¥áƒ¢áƒ˜áƒ¡ áƒ«áƒ˜áƒ”áƒ‘áƒ" style="margin-bottom:4px">
+        <select onchange="lineProduct(${i},this.value)">
+          <option value="">â€” áƒžáƒ áƒáƒ“áƒ£áƒ¥áƒ¢áƒ˜ â€”</option>
+          ${untaxedProducts.length ? `<optgroup label="áƒ“áƒ¦áƒ’-áƒ¡ áƒ’áƒáƒ áƒ”áƒ¨áƒ”">${untaxedProducts.map(p=>`<option value="${p.id}"${ln.prodId===p.id?' selected':''}>${escH(productOptionLabel(p))}</option>`).join('')}</optgroup>` : ''}
+          ${taxedProducts.length ? `<optgroup label="áƒ“áƒ¦áƒ’ áƒ©áƒáƒ—áƒ•áƒšáƒ˜áƒ—">${taxedProducts.map(p=>`<option value="${p.id}"${ln.prodId===p.id?' selected':''}>${escH(productOptionLabel(p))}</option>`).join('')}</optgroup>` : ''}
+          <option value="" ${!ln.prodId?' selected':''}>â€” áƒ®áƒ”áƒšáƒ˜áƒ— â€”</option>
+        </select>
+        <input type="text" value="${escH(ln.name)}" oninput="lineChange(${i},'name',this.value)" placeholder="áƒ“áƒáƒ¡áƒáƒ®áƒ”áƒšáƒ”áƒ‘áƒ" style="margin-top:4px">
+      </td>
+      <td class="col-desc"><input type="text" value="${escH(ln.desc||'')}" oninput="lineChange(${i},'desc',this.value)" placeholder="áƒáƒ¦áƒ¬áƒ”áƒ áƒ"></td>
+      <td class="col-qty"><input type="number" value="${ln.qty||1}" min="0.01" step="any" oninput="lineChange(${i},'qty',this.value);recalc()" style="text-align:right"></td>
+      <td class="col-price"><input type="number" value="${ln.price||0}" min="0" step="any" oninput="lineChange(${i},'price',this.value);recalc()" style="text-align:right"></td>
+      <td class="col-total item-total">${sym(c)}${((ln.qty||1)*(ln.price||0)).toFixed(2)}</td>
+      <td class="col-del"><button class="del-btn" onclick="removeLine(${i})"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:14px;height:14px"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></td>
+    </tr>
+  `).join('') + datalist;
+  decorateLineEditors();
+}
+
+function recalc() {
+  const c=document.getElementById('f-currency').value;
+  const s=sym(c);
+  const sub=currentLines.reduce((acc,ln)=>acc+(ln.qty||1)*(ln.price||0),0);
+  const disc=+(document.getElementById('f-disc').value)||0;
+  const vat=+(document.getElementById('f-vat').value)||0;
+  const discAmt=sub*disc/100;
+  const discounted=sub-discAmt;
+  const vatAmt=currentVatMode==='inclusive' ? discounted - (discounted/(1+(vat/100||0))) : discounted*vat/100;
+  const subtotal=currentVatMode==='inclusive' ? discounted-vatAmt : discounted;
+  const total=currentVatMode==='inclusive' ? discounted : subtotal+vatAmt;
+  document.getElementById('t-sub').textContent=s+subtotal.toFixed(2);
+  document.getElementById('t-disc').textContent='-'+s+discAmt.toFixed(2);
+  document.getElementById('t-vat').textContent=s+vatAmt.toFixed(2);
+  document.getElementById('t-grand').textContent=s+total.toFixed(2);
+  // update row totals
+  document.querySelectorAll('#items-body .item-total').forEach((el,i)=>{
+    if(currentLines[i]) el.textContent=s+((currentLines[i].qty||1)*(currentLines[i].price||0)).toFixed(2);
+  });
+}
+
+async function saveInv(status, options = {}) {
+  const { navigateOnSuccess = true } = options;
+  if(!selectedClientId){alert('áƒ’áƒ—áƒ®áƒáƒ•áƒ—, áƒ™áƒšáƒ˜áƒ”áƒœáƒ¢áƒ˜ áƒáƒ˜áƒ áƒ©áƒ˜áƒáƒ—');return;}
+  const num=document.getElementById('f-number').value;
+  if(!num){alert('áƒ˜áƒœáƒ•áƒáƒ˜áƒ¡áƒ˜áƒ¡ áƒœáƒáƒ›áƒ”áƒ áƒ˜ áƒ¡áƒáƒ•áƒáƒšáƒ“áƒ”áƒ‘áƒ£áƒšáƒáƒ');return;}
+  const sub=currentLines.reduce((acc,ln)=>acc+(ln.qty||1)*(ln.price||0),0);
+  const disc=+(document.getElementById('f-disc').value)||0;
+  const vat=+(document.getElementById('f-vat').value)||0;
+  const discAmt=sub*disc/100;
+  const discounted=sub-discAmt;
+  const vatAmt=currentVatMode==='inclusive' ? discounted - (discounted/(1+(vat/100||0))) : discounted*vat/100;
+  const subtotal=currentVatMode==='inclusive' ? discounted-vatAmt : discounted;
+  const total=currentVatMode==='inclusive' ? discounted : subtotal+vatAmt;
+  const editId=document.getElementById('edit-id').value;
+  const row={id:editId?+editId:Date.now(),number:num,status,client_id:selectedClientId,date:document.getElementById('f-date').value,due:document.getElementById('f-due').value,currency:document.getElementById('f-currency').value,terms:document.getElementById('f-terms').value,vat_rate:vat,discount:disc,note:document.getElementById('f-note').value,bank:document.getElementById('f-bank').value,sender_name:document.getElementById('f-comp').value,sender_id_num:document.getElementById('f-comp-id').value,sender_addr:document.getElementById('f-comp-addr').value,sender_email:document.getElementById('f-comp-email').value,sender_phone:document.getElementById('f-comp-phone').value,items:JSON.parse(JSON.stringify(currentLines.map(ln=>({...ln,vatMode:currentVatMode})))),subtotal:subtotal,discount_amount:discAmt,vat_amount:vatAmt,total,color:currentColor};
+  try {
+    const data=await sb('/inv_invoices',{method:'POST',body:row,prefer:'resolution=merge-duplicates,return=representation'});
+    const saved=mapInvoice(data[0]);
+    if(editId){const idx=db.invoices.findIndex(i=>i.id===+editId);if(idx>-1)db.invoices[idx]=saved;}
+    else{db.invoices.unshift(saved);db.nextInv++;}
+    if(navigateOnSuccess) nav('invoices');
+    return saved;
+  } catch(e){alert('áƒ¨áƒ”áƒªáƒ“áƒáƒ›áƒ: '+e.message);return null;}
+}
+
+// =========== PREVIEW ===========
+function previewInv(id) {
+  const inv=db.invoices.find(i=>i.id===id);
+  if(!inv)return;
+  renderPreview(inv);
+  nav('preview');
+}
+
+function doPreview() {
+  const sub=currentLines.reduce((acc,ln)=>acc+(ln.qty||1)*(ln.price||0),0);
+  const disc=+(document.getElementById('f-disc').value)||0;
+  const vat=+(document.getElementById('f-vat').value)||0;
+  const discAmt=sub*disc/100;
+  const discounted=sub-discAmt;
+  const vatAmt=currentVatMode==='inclusive' ? discounted - (discounted/(1+(vat/100||0))) : discounted*vat/100;
+  const subtotal=currentVatMode==='inclusive' ? discounted-vatAmt : discounted;
+  const fakeInv={
+    id:0,
+    number:document.getElementById('f-number').value||'INV-XXX',
+    status:'draft',
+    clientId:selectedClientId,
+    date:document.getElementById('f-date').value,
+    due:document.getElementById('f-due').value,
+    currency:document.getElementById('f-currency').value,
+    vatRate:vat, discount:disc,
+    note:document.getElementById('f-note').value,
+    bank:document.getElementById('f-bank').value,
+    senderName:document.getElementById('f-comp').value||'áƒ—áƒ¥áƒ•áƒ”áƒœáƒ˜ áƒ™áƒáƒ›áƒžáƒáƒœáƒ˜áƒ',
+    senderIdNum:document.getElementById('f-comp-id').value,
+    senderAddr:document.getElementById('f-comp-addr').value,
+    senderEmail:document.getElementById('f-comp-email').value,
+    senderPhone:document.getElementById('f-comp-phone').value,
+    items:JSON.parse(JSON.stringify(currentLines)),
+    subtotal:subtotal, discountAmount:discAmt, vatAmount:vatAmt, total:currentVatMode==='inclusive' ? discounted : subtotal+vatAmt,
+    color:currentColor,
+  };
+  renderPreview(fakeInv);
+  nav('preview');
+}
+
+function renderPreview(inv) {
+  const c=db.clients.find(x=>x.id===inv.clientId)||{name:'áƒ™áƒšáƒ˜áƒ”áƒœáƒ¢áƒ˜',company:'',city:'',address:''};
+  const s=sym(inv.currency);
+  const col=inv.color||'#2563eb';
+  document.getElementById('preview-outer').innerHTML=`
+  <div class="preview-page" style="--brand-color:${col}">
+    <div class="preview-header">
+      <div class="preview-logo-area">
+        <div class="company-name">${escH(inv.senderName||'áƒ—áƒ¥áƒ•áƒ”áƒœáƒ˜ áƒ™áƒáƒ›áƒžáƒáƒœáƒ˜áƒ')}</div>
+        <div class="company-meta">${inv.senderIdNum?'áƒ¡/áƒ™: '+escH(inv.senderIdNum)+'<br>':''} ${escH(inv.senderAddr||'')}${inv.senderEmail?'<br>'+escH(inv.senderEmail):''} ${inv.senderPhone?'<br>'+escH(inv.senderPhone):''}</div>
+      </div>
+      <div>
+        <div class="preview-inv-title">áƒ˜áƒœáƒ•áƒáƒ˜áƒ¡áƒ˜</div>
+        <div class="preview-inv-meta">áƒœáƒáƒ›.: <strong>${escH(inv.number)}</strong><br>áƒ—áƒáƒ áƒ˜áƒ¦áƒ˜: ${fmtDate(inv.date)}<br>áƒ•áƒáƒ“áƒ: ${fmtDate(inv.due)}</div>
+      </div>
+    </div>
+    <div class="preview-parties">
+      <div>
+        <div class="preview-party-label">áƒ’áƒáƒ›áƒáƒ›áƒ¬áƒ”áƒ áƒ˜</div>
+        <div class="preview-party-name">${escH(inv.senderName||'áƒ—áƒ¥áƒ•áƒ”áƒœáƒ˜ áƒ™áƒáƒ›áƒžáƒáƒœáƒ˜áƒ')}</div>
+        <div class="preview-party-meta">${escH(inv.senderAddr||'')}${inv.senderEmail?'<br>'+escH(inv.senderEmail):''}</div>
+      </div>
+      <div>
+        <div class="preview-party-label">áƒ’áƒáƒªáƒ”áƒ›áƒ£áƒšáƒ˜áƒ</div>
+        <div class="preview-party-name">${escH(c.name)}</div>
+        <div class="preview-party-meta">${escH(c.company||'')}${c.city?'<br>'+escH(c.city):''} ${c.idNum?'<br>áƒ¡/áƒ™: '+escH(c.idNum):''}</div>
+      </div>
+    </div>
+    <table class="preview-tbl">
+      <thead><tr><th style="width:36px">#</th><th>áƒ“áƒáƒ¡áƒáƒ®áƒ”áƒšáƒ”áƒ‘áƒ</th><th style="width:70px;text-align:right">áƒ áƒáƒáƒ“.</th><th style="width:100px;text-align:right">áƒ¤áƒáƒ¡áƒ˜</th><th style="width:110px;text-align:right">áƒ¡áƒ£áƒš</th></tr></thead>
+      <tbody>${inv.items.map((it,i)=>`<tr><td style="color:var(--text-muted)">${i+1}</td><td>${escH(it.name||'')}<div style="font-size:11px;color:var(--text-muted)">${escH(it.desc||'')}</div></td><td style="text-align:right">${it.qty||1}</td><td style="text-align:right">${s}${(it.price||0).toFixed(2)}</td><td style="text-align:right;font-weight:600">${s}${((it.qty||1)*(it.price||0)).toFixed(2)}</td></tr>`).join('')}</tbody>
+    </table>
+    <div class="preview-totals">
+      <div class="preview-total-row"><span>áƒ¨áƒ£áƒáƒšáƒ”áƒ“áƒ£áƒ áƒ˜</span><span>${s}${inv.subtotal.toFixed(2)}</span></div>
+      ${inv.discount>0?`<div class="preview-total-row"><span>áƒ¤áƒáƒ¡áƒ“áƒáƒ™áƒšáƒ”áƒ‘áƒ ${inv.discount}%</span><span>-${s}${inv.discountAmount.toFixed(2)}</span></div>`:''}
+      <div class="preview-total-row"><span>áƒ“áƒ¦áƒ’ ${inv.vatRate}%</span><span>${s}${inv.vatAmount.toFixed(2)}</span></div>
+      <div class="preview-total-grand"><span>áƒ¡áƒ£áƒš áƒ¡áƒáƒ›áƒ®áƒ“áƒ”áƒšáƒ</span><span>${s}${inv.total.toFixed(2)}</span></div>
+    </div>
+    ${inv.bank?`<div class="preview-bank">${escH(inv.bank).replace(/\n/g,'<br>')}</div>`:''}
+    ${inv.note?`<div class="preview-note">${escH(inv.note)}</div>`:''}
+    <div style="display:flex;justify-content:flex-end;margin-top:32px;padding-top:16px;border-top:1px solid #e2e8f0">
+      <div style="text-align:center;min-width:140px">
+        ${db.settings.sealImg?`<img src="${db.settings.sealImg}" style="width:90px;height:90px;object-fit:contain;display:block;margin:0 auto 6px;opacity:.9">`:'<div style="width:90px;height:2px;margin:0 auto 6px"></div>'}
+        <div style="border-top:1px solid #555;padding-top:5px;font-size:11px;color:#64748b">${escH(db.settings.directorTitle||'áƒ“áƒ˜áƒ áƒ”áƒ¥áƒ¢áƒáƒ áƒ˜')}</div>
+        <div style="font-size:12px;font-weight:700;color:#0f172a;margin-top:2px">${escH(db.settings.director||'áƒ¨. áƒ¡áƒ”áƒ¤áƒ˜áƒ¨áƒ•áƒ˜áƒšáƒ˜')}</div>
+      </div>
+    </div>
+  </div>`;
+}
+
+// =========== COLOR PICKER ===========
+function pickColor(el) {
+  currentColor=el.dataset.color;
+  updateColorPicker(el);
+}
+function customColor(el) {
+  currentColor=el.value;
+  document.querySelectorAll('.color-swatch:not(input)').forEach(s=>s.classList.remove('active'));
+}
+function updateColorPicker(activeEl) {
+  document.querySelectorAll('.color-swatch:not(input)').forEach(s=>{ s.classList.toggle('active',s.dataset.color===currentColor); });
+}
+
+// =========== RS.GE MOCK ===========
+const RS_MOCK = [
+  {id:'205123456',name:'áƒ¡áƒ¢áƒáƒ›-áƒ™áƒšáƒ˜áƒœáƒ˜áƒ™áƒ "áƒ‘áƒ áƒ¬áƒ§áƒ˜áƒœáƒ•áƒáƒšáƒ”" áƒ¨áƒžáƒ¡',city:'áƒ—áƒ‘áƒ˜áƒšáƒ˜áƒ¡áƒ˜',addr:'áƒ•áƒáƒŸáƒ-áƒ¤áƒ¨áƒáƒ•áƒ”áƒšáƒ 12'},
+  {id:'205654321',name:'áƒ“áƒ”áƒœáƒ¢ áƒªáƒ”áƒœáƒ¢áƒ áƒ˜ áƒ‘áƒáƒ—áƒ£áƒ›áƒ˜ áƒ¨áƒžáƒ¡',city:'áƒ‘áƒáƒ—áƒ£áƒ›áƒ˜',addr:'áƒ‘. áƒ©áƒáƒ•áƒ©áƒáƒ•áƒáƒ«áƒ˜áƒ¡ 45'},
+  {id:'205789012',name:'áƒ™áƒšáƒ˜áƒœáƒ˜áƒ™áƒ áƒ¦áƒ˜áƒ›áƒ˜áƒšáƒ˜ áƒ¨áƒžáƒ¡',city:'áƒ¥áƒ£áƒ—áƒáƒ˜áƒ¡áƒ˜',addr:'áƒ“. áƒáƒ¦áƒ›. 7'},
+  {id:'404111000',name:'áƒ¡áƒáƒ›áƒ”áƒ“. áƒªáƒ”áƒœáƒ¢áƒ áƒ˜ áƒ•áƒ˜áƒ¢áƒ áƒ¨áƒžáƒ¡',city:'áƒ—áƒ‘áƒ˜áƒšáƒ˜áƒ¡áƒ˜',addr:'áƒ­áƒáƒ•áƒ­áƒáƒ•áƒáƒ«áƒ˜áƒ¡ 37'},
+  {id:'404222111',name:'áƒ¤áƒáƒ áƒ›áƒ áƒžáƒšáƒ£áƒ¡ áƒ¨áƒžáƒ¡',city:'áƒ’áƒáƒ áƒ˜',addr:'áƒ¡áƒ¢. 12'},
+];
+function openRsSearch() { document.getElementById('rs-modal').classList.add('open'); document.getElementById('rs-results').innerHTML=''; document.getElementById('rs-q').value=''; }
+function rsSearch() {
+  const q=document.getElementById('rs-q').value.toLowerCase();
+  if(!q)return;
+  const res=RS_MOCK.filter(r=>r.name.toLowerCase().includes(q)||r.id.includes(q));
+  document.getElementById('rs-results').innerHTML = res.length
+    ? res.map(r=>`<div class="rs-result" onclick="rsSelect(${JSON.stringify(r).replace(/"/g,'&quot;')})"><div class="rs-result-name">${escH(r.name)}</div><div class="rs-result-id">áƒ¡/áƒ™: ${r.id} Â· ${r.city}</div></div>`).join('')
+    : '<p style="color:var(--text-muted);font-size:13px">áƒ™áƒáƒ›áƒžáƒáƒœáƒ˜áƒ áƒ•áƒ”áƒ  áƒ›áƒáƒ˜áƒ«áƒ”áƒ‘áƒœáƒ</p>';
+}
+async function rsSelect(r) {
+  let c=db.clients.find(x=>x.idNum===r.id);
+  if(!c){
+    try{
+      const data=await sb('/inv_clients',{method:'POST',body:{name:r.name,company:r.name,id_num:r.id,city:r.city,address:r.addr,phone:'',email:''}});
+      c=mapClient(data[0]);
+      db.clients.push(c);
+    }catch(e){alert('áƒ¨áƒ”áƒªáƒ“áƒáƒ›áƒ: '+e.message);return;}
+  }
+  selectClient(c);
+  closeModal('rs-modal');
+}
+
+// =========== CLIENTS ===========
+function renderClients() {
+  const tb=document.getElementById('clients-table');
+  tb.innerHTML=db.clients.length ? db.clients.map(c=>`<tr>
+    <td><strong>${escH(c.name)}</strong></td>
+    <td>${escH(c.company||'â€”')}</td>
+    <td>${escH(c.city||'â€”')}</td>
+    <td class="td-muted">${escH(c.phone||'â€”')}</td>
+    <td class="td-muted">${escH(c.email||'â€”')}</td>
+    <td>${db.invoices.filter(i=>i.clientId===c.id).length}</td>
+    <td><div class="row-actions">
+      <button class="btn btn-primary btn-sm" onclick="newInvFor(${c.id})">+ áƒ˜áƒœáƒ•.</button>
+      <button class="btn btn-danger btn-sm" onclick="delClient(${c.id})">âœ•</button>
+    </div></td>
+  </tr>`).join('') : '<tr><td colspan="7"><div class="empty-state"><div class="empty-icon">ðŸ‘¥</div><div class="empty-title">áƒ™áƒšáƒ˜áƒ”áƒœáƒ¢áƒ”áƒ‘áƒ˜ áƒáƒ  áƒáƒ áƒ˜áƒ¡</div></div></td></tr>';
+}
+function openAddClient(){document.getElementById('add-client-modal').classList.add('open');}
+async function saveClient(){
+  const name=document.getElementById('nc-name').value.trim();
+  if(!name){alert('áƒ¡áƒáƒ®áƒ”áƒšáƒ˜ áƒ¡áƒáƒ•áƒáƒšáƒ“áƒ”áƒ‘áƒ£áƒšáƒáƒ');return;}
+  try{
+    const data=await sb('/inv_clients',{method:'POST',body:{name,company:document.getElementById('nc-company').value,id_num:document.getElementById('nc-id').value,city:document.getElementById('nc-city').value,phone:document.getElementById('nc-phone').value,email:document.getElementById('nc-email').value,address:document.getElementById('nc-addr').value}});
+    db.clients.push(mapClient(data[0]));
+    db.clients.sort((a,b)=>a.name.localeCompare(b.name));
+    closeModal('add-client-modal');
+    ['nc-name','nc-company','nc-id','nc-phone','nc-email','nc-addr'].forEach(id=>document.getElementById(id).value='');
+    renderClients();
+  }catch(e){alert('áƒ¨áƒ”áƒªáƒ“áƒáƒ›áƒ: '+e.message);}
+}
+async function delClient(id){
+  if(!confirm('áƒ™áƒšáƒ˜áƒ”áƒœáƒ¢áƒ˜áƒ¡ áƒ¬áƒáƒ¨áƒšáƒ?'))return;
+  try{await sb('/inv_clients?id=eq.'+id,{method:'DELETE',prefer:'return=minimal'});db.clients=db.clients.filter(c=>c.id!==id);renderClients();}catch(e){alert('áƒ¨áƒ”áƒªáƒ“áƒáƒ›áƒ: '+e.message);}
+}
+function newInvFor(id){nav('new-invoice');setTimeout(()=>{initForm(null);const c=db.clients.find(x=>x.id===id);if(c)selectClient(c);},50);}
+
+// =========== PRODUCTS ===========
+function renderProducts(){
+  const tb=document.getElementById('products-table');
+  const input=document.getElementById('products-q');
+  productSearchQuery=normalizeSearchText(input ? input.value : productSearchQuery);
+  const countEl=document.getElementById('products-count');
+  const filtered=db.products.filter(p=>
+    !productSearchQuery ||
+    normalizeSearchText(p.name).includes(productSearchQuery) ||
+    normalizeSearchText(p.code).includes(productSearchQuery) ||
+    normalizeSearchText(p.category).includes(productSearchQuery) ||
+    normalizeSearchText(p.desc).includes(productSearchQuery)
+  );
+  if(countEl){
+    countEl.textContent=productSearchQuery ? `áƒœáƒáƒžáƒáƒ•áƒœáƒ˜áƒ ${filtered.length} / ${db.products.length}` : `áƒ¡áƒ£áƒš ${db.products.length} áƒžáƒ áƒáƒ“áƒ£áƒ¥áƒ¢áƒ˜`;
+  }
+  if(!filtered.length){tb.innerHTML='<tr><td colspan="7"><div class="empty-state"><div class="empty-icon">ðŸ“¦</div><div class="empty-title">áƒžáƒ áƒáƒ“áƒ£áƒ¥áƒ¢áƒ”áƒ‘áƒ˜ áƒáƒ  áƒáƒ áƒ˜áƒ¡</div></div></td></tr>';return;}
+  const taxed=filtered.filter(p=>p.vatIncluded);
+  const untaxed=filtered.filter(p=>!p.vatIncluded);
+  const rowHtml=p=>`<tr>
+    <td style="font-family:monospace;font-size:12px">${escH(p.code)}</td>
+    <td><strong>${escH(p.name)}</strong><div class="td-muted">${escH(p.desc||'')}</div></td>
+    <td><span class="badge badge-sent">${escH(p.category)}</span></td>
+    <td><strong>${sym(p.currency)}${p.price.toFixed(2)}</strong></td>
+    <td class="td-muted">${p.currency}</td>
+    <td class="td-muted">${escH(p.unit||'â€”')}</td>
+    <td><button class="btn btn-danger btn-sm" onclick="delProduct(${p.id})">âœ•</button></td>
+  </tr>`;
+  const groupHeader=(label,color,bg)=>`<tr><td colspan="7" style="padding:8px 12px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:${color};background:${bg};border-top:2px solid ${color}20">${label}</td></tr>`;
+  tb.innerHTML=
+    (untaxed.length ? groupHeader('ðŸ“¦ áƒ“áƒáƒ£áƒ‘áƒ”áƒ’áƒ áƒáƒ•áƒ˜ â€” áƒ“áƒ¦áƒ’-áƒ¡ áƒ’áƒáƒ áƒ”áƒ¨áƒ”','#2563eb','#eff6ff')+untaxed.map(rowHtml).join('') : '')+
+    (taxed.length ? groupHeader('ðŸ§¾ áƒ“áƒáƒ‘áƒ”áƒ’áƒ áƒ˜áƒšáƒ˜ â€” áƒ“áƒ¦áƒ’ áƒ©áƒáƒ—áƒ•áƒšáƒ˜áƒ—','#16a34a','#f0fdf4')+taxed.map(rowHtml).join('') : '');
+}
+function openAddProduct(){document.getElementById('add-product-modal').classList.add('open');}
+async function saveProduct(){
+  const name=document.getElementById('np-name').value.trim();
+  if(!name){alert('áƒ“áƒáƒ¡áƒáƒ®áƒ”áƒšáƒ”áƒ‘áƒ áƒ¡áƒáƒ•áƒáƒšáƒ“áƒ”áƒ‘áƒ£áƒšáƒáƒ');return;}
+  try{
+    const productCode=document.getElementById('np-code').value||'';
+    const manualVatChoice=document.getElementById('np-vat').checked;
+    const data=await sb('/inv_products',{method:'POST',body:{code:productCode,name,category:document.getElementById('np-cat').value,price:+document.getElementById('np-price').value||0,currency:document.getElementById('np-cur').value,unit:document.getElementById('np-unit').value,description:document.getElementById('np-desc').value,vat_included:getVatIncludedByCode(productCode, manualVatChoice)}});
+    db.products=data && data[0] ? dedupeProducts([...db.products, mapProduct(data[0])]) : dedupeProducts([...db.products]);
+    closeModal('add-product-modal');
+    ['np-code','np-name','np-price','np-unit','np-desc'].forEach(id=>document.getElementById(id).value='');
+    document.getElementById('np-vat').checked=false;
+    renderProducts();
+    alert('áƒžáƒ áƒáƒ“áƒ£áƒ¥áƒ¢áƒ˜ áƒ“áƒáƒ”áƒ›áƒáƒ¢áƒ');
+  }catch(e){alert('áƒ¨áƒ”áƒªáƒ“áƒáƒ›áƒ: '+e.message);}
+}
+async function delProduct(id){
+  if(!confirm('áƒ¬áƒáƒ¨áƒšáƒ?'))return;
+  try{await sb('/inv_products?id=eq.'+id,{method:'DELETE',prefer:'return=minimal'});db.products=db.products.filter(p=>p.id!==id);renderProducts();}catch(e){alert('áƒ¨áƒ”áƒªáƒ“áƒáƒ›áƒ: '+e.message);}
+}
+
+// =========== SETTINGS ===========
+function loadSettings(){
+  ['comp','email','phone','addr','bank'].forEach(k=>{
+    const el=document.getElementById('s-'+k);
+    if(el) el.value=db.settings[k==='comp'?'company':k==='comp-id'?'compId':k]||'';
+  });
+  document.getElementById('s-comp-id').value=db.settings.compId||'';
+  document.getElementById('s-rsuser').value=db.settings.rsUser||'';
+  document.getElementById('s-rspass').value=db.settings.rsPass||'';
+  document.getElementById('s-rssender-tin').value=db.settings.rsSenderTin||db.settings.compId||'';
+  document.getElementById('s-driver-info').value=db.settings.rsDriverInfo||'';
+  document.getElementById('s-driver-no').value=db.settings.rsDriverNo||'';
+  document.getElementById('s-transport-mark').value=db.settings.rsTransportMark||'';
+  document.getElementById('s-director').value=db.settings.director||'áƒ¨. áƒ¡áƒ”áƒ¤áƒ˜áƒ¨áƒ•áƒ˜áƒšáƒ˜';
+  document.getElementById('s-director-title').value=db.settings.directorTitle||'áƒ“áƒ˜áƒ áƒ”áƒ¥áƒ¢áƒáƒ áƒ˜';
+  updateSealPreview();
+  updateSampleName();
+}
+async function saveSettings(){
+  db.settings.company=document.getElementById('s-comp').value;
+  db.settings.compId=document.getElementById('s-comp-id').value;
+  db.settings.email=document.getElementById('s-email').value;
+  db.settings.phone=document.getElementById('s-phone').value;
+  db.settings.address=document.getElementById('s-addr').value;
+  db.settings.bank=document.getElementById('s-bank').value;
+  db.settings.director=document.getElementById('s-director').value;
+  db.settings.directorTitle=document.getElementById('s-director-title').value;
+  db.settings.rsUser=document.getElementById('s-rsuser')?document.getElementById('s-rsuser').value:'';
+  db.settings.rsPass=document.getElementById('s-rspass')?document.getElementById('s-rspass').value:'';
+  db.settings.rsSenderTin=document.getElementById('s-rssender-tin')?document.getElementById('s-rssender-tin').value:'';
+  db.settings.rsDriverInfo=document.getElementById('s-driver-info')?document.getElementById('s-driver-info').value:'';
+  db.settings.rsDriverNo=document.getElementById('s-driver-no')?document.getElementById('s-driver-no').value:'';
+  db.settings.rsTransportMark=document.getElementById('s-transport-mark')?document.getElementById('s-transport-mark').value:'';
+  try { await saveSettingsToDB(); loadSettings(); }
+  catch(e) { alert('áƒ¨áƒ”áƒœáƒáƒ®áƒ•áƒ áƒ•áƒ”áƒ  áƒ›áƒáƒ®áƒ”áƒ áƒ®áƒ“áƒ: ' + e.message); return; }
+  alert('áƒ¨áƒ”áƒœáƒáƒ®áƒ£áƒšáƒ˜áƒ!');
+}
+function exportDB(){
+  const json=JSON.stringify(db,null,2);
+  const blob=new Blob([json],{type:'application/json'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='medical-line-program-backup-'+new Date().toISOString().slice(0,10)+'.json';
+  a.click();
+}
+function importDB(input){
+  const file=input.files[0];
+  if(!file)return;
+  const reader=new FileReader();
+  reader.onload=async e=>{
+    try{
+      const parsed=JSON.parse(e.target.result);
+      if(!parsed.clients||!parsed.invoices||!parsed.products){alert('áƒ¤áƒáƒ˜áƒšáƒ˜ áƒáƒ áƒáƒ¡áƒ¬áƒáƒ áƒ˜áƒ');return;}
+      if(!confirm('áƒ›áƒ˜áƒ›áƒ“áƒ˜áƒœáƒáƒ áƒ” áƒ‘áƒáƒ–áƒ Supabase-áƒ¨áƒ˜ áƒ¨áƒ”áƒ˜áƒªáƒ•áƒšáƒ”áƒ‘áƒ. áƒ’áƒáƒ’áƒ áƒ«áƒ”áƒšáƒ”áƒ‘áƒ?'))return;
+      showLoading(true);
+      if(parsed.clients.length) await sb('/inv_clients',{method:'POST',body:parsed.clients.map(c=>({name:c.name,company:c.company||'',id_num:c.idNum||'',phone:c.phone||'',email:c.email||'',city:c.city||'',address:c.address||''}))});
+      if(parsed.products.length) await sb('/inv_products',{method:'POST',body:parsed.products.map(p=>({code:p.code||'',name:p.name,category:p.category||'áƒ¡áƒ®áƒ•áƒ',price:p.price||0,currency:p.currency||'GEL',unit:p.unit||'',description:p.desc||''}))});
+      if(parsed.invoices.length) await sb('/inv_invoices',{method:'POST',prefer:'resolution=merge-duplicates,return=representation',body:parsed.invoices.map(i=>({id:i.id||Date.now(),number:i.number||'',status:i.status||'draft',client_id:i.clientId, date:i.date||'',due:i.due||'',currency:i.currency||'GEL',terms:i.terms||'',vat_rate:i.vatRate||0,discount:i.discount||0,note:i.note||'',bank:i.bank||'',sender_name:i.senderName||'',sender_id_num:i.senderIdNum||'',sender_addr:i.senderAddr||'',sender_email:i.senderEmail||'',sender_phone:i.senderPhone||'',items:i.items||[],subtotal:i.subtotal||0,discount_amount:i.discountAmount||0,vat_amount:i.vatAmount||0,total:i.total||0,color:i.color||'#2563eb'}))});
+      if(parsed.settings) await sb('/inv_settings',{method:'POST',body:{id:1,data:parsed.settings},prefer:'resolution=merge-duplicates,return=representation'});
+      await loadAll();
+      alert('áƒ‘áƒáƒ–áƒ áƒ¬áƒáƒ áƒ›áƒáƒ¢áƒ”áƒ‘áƒ˜áƒ— áƒ©áƒáƒ˜áƒ¢áƒ•áƒ˜áƒ áƒ—áƒ! áƒ™áƒšáƒ˜áƒ”áƒœáƒ¢áƒ”áƒ‘áƒ˜: '+db.clients.length+', áƒ˜áƒœáƒ•áƒáƒ˜áƒ¡áƒ”áƒ‘áƒ˜: '+db.invoices.length);
+      nav('dashboard');
+    }catch(err){alert('áƒ¨áƒ”áƒªáƒ“áƒáƒ›áƒ: '+err.message);showLoading(false);}
+  };
+  reader.readAsText(file,'UTF-8');
+  input.value='';
+}
+function updateSettings(){
+  const syncMap = {
+    company: 's-comp',
+    compId: 's-comp-id',
+    email: 's-email',
+    phone: 's-phone',
+    address: 's-addr',
+    bank: 's-bank',
+    rsUser: 's-rsuser',
+    rsPass: 's-rspass',
+    rsSenderTin: 's-rssender-tin',
+    rsDriverInfo: 's-driver-info',
+    rsDriverNo: 's-driver-no',
+    rsTransportMark: 's-transport-mark',
+  };
+  Object.entries(syncMap).forEach(([key, id]) => {
+    const el = document.getElementById(id);
+    if (el) db.settings[key] = el.value;
+  });
+  const dir=document.getElementById('s-director');
+  const title=document.getElementById('s-director-title');
+  if(dir) db.settings.director=dir.value;
+  if(title) db.settings.directorTitle=title.value;
+  updateSampleName();
+}
+function updateSampleName(){
+  const n=document.getElementById('s-sample-name');
+  const t=document.getElementById('s-sample-title');
+  if(n) n.textContent=db.settings.director||'áƒ¨. áƒ¡áƒ”áƒ¤áƒ˜áƒ¨áƒ•áƒ˜áƒšáƒ˜';
+  if(t) t.textContent=db.settings.directorTitle||'áƒ“áƒ˜áƒ áƒ”áƒ¥áƒ¢áƒáƒ áƒ˜';
+}
+function loadSeal(input){
+  const file=input.files[0];
+  if(!file)return;
+  if(file.size>3*1024*1024){alert('áƒ¤áƒáƒ˜áƒšáƒ˜ 3MB-áƒ–áƒ” áƒ›áƒ”áƒ¢áƒ˜áƒ');return;}
+  const reader=new FileReader();
+  reader.onload=e=>{
+    db.settings.sealImg=e.target.result;
+    updateSealPreview();
+  };
+  reader.readAsDataURL(file);
+}
+function dropSeal(e){
+  e.preventDefault();
+  dragLeave('seal-drop');
+  const file=e.dataTransfer.files[0];
+  if(!file||!file.type.startsWith('image/'))return;
+  const dt=new DataTransfer();dt.items.add(file);
+  document.getElementById('seal-file').files=dt.files;
+  loadSeal(document.getElementById('seal-file'));
+}
+function removeSeal(){
+  db.settings.sealImg='';
+  document.getElementById('seal-file').value='';
+  updateSealPreview();
+}
+function updateSealPreview(){
+  const wrap=document.getElementById('seal-preview-wrap');
+  const sample=document.getElementById('seal-sample');
+  const removeBtn=document.getElementById('seal-remove-btn');
+  if(!wrap)return;
+  if(db.settings.sealImg){
+    wrap.innerHTML=`<img src="${db.settings.sealImg}" style="width:80px;height:80px;object-fit:contain;display:block;margin:0 auto 8px"><div style="font-size:12px;font-weight:500;color:var(--success)">&#10003; áƒ‘áƒ”áƒ­áƒ”áƒ“áƒ˜ áƒáƒ¢áƒ•áƒ˜áƒ áƒ—áƒ£áƒšáƒ˜áƒ</div>`;
+    if(sample) sample.innerHTML=`<img src="${db.settings.sealImg}" style="width:88px;height:88px;object-fit:contain">`;
+    if(removeBtn) removeBtn.style.display='flex';
+  } else {
+    wrap.innerHTML=`<svg viewBox="0 0 24 24" fill="none" stroke="var(--text-light)" stroke-width="1.5" style="width:36px;height:36px;margin:0 auto 8px;display:block"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/><line x1="12" y1="3" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="21"/><line x1="3" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="21" y2="12"/></svg><div style="font-size:13px;font-weight:500;color:var(--text-muted)">áƒ‘áƒ”áƒ­áƒ“áƒ˜áƒ¡ áƒáƒ¢áƒ•áƒ˜áƒ áƒ—áƒ•áƒ</div><div style="font-size:11px;color:var(--text-light);margin-top:4px">PNG, JPG &#183; áƒ©áƒáƒáƒ’áƒ“áƒ”áƒ— áƒáƒœ áƒ“áƒáƒáƒ­áƒ˜áƒ áƒ”áƒ—</div>`;
+    if(sample) sample.innerHTML=`<span style="font-size:10px;color:var(--text-light)">áƒ‘áƒ”áƒ­áƒ”áƒ“áƒ˜</span>`;
+    if(removeBtn) removeBtn.style.display='none';
+  }
+}
+
+// =========== IMPORT (Excel/CSV) ===========
+let parsedData = {prod: null, client: null};
+
+function dragOver(e, zoneId) {
+  e.preventDefault();
+  document.getElementById(zoneId).style.borderColor='var(--brand)';
+  document.getElementById(zoneId).style.background='var(--brand-light)';
+}
+function dragLeave(zoneId) {
+  const el=document.getElementById(zoneId);
+  if(el){el.style.borderColor='';el.style.background='';}
+}
+function dropFile(e, type) {
+  e.preventDefault();
+  dragLeave(type+'-drop-zone');
+  const file=e.dataTransfer.files[0];
+  if(!file)return;
+  const dt=new DataTransfer();dt.items.add(file);
+  document.getElementById(type+'-file').files=dt.files;
+  handleFile(document.getElementById(type+'-file'),type);
+}
+
+function handleFile(input, type) {
+  const file=input.files[0];
+  if(!file)return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    let rows=[];
+    if(file.name.endsWith('.csv')){
+      rows=parseCSV(e.target.result);
+    } else {
+      if(typeof XLSX==='undefined'){
+        alert('XLSX áƒ‘áƒ˜áƒ‘áƒšáƒ˜áƒáƒ—áƒ”áƒ™áƒ áƒ•áƒ”áƒ  áƒ©áƒáƒ˜áƒ¢áƒ•áƒ˜áƒ áƒ—áƒ. áƒ’áƒ—áƒ®áƒáƒ•áƒ— CSV áƒ¤áƒáƒ áƒ›áƒáƒ¢áƒ˜ áƒ’áƒáƒ›áƒáƒ˜áƒ§áƒ”áƒœáƒáƒ—.');
+        return;
+      }
+      try {
+        const data=new Uint8Array(e.target.result);
+        const wb=XLSX.read(data,{type:'array'});
+        const ws=wb.Sheets[wb.SheetNames[0]];
+        rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
+      } catch(err) {
+        alert('áƒ¤áƒáƒ˜áƒšáƒ˜áƒ¡ áƒ¬áƒáƒ™áƒ˜áƒ—áƒ®áƒ•áƒ áƒ•áƒ”áƒ  áƒ›áƒáƒ®áƒ”áƒ áƒ®áƒ“áƒ: '+err.message);
+        return;
+      }
+    }
+    if(rows.length<2){alert('áƒ¤áƒáƒ˜áƒšáƒ˜ áƒªáƒáƒ áƒ˜áƒ”áƒšáƒ˜áƒ áƒáƒœ áƒ¡áƒ¢áƒ áƒ£áƒ¥áƒ¢áƒ£áƒ áƒ áƒáƒ áƒáƒ¡áƒ¬áƒáƒ áƒ˜áƒ');return;}
+    parsedData[type]=rows;
+    showMapping(type, rows);
+  };
+  if(file.name.endsWith('.csv')){
+    reader.readAsText(file,'UTF-8');
+  } else {
+    reader.readAsArrayBuffer(file);
+  }
+}
+
+function parseCSV(text){
+  const lines=text.split(/\r?\n/).filter(l=>l.trim());
+  return lines.map(line=>{
+    const cells=[];
+    let cur='',inQ=false;
+    for(let i=0;i<line.length;i++){
+      const ch=line[i];
+      if(ch==='"'){inQ=!inQ;}
+      else if((ch===','||ch===';')&&!inQ){cells.push(cur.trim());cur='';}
+      else cur+=ch;
+    }
+    cells.push(cur.trim());
+    return cells;
+  });
+}
+
+const PROD_FIELDS=[
+  {key:'name',label:'áƒ“áƒáƒ¡áƒáƒ®áƒ”áƒšáƒ”áƒ‘áƒ *'},
+  {key:'code',label:'áƒ™áƒáƒ“áƒ˜'},
+  {key:'price',label:'áƒ¤áƒáƒ¡áƒ˜'},
+  {key:'currency',label:'áƒ•áƒáƒšáƒ£áƒ¢áƒ'},
+  {key:'unit',label:'áƒ¡áƒáƒ–. áƒ”áƒ áƒ—.'},
+  {key:'category',label:'áƒ™áƒáƒ¢áƒ”áƒ’.'},
+  {key:'desc',label:'áƒáƒ¦áƒ¬áƒ”áƒ áƒ'},
+];
+const CLIENT_FIELDS=[
+  {key:'name',label:'áƒ¡áƒáƒ®áƒ”áƒšáƒ˜ *'},
+  {key:'company',label:'áƒ™áƒáƒ›áƒžáƒáƒœáƒ˜áƒ'},
+  {key:'idNum',label:'áƒ¡/áƒ™'},
+  {key:'phone',label:'áƒ¢áƒ”áƒšáƒ”áƒ¤áƒáƒœáƒ˜'},
+  {key:'email',label:'áƒ”áƒš-áƒ¤áƒáƒ¡áƒ¢áƒ'},
+  {key:'city',label:'áƒ¥áƒáƒšáƒáƒ¥áƒ˜'},
+  {key:'address',label:'áƒ›áƒ˜áƒ¡áƒáƒ›áƒáƒ áƒ—áƒ˜'},
+];
+
+function showMapping(type, rows){
+  const headers=rows[0].map(String);
+  const fields=type==='prod'?PROD_FIELDS:CLIENT_FIELDS;
+  const mapDiv=document.getElementById(type+'-mapping');
+  const mapFields=document.getElementById(type+'-map-fields');
+  const prevTable=document.getElementById(type+'-preview-table');
+
+  mapFields.innerHTML=fields.map(f=>{
+    // auto-guess column
+    const guess=headers.findIndex(h=>{
+      const hl=h.toLowerCase();
+      const kl=f.key.toLowerCase();
+      return hl.includes(kl)||kl.includes(hl)||
+        (f.key==='name'&&(hl.includes('áƒ¡áƒáƒ®áƒ”áƒš')||hl.includes('áƒ“áƒáƒ¡áƒáƒ®')||hl.includes('name')||hl.includes('Ð½Ð°Ð¸Ð¼')))||
+        (f.key==='price'&&(hl.includes('áƒ¤áƒáƒ¡áƒ˜')||hl.includes('price')||hl.includes('Ñ†ÐµÐ½Ð°')||hl.includes('cost')))||
+        (f.key==='code'&&(hl.includes('áƒ™áƒáƒ“')||hl.includes('code')||hl.includes('Ð°Ñ€Ñ‚Ð¸ÐºÑƒÐ»')))||
+        (f.key==='phone'&&(hl.includes('áƒ¢áƒ”áƒš')||hl.includes('phone')||hl.includes('Ñ‚ÐµÐ»')))||
+        (f.key==='company'&&(hl.includes('áƒ™áƒáƒ›')||hl.includes('comp')||hl.includes('Ð¾Ñ€Ð³Ð°Ð½')))||
+        (f.key==='idNum'&&(hl.includes('áƒ™áƒáƒ“')||hl.includes('id')||hl.includes('Ñ/Ðº')||hl.includes('Ð¸Ð½Ð½')))||
+        (f.key==='city'&&(hl.includes('áƒ¥áƒáƒš')||hl.includes('city')||hl.includes('Ð³Ð¾Ñ€Ð¾Ð´')));
+    });
+    return `<div>
+      <label style="font-size:11px;color:var(--text-muted);display:block;margin-bottom:3px">${f.label}</label>
+      <select id="map-${type}-${f.key}" style="width:100%;padding:5px 8px;font-size:12px;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--text)">
+        <option value="">â€” áƒ’áƒáƒ›áƒáƒ¢áƒáƒ•áƒ”áƒ‘áƒ â€”</option>
+        ${headers.map((h,i)=>`<option value="${i}" ${i===guess&&guess!==-1?'selected':''}>${escH(h)||'áƒ¡áƒ•áƒ”áƒ¢áƒ˜ '+(i+1)}</option>`).join('')}
+      </select>
+    </div>`;
+  }).join('');
+
+  // preview first 5 rows
+  const preview=rows.slice(1,6);
+  prevTable.innerHTML=`<div style="font-size:11px;font-weight:600;color:var(--text-muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:.4px">áƒžáƒ˜áƒ áƒ•áƒ”áƒšáƒ˜ 5 áƒ©áƒáƒœáƒáƒ¬áƒ”áƒ áƒ˜:</div>
+  <div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:11px">
+    <thead><tr>${headers.map(h=>`<th style="padding:4px 8px;background:var(--bg-soft);border:1px solid var(--border);text-align:left;white-space:nowrap">${escH(h)}</th>`).join('')}</tr></thead>
+    <tbody>${preview.map(row=>`<tr>${row.map(cell=>`<td style="padding:4px 8px;border:1px solid var(--border);white-space:nowrap;max-width:120px;overflow:hidden;text-overflow:ellipsis">${escH(String(cell||''))}</td>`).join('')}</tr>`).join('')}</tbody>
+  </table></div>`;
+
+  mapDiv.style.display='block';
+}
+
+async function importData(type){
+  const rows=parsedData[type];
+  if(!rows){alert('áƒ¤áƒáƒ˜áƒšáƒ˜ áƒ¯áƒ”áƒ  áƒáƒ¢áƒ•áƒ˜áƒ áƒ—áƒ£áƒšáƒ˜ áƒáƒ  áƒáƒ áƒ˜áƒ¡');return;}
+  const fields=type==='prod'?PROD_FIELDS:CLIENT_FIELDS;
+  const mapping={};
+  fields.forEach(f=>{const sel=document.getElementById('map-'+type+'-'+f.key);if(sel&&sel.value!=='')mapping[f.key]=+sel.value;});
+  if(mapping.name===undefined){alert('"áƒ“áƒáƒ¡áƒáƒ®áƒ”áƒšáƒ”áƒ‘áƒ" áƒ¡áƒ•áƒ”áƒ¢áƒ˜ áƒ¡áƒáƒ•áƒáƒšáƒ“áƒ”áƒ‘áƒ£áƒšáƒáƒ');return;}
+
+  const dataRows=rows.slice(1).filter(r=>r.some(c=>c!==''&&c!==null&&c!==undefined));
+  const toInsert=[];
+  let skipped=0;
+
+  dataRows.forEach(row=>{
+    const get=key=>mapping[key]!==undefined?String(row[mapping[key]]||'').trim():'';
+    const name=get('name');
+    if(!name){skipped++;return;}
+    if(type==='prod'){
+      if(db.products.find(p=>p.name.toLowerCase()===name.toLowerCase())){skipped++;return;}
+      const price=parseFloat(get('price').replace(/[^0-9.,]/g,'').replace(',','.'))||0;
+      const cur=get('currency').toUpperCase();
+      toInsert.push({code:get('code')||'',name,category:get('category')||'áƒ¡áƒ®áƒ•áƒ',price,currency:['GEL','USD','EUR'].includes(cur)?cur:'GEL',unit:get('unit')||'',description:get('desc')||''});
+    } else {
+      if(db.clients.find(c=>c.name.toLowerCase()===name.toLowerCase())){skipped++;return;}
+      toInsert.push({name,company:get('company')||'',id_num:get('idNum')||'',phone:get('phone')||'',email:get('email')||'',city:get('city')||'',address:get('address')||''});
+    }
+  });
+
+  let added=0;
+  if(toInsert.length){
+    showLoading(true);
+    try{
+      const table=type==='prod'?'/inv_products':'/inv_clients';
+      const data=await sb(table,{method:'POST',body:toInsert});
+      if(type==='prod') db.products.push(...(data||[]).map(mapProduct));
+      else db.clients.push(...(data||[]).map(mapClient));
+      added=toInsert.length;
+    }catch(e){alert('áƒ¨áƒ”áƒªáƒ“áƒáƒ›áƒ: '+e.message);}
+    showLoading(false);
+  }
+
+  const resDiv=document.getElementById(type+'-result');
+  resDiv.style.display='block';
+  resDiv.innerHTML=`<div style="padding:12px 14px;border-radius:8px;background:var(--success-bg);border:1px solid #bbf7d0;font-size:13px">
+    <div style="font-weight:600;color:var(--success);margin-bottom:2px">&#10003; áƒ˜áƒ›áƒžáƒáƒ áƒ¢áƒ˜ áƒ“áƒáƒ¡áƒ áƒ£áƒšáƒ“áƒ!</div>
+    <div style="color:#166534">áƒ“áƒáƒ›áƒáƒ¢áƒ”áƒ‘áƒ£áƒšáƒ˜áƒ: <strong>${added}</strong> &nbsp; áƒ’áƒáƒ›áƒáƒ¢áƒáƒ•áƒ”áƒ‘áƒ£áƒšáƒ˜áƒ: <strong>${skipped}</strong></div>
+  </div>`;
+  document.getElementById(type+'-mapping').style.display='none';
+  if(type==='prod') renderProducts(); else renderClients();
+}
+
+function downloadTemplate(type){
+  let csv;
+  if(type==='prod'){
+    csv='áƒ™áƒáƒ“áƒ˜,áƒ“áƒáƒ¡áƒáƒ®áƒ”áƒšáƒ”áƒ‘áƒ,áƒ¤áƒáƒ¡áƒ˜,áƒ•áƒáƒšáƒ£áƒ¢áƒ,áƒ¡áƒáƒ–.áƒ”áƒ áƒ—.,áƒ™áƒáƒ¢áƒ”áƒ’áƒáƒ áƒ˜áƒ,áƒáƒ¦áƒ¬áƒ”áƒ áƒ\nHLS-680,Helios 680 Intraoral Scanner,4500,USD,áƒ™áƒáƒ›áƒž.,áƒ¡áƒ™áƒáƒœáƒ”áƒ áƒ˜,3D áƒ¡áƒ™áƒáƒœáƒ”áƒ áƒ˜\nNMT-C32,NanoMotor C3.2,1200,USD,áƒ™áƒáƒ›áƒž.,áƒ‘áƒ£áƒ áƒ˜,';
+  } else {
+    csv='áƒ¡áƒáƒ®áƒ”áƒšáƒ˜,áƒ™áƒáƒ›áƒžáƒáƒœáƒ˜áƒ,áƒ¡/áƒ™,áƒ¢áƒ”áƒšáƒ”áƒ¤áƒáƒœáƒ˜,áƒ”áƒš-áƒ¤áƒáƒ¡áƒ¢áƒ,áƒ¥áƒáƒšáƒáƒ¥áƒ˜,áƒ›áƒ˜áƒ¡áƒáƒ›áƒáƒ áƒ—áƒ˜\náƒ’áƒ˜áƒáƒ áƒ’áƒ˜ áƒ‘áƒ”áƒ áƒ˜áƒ«áƒ”,áƒ™áƒšáƒ˜áƒœáƒ˜áƒ™áƒ áƒ¡áƒáƒ›áƒ®áƒ,205123456,+995 599 123456,g@clinic.ge,áƒ—áƒ‘áƒ˜áƒšáƒ˜áƒ¡áƒ˜,áƒ•.áƒ¤áƒ¨áƒáƒ•áƒ”áƒšáƒ 12';
+  }
+  const blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download=(type==='prod'?'products':'clients')+'_template.csv';
+  a.click();
+}
+
+// =========== SEAL FUNCTIONS ===========
+function loadSeal(input){
+  const file=input.files[0];
+  if(!file)return;
+  if(file.size>3*1024*1024){alert('áƒ¤áƒáƒ˜áƒšáƒ˜ 3MB-áƒ–áƒ” áƒ›áƒ”áƒ¢áƒ˜áƒ');return;}
+  const reader=new FileReader();
+  reader.onload=async e=>{db.settings.sealImg=e.target.result;updateSealPreview();await saveSettingsToDB();};
+  reader.readAsDataURL(file);
+}
+function dropSeal(e){
+  e.preventDefault();
+  dragLeave('seal-drop');
+  const file=e.dataTransfer.files[0];
+  if(!file||!file.type.startsWith('image/'))return;
+  const inp=document.getElementById('seal-file');
+  const dt=new DataTransfer();dt.items.add(file);
+  inp.files=dt.files;
+  loadSeal(inp);
+}
+async function removeSeal(){
+  db.settings.sealImg='';
+  document.getElementById('seal-file').value='';
+  updateSealPreview();
+  await saveSettingsToDB();
+}
+function updateSealPreview(){
+  const wrap=document.getElementById('seal-preview-wrap');
+  const sample=document.getElementById('seal-sample');
+  const removeBtn=document.getElementById('seal-remove-btn');
+  if(!wrap)return;
+  if(db.settings.sealImg){
+    wrap.innerHTML=`<img src="${db.settings.sealImg}" style="width:80px;height:80px;object-fit:contain;display:block;margin:0 auto 8px"><div style="font-size:12px;font-weight:500;color:var(--success)">&#10003; áƒ‘áƒ”áƒ­áƒ”áƒ“áƒ˜ áƒáƒ¢áƒ•áƒ˜áƒ áƒ—áƒ£áƒšáƒ˜áƒ</div>`;
+    if(sample) sample.innerHTML=`<img src="${db.settings.sealImg}" style="width:88px;height:88px;object-fit:contain">`;
+    if(removeBtn) removeBtn.style.display='flex';
+  } else {
+    wrap.innerHTML=`<svg viewBox="0 0 24 24" fill="none" stroke="var(--text-light)" stroke-width="1.5" style="width:36px;height:36px;margin:0 auto 8px;display:block"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/><line x1="12" y1="3" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="21"/><line x1="3" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="21" y2="12"/></svg><div style="font-size:13px;font-weight:500;color:var(--text-muted)">áƒ‘áƒ”áƒ­áƒ“áƒ˜áƒ¡ áƒáƒ¢áƒ•áƒ˜áƒ áƒ—áƒ•áƒ</div><div style="font-size:11px;color:var(--text-light);margin-top:4px">PNG, JPG</div>`;
+    if(sample) sample.innerHTML=`<span style="font-size:10px;color:var(--text-light)">áƒ‘áƒ”áƒ­áƒ”áƒ“áƒ˜</span>`;
+    if(removeBtn) removeBtn.style.display='none';
+  }
+}
+
+
+// =========== RS.GE INTEGRATION ===========
+const PROXY_URL = '/api/rsge';
+let pendingRsInvoice = null;
+
+async function openRsUpload() {
+  // save first, then upload
+  if(!selectedClientId){alert('áƒ’áƒ—áƒ®áƒáƒ•áƒ—, áƒ™áƒšáƒ˜áƒ”áƒœáƒ¢áƒ˜ áƒáƒ˜áƒ áƒ©áƒ˜áƒáƒ—');return;}
+  if(!document.getElementById('f-number').value){alert('áƒ˜áƒœáƒ•áƒáƒ˜áƒ¡áƒ˜áƒ¡ áƒœáƒáƒ›áƒ”áƒ áƒ˜ áƒ¡áƒáƒ•áƒáƒšáƒ“áƒ”áƒ‘áƒ£áƒšáƒáƒ');return;}
+  const inv = await saveInv('sent', { navigateOnSuccess: false });
+  if(!inv){return;}
+  pendingRsInvoice = inv;
+  prefillRsCreds();
+  document.getElementById('rsge-creds-modal').classList.add('open');
+}
+
+function openRsUploadForInv(id) {
+  const inv = db.invoices.find(i=>i.id===id);
+  if(!inv){alert('áƒ˜áƒœáƒ•áƒáƒ˜áƒ¡áƒ˜ áƒ•áƒ”áƒ  áƒ›áƒáƒ˜áƒ«áƒ”áƒ‘áƒœáƒ');return;}
+  pendingRsInvoice = inv;
+  prefillRsCreds();
+  document.getElementById('rsge-creds-modal').classList.add('open');
+}
+
+async function persistRsSettings(values = {}) {
+  Object.assign(db.settings, values);
+  const settingsTinEl = document.getElementById('s-rssender-tin');
+  const settingsUserEl = document.getElementById('s-rsuser');
+  const settingsPassEl = document.getElementById('s-rspass');
+  const settingsDriverInfoEl = document.getElementById('s-driver-info');
+  const settingsDriverNoEl = document.getElementById('s-driver-no');
+  const settingsTransportEl = document.getElementById('s-transport-mark');
+  if(settingsTinEl) settingsTinEl.value = db.settings.rsSenderTin || '';
+  if(settingsUserEl) settingsUserEl.value = db.settings.rsUser || '';
+  if(settingsPassEl) settingsPassEl.value = db.settings.rsPass || '';
+  if(settingsDriverInfoEl) settingsDriverInfoEl.value = db.settings.rsDriverInfo || '';
+  if(settingsDriverNoEl) settingsDriverNoEl.value = db.settings.rsDriverNo || '';
+  if(settingsTransportEl) settingsTransportEl.value = db.settings.rsTransportMark || '';
+  await saveSettingsToDB();
+}
+
+function prefillRsCreds() {
+  const tinEl = document.getElementById('rs-sender-tin');
+  const userEl = document.getElementById('rs-username');
+  const passEl = document.getElementById('rs-password');
+  const driverInfoEl = document.getElementById('rs-driver-info');
+  const driverNoEl = document.getElementById('rs-driver-no');
+  const transportEl = document.getElementById('rs-transport-mark');
+  if(tinEl) tinEl.value = db.settings.rsSenderTin || db.settings.compId || '';
+  if(userEl) userEl.value = db.settings.rsUser || '';
+  if(passEl) passEl.value = db.settings.rsPass || '';
+  if(driverInfoEl) driverInfoEl.value = db.settings.rsDriverInfo || '';
+  if(driverNoEl) driverNoEl.value = db.settings.rsDriverNo || '';
+  if(transportEl) transportEl.value = db.settings.rsTransportMark || '';
+  prefillWaybillFields();
+  document.getElementById('rs-test-result').style.display='none';
+}
+
+function prefillWaybillFields() {
+  const now = new Date();
+  const client = pendingRsInvoice ? (db.clients.find(c=>c.id===pendingRsInvoice.clientId) || {}) : {};
+  const companyName = document.getElementById('f-comp')?.value || db.settings.company || '';
+  const companyAddress = document.getElementById('f-comp-addr')?.value || db.settings.address || '';
+  const clientName = client.name || client.company || '';
+  const clientAddress = client.address || '';
+
+  const setIfEmpty = (id, value) => {
+    const el = document.getElementById(id);
+    if (el && !el.value) el.value = value || '';
+  };
+
+  setIfEmpty('rs-doc-date', now.toISOString().slice(0, 10));
+  setIfEmpty('rs-doc-time', now.toTimeString().slice(0, 5));
+  setIfEmpty('rs-transport-type', 'áƒ¡áƒáƒáƒ•áƒ¢áƒáƒ›áƒáƒ‘áƒ˜áƒšáƒ');
+  setIfEmpty('rs-transport-kind', 'áƒ›áƒ˜áƒ›áƒ¬áƒáƒ“áƒ”áƒ‘áƒ”áƒšáƒ˜');
+  setIfEmpty('rs-sender-name', companyName);
+  setIfEmpty('rs-sender-address', companyAddress);
+  setIfEmpty('rs-recipient-name', clientName);
+  setIfEmpty('rs-recipient-address', clientAddress);
+  setIfEmpty('rs-waybill-note', pendingRsInvoice ? `áƒ˜áƒœáƒ•áƒáƒ˜áƒ¡áƒ˜ ${pendingRsInvoice.number || ''}`.trim() : '');
+}
+
+async function testRsConnection() {
+  const username = document.getElementById('rs-username').value.trim();
+  const password = document.getElementById('rs-password').value;
+  const senderTin = document.getElementById('rs-sender-tin').value.trim();
+  if(!username||!password){alert('áƒ›áƒáƒ›áƒ®áƒ›áƒáƒ áƒ”áƒ‘áƒ”áƒšáƒ˜ áƒ“áƒ áƒžáƒáƒ áƒáƒšáƒ˜ áƒ¡áƒáƒ•áƒáƒšáƒ“áƒ”áƒ‘áƒ£áƒšáƒáƒ');return;}
+  
+  const resEl = document.getElementById('rs-test-result');
+  resEl.style.display='block';
+  resEl.innerHTML='<div style="font-size:13px;color:var(--text-muted)">â³ áƒ™áƒáƒ•áƒ¨áƒ˜áƒ áƒ˜ áƒ›áƒáƒ¬áƒ›áƒ“áƒ”áƒ‘áƒ...</div>';
+
+  try {
+    const r = await fetch(PROXY_URL, {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({action:'test', username, password, senderTin})
+    });
+    const data = await r.json();
+    if(data.ok){
+      resEl.innerHTML=`<div style="padding:10px 12px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;font-size:13px;color:#16a34a">âœ“ ${data.message}</div>`;
+      sessionStorage.setItem('rs_username', username);
+    } else {
+      resEl.innerHTML=`<div style="padding:10px 12px;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;font-size:13px;color:#dc2626">âœ— ${data.error}</div>`;
+    }
+  } catch(e) {
+    resEl.innerHTML=`<div style="padding:10px 12px;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;font-size:13px;color:#dc2626">
+      âœ— Proxy áƒ¡áƒ”áƒ áƒ•áƒ”áƒ áƒ˜ áƒáƒ  áƒ›áƒ£áƒ¨áƒáƒáƒ‘áƒ¡<br>
+      <span style="font-size:11px;margin-top:4px;display:block">áƒ’áƒáƒ£áƒ¨áƒ•áƒ˜áƒ— <strong>áƒ’áƒáƒ¨áƒ•áƒ”áƒ‘áƒ.bat</strong> (Windows) áƒáƒœ <strong>node server.js</strong></span>
+    </div>`;
+  }
+}
+
+async function confirmRsUpload() {
+  const username = document.getElementById('rs-username').value.trim();
+  const password = document.getElementById('rs-password').value;
+  const senderTin = document.getElementById('rs-sender-tin').value.trim();
+
+  if(!username||!password){alert('áƒ›áƒáƒ›áƒ®áƒ›áƒáƒ áƒ”áƒ‘áƒ”áƒšáƒ˜ áƒ“áƒ áƒžáƒáƒ áƒáƒšáƒ˜ áƒ¡áƒáƒ•áƒáƒšáƒ“áƒ”áƒ‘áƒ£áƒšáƒáƒ');return;}
+  if(!senderTin){alert('áƒ™áƒáƒ›áƒžáƒáƒœáƒ˜áƒ˜áƒ¡ áƒ¡/áƒ™ áƒ¡áƒáƒ•áƒáƒšáƒ“áƒ”áƒ‘áƒ£áƒšáƒáƒ');return;}
+  if(!pendingRsInvoice){alert('áƒ˜áƒœáƒ•áƒáƒ˜áƒ¡áƒ˜ áƒáƒ  áƒáƒ áƒ˜áƒ¡ áƒ¨áƒ”áƒ¡áƒáƒ áƒ©áƒ”áƒ•áƒ˜');return;}
+
+  const client = db.clients.find(c=>c.id===pendingRsInvoice.clientId)||{};
+
+  const invoicePayload = {
+    ...pendingRsInvoice,
+    clientName: client.name || '',
+    clientIdNum: client.idNum || '',
+  };
+
+  // show loading
+  const resEl = document.getElementById('rs-test-result');
+  resEl.style.display='block';
+  resEl.innerHTML='<div style="font-size:13px;color:var(--text-muted)">â³ Rs.ge-áƒ–áƒ” áƒ˜áƒ¢áƒ•áƒ˜áƒ áƒ—áƒ”áƒ‘áƒ...</div>';
+
+  try {
+    const r = await fetch(PROXY_URL, {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        action:'upload_invoice',
+        username, password, senderTin,
+        invoice: invoicePayload
+      })
+    });
+    const data = await r.json();
+
+    closeModal('rsge-creds-modal');
+    
+    const resultTitle = document.getElementById('rsge-result-title');
+    const resultBody = document.getElementById('rsge-result-body');
+
+    if(data.ok) {
+      // mark invoice as uploaded to rs.ge
+      pendingRsInvoice.rsgeUploaded = true;
+      pendingRsInvoice.rsgeId = data.rsId;
+      pendingRsInvoice.status = 'sent';
+      sessionStorage.setItem('rs_username', username);
+
+      resultTitle.textContent = 'Rs.ge â€” áƒ¬áƒáƒ áƒ›áƒáƒ¢áƒ”áƒ‘áƒ âœ“';
+      resultBody.innerHTML = `
+        <div style="text-align:center;padding:16px 0">
+          <div style="font-size:36px;margin-bottom:12px">âœ…</div>
+          <div style="font-size:15px;font-weight:600;color:var(--success);margin-bottom:8px">${data.message}</div>
+          ${data.rsId?`<div style="font-size:12px;color:var(--text-muted)">Rs.ge ID: <strong>${escH(String(data.rsId))}</strong></div>`:''}
+          <div style="font-size:12px;color:var(--text-muted);margin-top:8px">áƒ˜áƒœáƒ•áƒáƒ˜áƒ¡áƒ˜: <strong>${escH(pendingRsInvoice.number)}</strong></div>
+        </div>`;
+      renderInvoices();
+    } else {
+      resultTitle.textContent = 'Rs.ge â€” áƒ¨áƒ”áƒªáƒ“áƒáƒ›áƒ';
+      resultBody.innerHTML = `
+        <div style="padding:14px;background:#fef2f2;border-radius:8px;border:1px solid #fecaca">
+          <div style="font-size:14px;font-weight:600;color:#dc2626;margin-bottom:6px">âš  áƒáƒ¢áƒ•áƒ˜áƒ áƒ—áƒ•áƒ áƒ•áƒ”áƒ  áƒ›áƒáƒ®áƒ”áƒ áƒ®áƒ“áƒ</div>
+          <div style="font-size:13px;color:#7f1d1d">${escH(data.error||'áƒ£áƒªáƒœáƒáƒ‘áƒ˜ áƒ¨áƒ”áƒªáƒ“áƒáƒ›áƒ')}</div>
+          <div style="font-size:12px;color:var(--text-muted);margin-top:10px">áƒ˜áƒœáƒ•áƒáƒ˜áƒ¡áƒ˜ áƒžáƒšáƒáƒ¢áƒ¤áƒáƒ áƒ›áƒáƒ¨áƒ˜ áƒ¨áƒ”áƒœáƒáƒ®áƒ£áƒšáƒ˜áƒ âœ“</div>
+        </div>`;
+    }
+    document.getElementById('rsge-result-modal').classList.add('open');
+  } catch(e) {
+    closeModal('rsge-creds-modal');
+    const resultTitle = document.getElementById('rsge-result-title');
+    const resultBody = document.getElementById('rsge-result-body');
+    resultTitle.textContent = 'Rs.ge â€” áƒ¨áƒ”áƒªáƒ“áƒáƒ›áƒ';
+    resultBody.innerHTML = `
+      <div style="padding:14px;background:#fef2f2;border-radius:8px;border:1px solid #fecaca">
+        <div style="font-size:14px;font-weight:600;color:#dc2626;margin-bottom:6px">âš  Proxy áƒ¡áƒ”áƒ áƒ•áƒ”áƒ áƒ˜ áƒáƒ  áƒ›áƒ£áƒ¨áƒáƒáƒ‘áƒ¡</div>
+        <div style="font-size:13px;color:#7f1d1d;line-height:1.7">áƒ’áƒáƒ£áƒ¨áƒ•áƒ˜áƒ— <strong>áƒ’áƒáƒ¨áƒ•áƒ”áƒ‘áƒ.bat</strong> áƒ¤áƒáƒ˜áƒšáƒ˜ rsge-proxy áƒ¡áƒáƒ¥áƒáƒ¦áƒáƒšáƒ“áƒ˜áƒ“áƒáƒœ, áƒ¨áƒ”áƒ›áƒ“áƒ”áƒ’ áƒ¡áƒªáƒáƒ“áƒ”áƒ— áƒ—áƒáƒ•áƒ˜áƒ“áƒáƒœ.</div>
+        <div style="font-size:12px;color:var(--text-muted);margin-top:10px">áƒ˜áƒœáƒ•áƒáƒ˜áƒ¡áƒ˜ áƒžáƒšáƒáƒ¢áƒ¤áƒáƒ áƒ›áƒáƒ¨áƒ˜ áƒ¨áƒ”áƒœáƒáƒ®áƒ£áƒšáƒ˜áƒ âœ“</div>
+      </div>`;
+    document.getElementById('rsge-result-modal').classList.add('open');
+  }
+}
+
+// =========== MODAL ===========
+function closeModal(id){document.getElementById(id).classList.remove('open');}
+
+function decorateLineEditors() {
+  document.querySelectorAll('#items-body tr').forEach((row, index) => {
+    const prodCell = row.querySelector('.col-prod');
+    if (!prodCell) return;
+    const textInputs = prodCell.querySelectorAll('input[type="text"]');
+    const manualInput = textInputs[1];
+    if (!manualInput) return;
+
+    let wrapper = manualInput.parentElement;
+    if (!wrapper || !wrapper.classList.contains('manual-line-box')) {
+      wrapper = document.createElement('div');
+      wrapper.className = 'manual-line-box';
+      const title = document.createElement('div');
+      title.className = 'manual-line-title';
+      title.textContent = 'áƒ®áƒ”áƒšáƒ˜áƒ— áƒ“áƒáƒ›áƒáƒ¢áƒ”áƒ‘áƒ£áƒšáƒ˜ áƒžáƒ áƒáƒ“áƒ£áƒ¥áƒ¢áƒ˜';
+      manualInput.parentNode.insertBefore(wrapper, manualInput);
+      wrapper.appendChild(title);
+      wrapper.appendChild(manualInput);
+    }
+
+    manualInput.placeholder = 'áƒ©áƒáƒ¬áƒ”áƒ áƒ”áƒ— áƒžáƒ áƒáƒ“áƒ£áƒ¥áƒ¢áƒ˜áƒ¡ áƒ“áƒáƒ¡áƒáƒ®áƒ”áƒšáƒ”áƒ‘áƒ';
+    wrapper.style.display = currentLines[index] && !currentLines[index].prodId ? '' : 'none';
+  });
+}
+
+function initMedicalLineEnhancements() {
+  const addLineButton = document.querySelector('.items-wrap .btn.btn-ghost.btn-sm');
+  if (addLineButton && !document.querySelector('.line-entry-hint')) {
+    const hint = document.createElement('div');
+    hint.className = 'line-entry-hint';
+    hint.innerHTML = '<strong>áƒ—áƒ£ áƒžáƒ áƒáƒ“áƒ£áƒ¥áƒ¢áƒ˜ áƒ¡áƒ˜áƒáƒ¨áƒ˜ áƒáƒ  áƒáƒ áƒ˜áƒ¡:</strong> áƒáƒ˜áƒ áƒ©áƒ˜áƒ”áƒ— `â€” áƒ®áƒ”áƒšáƒ˜áƒ— â€”` áƒ“áƒ áƒ©áƒáƒ¬áƒ”áƒ áƒ”áƒ— áƒ“áƒáƒ¡áƒáƒ®áƒ”áƒšáƒ”áƒ‘áƒ áƒ®áƒ”áƒšáƒ˜áƒ—.';
+    addLineButton.insertAdjacentElement('afterend', hint);
+  }
+
+  const modal = document.querySelector('#add-product-modal .modal');
+  const head = document.querySelector('#add-product-modal .modal-head');
+  const body = document.querySelector('#add-product-modal .modal-body');
+  const foot = document.querySelector('#add-product-modal .modal-foot');
+  const title = head ? head.querySelector('h3') : null;
+  const grid = body ? body.querySelector('.form-grid') : null;
+
+  if (modal) modal.classList.add('retro-modal');
+  if (head) head.classList.add('retro-titlebar');
+  if (body) body.classList.add('retro-body');
+  if (foot) foot.classList.add('retro-actions');
+  if (title) title.textContent = 'áƒ›áƒ”áƒ“áƒ˜áƒ¥áƒáƒš áƒšáƒáƒ˜áƒœáƒ˜áƒ¡ áƒžáƒ áƒáƒ’áƒ áƒáƒ›áƒ';
+  if (grid) grid.classList.add('retro-panel');
+  if (head) {
+    const closeBtn = head.querySelector('button');
+    if (closeBtn) {
+      closeBtn.className = 'retro-window-btn';
+      closeBtn.textContent = 'âœ•';
+    }
+  }
+  if (foot) {
+    const buttons = foot.querySelectorAll('button');
+    if (buttons[0]) buttons[0].className = 'retro-btn';
+    if (buttons[1]) buttons[1].className = 'retro-btn primary';
+  }
+
+  if (body && !body.querySelector('.retro-banner')) {
+    const banner = document.createElement('div');
+    banner.className = 'retro-banner';
+    banner.textContent = 'áƒ›áƒáƒœáƒáƒªáƒ”áƒ›áƒ”áƒ‘áƒ˜áƒ¡ áƒ“áƒáƒ›áƒáƒ¢áƒ”áƒ‘áƒ áƒ›áƒ”áƒ“áƒ˜áƒ¥áƒáƒš áƒšáƒáƒ˜áƒœáƒ˜áƒ¡ áƒžáƒ áƒáƒ’áƒ áƒáƒ›áƒáƒ¨áƒ˜ áƒ®áƒ”áƒšáƒ˜áƒ— áƒ©áƒáƒ¡áƒáƒ›áƒáƒ¢áƒ”áƒ‘áƒ”áƒšáƒ˜ áƒžáƒ áƒáƒ“áƒ£áƒ¥áƒ¢áƒ˜áƒ—.';
+    body.insertAdjacentElement('afterbegin', banner);
+  }
+
+  if (body && !body.querySelector('.retro-note')) {
+    const note = document.createElement('div');
+    note.className = 'retro-note';
+    note.style.marginTop = '14px';
+    note.innerHTML = '<strong>áƒ—áƒ£ áƒžáƒ áƒáƒ“áƒ£áƒ¥áƒ¢áƒ˜ áƒžáƒ áƒáƒ’áƒ áƒáƒ›áƒ˜áƒ¡ áƒ¡áƒ˜áƒáƒ¨áƒ˜ áƒáƒ  áƒáƒ áƒ˜áƒ¡,</strong> áƒ›áƒáƒ˜áƒœáƒª áƒ¨áƒ”áƒ’áƒ˜áƒ«áƒšáƒ˜áƒáƒ— áƒ“áƒáƒáƒ›áƒáƒ¢áƒáƒ— áƒáƒœ áƒ˜áƒœáƒ•áƒáƒ˜áƒ¡áƒ¨áƒ˜ áƒ’áƒáƒ›áƒáƒ˜áƒ§áƒ”áƒœáƒáƒ— áƒ®áƒ”áƒšáƒ˜áƒ— áƒ áƒ”áƒŸáƒ˜áƒ›áƒ˜áƒ—.';
+    body.appendChild(note);
+  }
+}
+
+// =========== INIT ===========
+function getRsRuntimeValues() {
+  return {
+    username: (document.getElementById('rs-username')?.value || document.getElementById('s-rsuser')?.value || '').trim(),
+    password: document.getElementById('rs-password')?.value || document.getElementById('s-rspass')?.value || '',
+    senderTin: (document.getElementById('rs-sender-tin')?.value || document.getElementById('s-rssender-tin')?.value || document.getElementById('s-comp-id')?.value || '').trim(),
+    driverInfo: (document.getElementById('rs-driver-info')?.value || document.getElementById('s-driver-info')?.value || '').trim(),
+    driverNo: (document.getElementById('rs-driver-no')?.value || document.getElementById('s-driver-no')?.value || '').trim(),
+    transportMark: (document.getElementById('rs-transport-mark')?.value || document.getElementById('s-transport-mark')?.value || '').trim(),
+    docDate: (document.getElementById('rs-doc-date')?.value || '').trim(),
+    docTime: (document.getElementById('rs-doc-time')?.value || '').trim(),
+    transportType: (document.getElementById('rs-transport-type')?.value || '').trim(),
+    transportKind: (document.getElementById('rs-transport-kind')?.value || '').trim(),
+    senderName: (document.getElementById('rs-sender-name')?.value || document.getElementById('f-comp')?.value || '').trim(),
+    recipientName: (document.getElementById('rs-recipient-name')?.value || '').trim(),
+    senderAddress: (document.getElementById('rs-sender-address')?.value || document.getElementById('f-comp-addr')?.value || '').trim(),
+    recipientAddress: (document.getElementById('rs-recipient-address')?.value || '').trim(),
+    waybillNote: (document.getElementById('rs-waybill-note')?.value || '').trim(),
+  };
+}
+
+async function callRsProxy(payload) {
+  const response = await fetch(PROXY_URL, {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify(payload)
+  });
+
+  const raw = await response.text();
+  let data = null;
+
+  try {
+    data = raw ? JSON.parse(raw) : {};
+  } catch (e) {
+    throw new Error('Rs.ge API-მ არასწორი პასუხი დააბრუნა');
+  }
+
+  if (!response.ok || data?.ok === false) {
+    throw new Error(data?.error || ('HTTP ' + response.status));
+  }
+
+  return data;
+}
+
+async function testRsConnection() {
+  const { username, password, senderTin, driverInfo, driverNo, transportMark } = getRsRuntimeValues();
+  if(!username || !password){ alert('Rs.ge áƒ›áƒáƒ›áƒ®áƒ›áƒáƒ áƒ”áƒ‘áƒ”áƒšáƒ˜ áƒ“áƒ áƒžáƒáƒ áƒáƒšáƒ˜ áƒ¡áƒáƒ•áƒáƒšáƒ“áƒ”áƒ‘áƒ£áƒšáƒáƒ'); return; }
+
+  const resEl = document.getElementById('rs-test-result');
+  const statusEl = document.getElementById('rs-status');
+  if(resEl){
+    resEl.style.display='block';
+    resEl.innerHTML='<div style="font-size:13px;color:var(--text-muted)">áƒ›áƒáƒ¬áƒ›áƒ“áƒ”áƒ‘áƒ áƒ™áƒáƒ•áƒ¨áƒ˜áƒ áƒ˜...</div>';
+  }
+
+  try {
+    const data = await callRsProxy({ action:'test', username, password, senderTin });
+    await persistRsSettings({
+      rsUser: username,
+      rsPass: password,
+      rsSenderTin: senderTin,
+      rsDriverInfo: driverInfo,
+      rsDriverNo: driverNo,
+      rsTransportMark: transportMark,
+    });
+    if(resEl) resEl.innerHTML=`<div style="padding:10px 12px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;font-size:13px;color:#16a34a">âœ“ ${data.message}</div>`;
+    if(statusEl) statusEl.textContent = 'Rs.ge áƒ™áƒáƒ•áƒ¨áƒ˜áƒ áƒ˜ áƒ’áƒáƒ›áƒáƒ áƒ—áƒ£áƒšáƒ˜áƒ';
+  } catch (e) {
+    const message = e && e.message ? e.message : 'Proxy áƒ¡áƒ”áƒ áƒ•áƒ”áƒ áƒ˜ áƒáƒ  áƒ›áƒ£áƒ¨áƒáƒáƒ‘áƒ¡';
+    if(resEl) resEl.innerHTML=`<div style="padding:10px 12px;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;font-size:13px;color:#dc2626">âœ— ${escH(message)}</div>`;
+    if(statusEl) statusEl.textContent = message;
+  }
+}
+
+async function rsSearch() {
+  const q = normalizeSearchText(document.getElementById('rs-q').value);
+  const resultsEl = document.getElementById('rs-results');
+  if(!q){ resultsEl.innerHTML=''; return; }
+
+  const localMatches = db.clients
+    .filter(c =>
+      normalizeSearchText(c.name).includes(q) ||
+      normalizeSearchText(c.company).includes(q) ||
+      normalizeSearchText(c.idNum).includes(q)
+    )
+    .slice(0, 8)
+    .map(c => ({ id: c.idNum || '', name: c.company || c.name, city: c.city || '', addr: c.address || '' }));
+
+  if(/^\d{6,}$/.test(q)) {
+    const { username, password } = getRsRuntimeValues();
+    if(username && password) {
+      resultsEl.innerHTML='<p style="color:var(--text-muted);font-size:13px">áƒ˜áƒ«áƒ”áƒ‘áƒœáƒ”áƒ‘áƒ Rs.ge-áƒ¨áƒ˜...</p>';
+      try {
+        const r = await fetch(PROXY_URL, {
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({ action:'search_org', username, password, query: q })
+        });
+        const data = await r.json();
+        if(data.ok && data.results?.length) {
+          resultsEl.innerHTML = data.results.map(r=>`<div class="rs-result" onclick="rsSelect(${JSON.stringify({id:r.id,name:r.name,city:'',addr:''}).replace(/"/g,'&quot;')})"><div class="rs-result-name">${escH(r.name)}</div><div class="rs-result-id">áƒ¡/áƒ™: ${escH(r.id)}</div></div>`).join('');
+          return;
+        }
+      } catch(e) {}
+    }
+  }
+
+  if(localMatches.length) {
+    resultsEl.innerHTML = localMatches.map(r=>`<div class="rs-result" onclick="rsSelect(${JSON.stringify(r).replace(/"/g,'&quot;')})"><div class="rs-result-name">${escH(r.name)}</div><div class="rs-result-id">áƒ¡/áƒ™: ${escH(r.id)} ${r.city ? 'Â· '+escH(r.city) : ''}</div></div>`).join('');
+  } else {
+    resultsEl.innerHTML = '<p style="color:var(--text-muted);font-size:13px">áƒáƒ áƒ’áƒáƒœáƒ˜áƒ–áƒáƒªáƒ˜áƒ áƒ•áƒ”áƒ  áƒ›áƒáƒ˜áƒ«áƒ”áƒ‘áƒœáƒ. Rs.ge live áƒ«áƒ˜áƒ”áƒ‘áƒ˜áƒ¡áƒ—áƒ•áƒ˜áƒ¡ áƒ¨áƒ”áƒ˜áƒ§áƒ•áƒáƒœáƒ”áƒ— áƒ¡áƒáƒ˜áƒ“áƒ”áƒœáƒ¢áƒ˜áƒ¤áƒ˜áƒ™áƒáƒªáƒ˜áƒ áƒ™áƒáƒ“áƒ˜.</p>';
+  }
+}
+
+async function confirmRsUpload() {
+  const { username, password, senderTin, driverInfo, driverNo, transportMark, docDate, docTime, transportType, transportKind, senderName, recipientName, senderAddress, recipientAddress, waybillNote } = getRsRuntimeValues();
+  if(!username || !password){ alert('Rs.ge áƒ›áƒáƒ›áƒ®áƒ›áƒáƒ áƒ”áƒ‘áƒ”áƒšáƒ˜ áƒ“áƒ áƒžáƒáƒ áƒáƒšáƒ˜ áƒ¡áƒáƒ•áƒáƒšáƒ“áƒ”áƒ‘áƒ£áƒšáƒáƒ'); return; }
+  if(!senderTin){ alert('áƒ™áƒáƒ›áƒžáƒáƒœáƒ˜áƒ˜áƒ¡ áƒ¡/áƒ™ áƒ¡áƒáƒ•áƒáƒšáƒ“áƒ”áƒ‘áƒ£áƒšáƒáƒ'); return; }
+  if(!pendingRsInvoice){ alert('áƒ˜áƒœáƒ•áƒáƒ˜áƒ¡áƒ˜ áƒáƒ  áƒáƒ áƒ˜áƒ¡ áƒ¨áƒ”áƒ áƒ©áƒ”áƒ£áƒšáƒ˜'); return; }
+
+  await persistRsSettings({
+    rsUser: username,
+    rsPass: password,
+    rsSenderTin: senderTin,
+    rsDriverInfo: driverInfo,
+    rsDriverNo: driverNo,
+    rsTransportMark: transportMark,
+  });
+
+  const client = db.clients.find(c=>c.id===pendingRsInvoice.clientId)||{};
+  const invoicePayload = {
+    ...pendingRsInvoice,
+    clientName: client.name || '',
+    clientIdNum: client.idNum || '',
+    driverInfo,
+    driverNo,
+    transportMark,
+    driverIsGeo: 1,
+    waybillMeta: {
+      docDate,
+      docTime,
+      transportType,
+      transportKind,
+      senderName: senderName || (document.getElementById('f-comp')?.value || ''),
+      recipientName: recipientName || client.name || '',
+      senderAddress: senderAddress || (document.getElementById('f-comp-addr')?.value || ''),
+      recipientAddress: recipientAddress || client.address || '',
+      note: waybillNote,
+    },
+  };
+
+  const resEl = document.getElementById('rs-test-result');
+  if(resEl){
+    resEl.style.display='block';
+    resEl.innerHTML='<div style="font-size:13px;color:var(--text-muted)">Rs.ge-áƒ–áƒ” áƒ˜áƒ¢áƒ•áƒ˜áƒ áƒ—áƒ”áƒ‘áƒ...</div>';
+  }
+
+  try {
+    const data = await callRsProxy({
+      action:'upload_invoice',
+      username, password, senderTin,
+      invoice: invoicePayload
+    });
+
+    closeModal('rsge-creds-modal');
+    const resultTitle = document.getElementById('rsge-result-title');
+    const resultBody = document.getElementById('rsge-result-body');
+
+    pendingRsInvoice.rsgeUploaded = true;
+    pendingRsInvoice.rsgeId = data.rsId;
+    pendingRsInvoice.status = 'sent';
+    resultTitle.textContent = 'Rs.ge â€” áƒ¬áƒáƒ áƒ›áƒáƒ¢áƒ”áƒ‘áƒ âœ“';
+    resultBody.innerHTML = `
+      <div style="text-align:center;padding:16px 0">
+        <div style="font-size:36px;margin-bottom:12px">âœ“</div>
+        <div style="font-size:15px;font-weight:600;color:var(--success);margin-bottom:8px">${data.message}</div>
+        ${data.rsId?`<div style="font-size:12px;color:var(--text-muted)">Rs.ge ID: <strong>${escH(String(data.rsId))}</strong></div>`:''}
+        ${transportMark?`<div style="font-size:12px;color:var(--text-muted);margin-top:6px">áƒ›áƒáƒœáƒ¥áƒáƒœáƒ: <strong>${escH(transportMark)}</strong></div>`:''}
+        ${driverNo?`<div style="font-size:12px;color:var(--text-muted);margin-top:4px">áƒ›áƒ«áƒ¦áƒáƒšáƒ˜: <strong>${escH(driverNo)}</strong></div>`:''}
+      </div>`;
+    renderInvoices();
+    document.getElementById('rsge-result-modal').classList.add('open');
+  } catch (e) {
+    closeModal('rsge-creds-modal');
+    const resultTitle = document.getElementById('rsge-result-title');
+    const resultBody = document.getElementById('rsge-result-body');
+    resultTitle.textContent = 'Rs.ge â€” áƒ¨áƒ”áƒªáƒ“áƒáƒ›áƒ';
+    const message = e && e.message ? e.message : 'Proxy áƒ¡áƒ”áƒ áƒ•áƒ”áƒ áƒ˜ áƒáƒ  áƒ›áƒ£áƒ¨áƒáƒáƒ‘áƒ¡';
+    resultBody.innerHTML = `<div style="padding:14px;background:#fef2f2;border-radius:8px;border:1px solid #fecaca"><div style="font-size:14px;font-weight:600;color:#dc2626;margin-bottom:6px">áƒáƒ¢áƒ•áƒ˜áƒ áƒ—áƒ•áƒ áƒ•áƒ”áƒ  áƒ›áƒáƒ®áƒ”áƒ áƒ®áƒ“áƒ</div><div style="font-size:13px;color:#7f1d1d">${escH(message)}</div></div>`;
+    document.getElementById('rsge-result-modal').classList.add('open');
+  }
+}
+
+initMedicalLineEnhancements();
+loadAll();
+</script>
+
+<!-- Rs.ge Credentials Modal -->
+<div class="modal-bg" id="rsge-creds-modal">
+  <div class="modal" style="max-width:460px">
+    <div class="modal-head">
+      <h3>Rs.ge â€” áƒ¨áƒ”áƒ¡áƒ•áƒšáƒ˜áƒ¡ áƒ›áƒáƒœáƒáƒªáƒ”áƒ›áƒ”áƒ‘áƒ˜</h3>
+      <button class="btn btn-ghost btn-sm" onclick="closeModal('rsge-creds-modal')">âœ•</button>
+    </div>
+    <div class="modal-body">
+      <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:12px 14px;margin-bottom:16px;font-size:12px;color:#1d4ed8;line-height:1.7">
+        <strong>áƒ›áƒœáƒ˜áƒ¨áƒ•áƒœáƒ”áƒšáƒáƒ•áƒáƒœáƒ˜:</strong> Rs.ge-áƒ¡ áƒ”áƒ¡ áƒ›áƒáƒœáƒáƒªáƒ”áƒ›áƒ”áƒ‘áƒ˜ áƒ˜áƒœáƒáƒ®áƒ”áƒ‘áƒ áƒáƒ› áƒžáƒšáƒáƒ¢áƒ¤áƒáƒ áƒ›áƒ˜áƒ¡ áƒ¡áƒ”áƒ—áƒ˜áƒœáƒ’áƒ”áƒ‘áƒ¨áƒ˜, áƒ áƒáƒ› áƒ§áƒáƒ•áƒ”áƒš áƒ¯áƒ”áƒ áƒ–áƒ” áƒ—áƒáƒ•áƒ˜áƒ“áƒáƒœ áƒáƒ¦áƒáƒ  áƒ¨áƒ”áƒ’áƒ˜áƒ§áƒ•áƒáƒœáƒáƒ—.
+      </div>
+      <div class="rs-form-grid">
+        <div class="field"><label>eservices.rs.ge áƒ›áƒáƒ›áƒ®áƒ›áƒáƒ áƒ”áƒ‘áƒ”áƒšáƒ˜</label><input type="text" id="rs-username" placeholder="áƒ›áƒáƒ›áƒ®áƒ›áƒáƒ áƒ”áƒ‘áƒšáƒ˜áƒ¡ áƒ¡áƒáƒ®áƒ”áƒšáƒ˜" autocomplete="username"></div>
+        <div class="field"><label>áƒžáƒáƒ áƒáƒšáƒ˜</label><input type="password" id="rs-password" placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢" autocomplete="current-password"></div>
+        <div class="field"><label>áƒ™áƒáƒ›áƒžáƒáƒœáƒ˜áƒ˜áƒ¡ áƒ¡/áƒ™ (áƒ’áƒáƒ›áƒ’áƒ–áƒáƒ•áƒœáƒ˜)</label><input type="text" id="rs-sender-tin" placeholder="01xxxxxxxx"></div>
+        <div class="field"><label>áƒ›áƒ«áƒ¦áƒáƒšáƒ˜áƒ¡ áƒ¡áƒáƒ®áƒ”áƒšáƒ˜ / áƒ’áƒ•áƒáƒ áƒ˜</label><input type="text" id="rs-driver-info" placeholder="áƒ¡áƒáƒ®áƒ”áƒšáƒ˜ áƒ’áƒ•áƒáƒ áƒ˜"></div>
+        <div class="field"><label>áƒ›áƒ«áƒ¦áƒáƒšáƒ˜áƒ¡ áƒžáƒ˜áƒ áƒáƒ“áƒ˜ áƒœáƒáƒ›áƒ”áƒ áƒ˜</label><input type="text" id="rs-driver-no" placeholder="01001010101"></div>
+        <div class="field"><label>áƒ›áƒáƒœáƒ¥áƒáƒœáƒ˜áƒ¡ áƒœáƒáƒ›áƒ”áƒ áƒ˜</label><input type="text" id="rs-transport-mark" placeholder="AA-123-BB"></div>
+      </div>
+        <div class="rs-waybill-box">
+          <div class="rs-waybill-title">áƒ–áƒ”áƒ“áƒœáƒáƒ“áƒ”áƒ‘áƒ˜áƒ¡ áƒ›áƒáƒœáƒáƒªáƒ”áƒ›áƒ”áƒ‘áƒ˜</div>
+          <div class="rs-form-grid-2">
+            <div class="field"><label>áƒ“áƒáƒ™áƒ£áƒ›áƒ”áƒœáƒ¢áƒ˜áƒ¡ áƒ—áƒáƒ áƒ˜áƒ¦áƒ˜</label><input type="date" id="rs-doc-date"></div>
+            <div class="field"><label>áƒ“áƒáƒ™áƒ£áƒ›áƒ”áƒœáƒ¢áƒ˜áƒ¡ áƒ“áƒ áƒ</label><input type="time" id="rs-doc-time"></div>
+            <div class="field"><label>áƒ¢áƒ áƒáƒœáƒ¡áƒžáƒáƒ áƒ¢áƒ˜áƒ áƒ”áƒ‘áƒ˜áƒ¡ áƒ¢áƒ˜áƒžáƒ˜</label><input type="text" id="rs-transport-type" placeholder="áƒ¡áƒáƒáƒ•áƒ¢áƒáƒ›áƒáƒ‘áƒ˜áƒšáƒ"></div>
+            <div class="field"><label>áƒ¢áƒ áƒáƒœáƒ¡áƒžáƒáƒ áƒ¢áƒ˜áƒ áƒ”áƒ‘áƒ˜áƒ¡ áƒ¡áƒáƒ®áƒ”</label><input type="text" id="rs-transport-kind" placeholder="áƒ›áƒ˜áƒ›áƒ¬áƒáƒ“áƒ”áƒ‘áƒ”áƒšáƒ˜"></div>
+            <div class="field"><label>áƒ’áƒáƒ›áƒ’áƒ–áƒáƒ•áƒœáƒ˜</label><input type="text" id="rs-sender-name" placeholder="áƒ™áƒáƒ›áƒžáƒáƒœáƒ˜áƒ˜áƒ¡ áƒ¡áƒáƒ®áƒ”áƒšáƒ˜"></div>
+            <div class="field"><label>áƒ›áƒ˜áƒ›áƒ¦áƒ”áƒ‘áƒ˜</label><input type="text" id="rs-recipient-name" placeholder="áƒ™áƒšáƒ˜áƒ”áƒœáƒ¢áƒ˜áƒ¡ áƒ¡áƒáƒ®áƒ”áƒšáƒ˜"></div>
+            <div class="field"><label>áƒ’áƒáƒ›áƒ’áƒ–áƒáƒ•áƒœáƒ˜áƒ¡ áƒ›áƒ˜áƒ¡áƒáƒ›áƒáƒ áƒ—áƒ˜</label><input type="text" id="rs-sender-address" placeholder="áƒ—áƒ‘áƒ˜áƒšáƒ˜áƒ¡áƒ˜, áƒ¯áƒáƒ•áƒáƒ®áƒ˜áƒ¨áƒ•áƒ˜áƒšáƒ˜áƒ¡ 8"></div>
+            <div class="field"><label>áƒ›áƒ˜áƒ›áƒ¦áƒ”áƒ‘áƒ˜áƒ¡ áƒ›áƒ˜áƒ¡áƒáƒ›áƒáƒ áƒ—áƒ˜</label><input type="text" id="rs-recipient-address" placeholder="áƒ™áƒšáƒ˜áƒ”áƒœáƒ¢áƒ˜áƒ¡ áƒ›áƒ˜áƒ¡áƒáƒ›áƒáƒ áƒ—áƒ˜"></div>
+            <div class="field" style="grid-column:1/-1"><label>áƒ¨áƒ”áƒœáƒ˜áƒ¨áƒ•áƒœáƒ</label><input type="text" id="rs-waybill-note" placeholder="áƒ“áƒáƒ›áƒáƒ¢áƒ”áƒ‘áƒ˜áƒ—áƒ˜ áƒ™áƒáƒ›áƒ”áƒœáƒ¢áƒáƒ áƒ˜ áƒ–áƒ”áƒ“áƒœáƒáƒ“áƒ”áƒ‘áƒ˜áƒ¡áƒ—áƒ•áƒ˜áƒ¡"></div>
+          </div>
+        </div>
+      <div id="rs-test-result" style="margin-top:12px;display:none"></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-secondary" onclick="testRsConnection()">áƒ™áƒáƒ•áƒ¨áƒ˜áƒ áƒ˜áƒ¡ áƒ¨áƒ”áƒ›áƒáƒ¬áƒ›áƒ”áƒ‘áƒ</button>
+      <button class="btn btn-secondary" onclick="closeModal('rsge-creds-modal')">áƒ’áƒáƒ£áƒ¥áƒ›áƒ”áƒ‘áƒ</button>
+      <button class="btn btn-primary" onclick="confirmRsUpload()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+        Rs.ge-áƒ–áƒ” áƒáƒ¢áƒ•áƒ˜áƒ áƒ—áƒ•áƒ
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Rs.ge Upload Result Modal -->
+<div class="modal-bg" id="rsge-result-modal">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-head">
+      <h3 id="rsge-result-title">Rs.ge â€” áƒ¨áƒ”áƒ“áƒ”áƒ’áƒ˜</h3>
+      <button class="btn btn-ghost btn-sm" onclick="closeModal('rsge-result-modal')">âœ•</button>
+    </div>
+    <div class="modal-body">
+      <div id="rsge-result-body"></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-primary" onclick="closeModal('rsge-result-modal')">áƒ™áƒáƒ áƒ’áƒ˜</button>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
+
+
+
