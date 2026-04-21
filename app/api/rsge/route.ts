@@ -268,7 +268,7 @@ async function saveWaybillDesc(
     <p_un_price>${price.toFixed(2)}</p_un_price>
     <p_drg_amount>${drgAmt.toFixed(2)}</p_drg_amount>
     <p_aqcizi_amount>0</p_aqcizi_amount>
-    <p_user_id>${user_id}</p_user_id>
+    <p_user_id>${sui}</p_user_id>
     <p_aqcizi_id>0</p_aqcizi_id>
     <p_aqcizi_rate>0</p_aqcizi_rate>
     <p_dgg_rate>${vatRate}</p_dgg_rate>

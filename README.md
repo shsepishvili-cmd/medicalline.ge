@@ -2,7 +2,7 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 
 ## Getting Started
 
-First, run the development server:
+Run the development server:
 
 ```bash
 npm run dev
@@ -14,11 +14,63 @@ pnpm dev
 bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) with your browser.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Warranty Module Setup
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+The warranty admin is available at `/admin/warranty`.
+
+### 1. Run the Supabase SQL files
+
+Run these in order inside the Supabase SQL editor:
+
+1. `supabase/sql/01_core.sql`
+2. `supabase/sql/02_seed.sql`
+3. `supabase/sql/03_fix_admin_user.sql`
+4. `supabase/sql/04_manual_library.sql`
+5. `supabase/sql/05_warranty_module.sql`
+
+The warranty migration adds:
+
+- `warranties`
+- `service_cases`
+- `warranty_attachments`
+- private buckets: `warranty-documents`, `service-attachments`
+- RLS policies for internal staff/admin roles
+- auto-generated warranty/service numbers
+- automatic `warranty_end` and status sync triggers
+
+### 2. Add required environment variables
+
+These variables must exist in `.env.local` and in production:
+
+```env
+NEXT_PUBLIC_SUPABASE_URL=...
+NEXT_PUBLIC_SUPABASE_ANON_KEY=...
+```
+
+Notes:
+
+- The warranty module works with the existing public Supabase envs plus authenticated staff JWTs. No extra service-role secret is required for MVP deployment.
+- QR/verify links in generated certificates use the current request origin automatically. `NEXT_PUBLIC_SITE_URL`, `NEXT_PUBLIC_APP_URL`, or `APP_URL` can still be set if you want an explicit canonical base URL.
+
+### 3. Warranty workflow
+
+- Staff/admin users open `/admin/warranty`
+- Create or edit warranties in the admin UI
+- Attachments upload into private Supabase Storage buckets
+- `POST /api/warranty/[id]/certificate` generates and stores the branded PDF certificate
+- `POST /api/warranty/files` returns signed URLs for PDFs and attachments
+- `/warranty/verify/[token]` is the QR-target verification page
+
+### 4. Verification
+
+Local verification commands:
+
+```bash
+npx tsc --noEmit
+npm run build
+```
 
 ## Learn More
 
