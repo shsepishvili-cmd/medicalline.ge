@@ -191,6 +191,22 @@ export default async function WarrantyVerifyPage({
               </p>
             </div>
 
+            {/* Download PDF */}
+            <a
+              href={`/api/warranty/public-pdf/${token}`}
+              download
+              style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
+                padding: '14px 20px', borderRadius: 16,
+                background: 'linear-gradient(135deg, rgba(8,80,65,1) 0%, rgba(13,125,98,1) 100%)',
+                color: '#fff', textDecoration: 'none', fontWeight: 700, fontSize: 15,
+                boxShadow: '0 6px 20px rgba(8, 80, 65, 0.25)',
+              }}
+            >
+              <span style={{ fontSize: 20 }}>⬇</span>
+              PDF სერტიფიკატის ჩამოტვირთვა
+            </a>
+
             {/* Contact */}
             <div style={{
               background: '#fff', borderRadius: 20, padding: '18px 22px',
