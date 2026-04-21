@@ -7,13 +7,13 @@ import { useWarrantyAdminGate } from '../_components/WarrantyUi'
 export default function NewWarrantyPage() {
   const { loading, error, profile, accessToken } = useWarrantyAdminGate()
 
-  if (loading) return <LoadingView label="Preparing warranty form…" />
-  if (error || !profile || !accessToken) return <AuthBlockedView message={error || 'Access denied.'} />
+  if (loading) return <LoadingView label="გარანტიის ფორმა მზადდება..." />
+  if (error || !profile || !accessToken) return <AuthBlockedView message={error || 'წვდომა აკრძალულია.'} />
 
   return (
     <WarrantyAdminShell
-      title="Register Warranty"
-      subtitle="Capture product, clinic, serial number, and proof-of-purchase details once, then let the system calculate dates and generate the certificate."
+      title="გარანტიის რეგისტრაცია"
+      subtitle="ერთხელ შეიყვანე პროდუქტის, კლინიკის, სერიული ნომრისა და შესყიდვის დეტალები, შემდეგ კი სისტემას ავტომატურად დათვლევინე თარიღები და დააგენერირებინე სერტიფიკატი."
       profile={profile}
     >
       <WarrantyForm profile={profile} accessToken={accessToken} />

@@ -82,7 +82,7 @@ export function ServiceCaseForm({
 
   async function save() {
     if (!values.issueTitle.trim()) {
-      setError('Issue title required.')
+      setError('ქეისის სათაური აუცილებელია.')
       return
     }
 
@@ -117,14 +117,14 @@ export function ServiceCaseForm({
       if (saveError) throw new Error(saveError.message)
 
       const savedCase = (savedRows || [])[0] as ServiceCaseRecord | undefined
-      if (!savedCase?.id) throw new Error('Service case could not be saved.')
+      if (!savedCase?.id) throw new Error('სერვის ქეისი ვერ შეინახა.')
 
       await uploadAttachments(savedCase.id)
 
       router.push(`/admin/warranty/${warrantyId}`)
       router.refresh()
     } catch (cause) {
-      const message = cause instanceof Error ? cause.message : 'Service case save failed.'
+      const message = cause instanceof Error ? cause.message : 'სერვის ქეისის შენახვა ვერ მოხერხდა.'
       setError(message)
     } finally {
       setSaving(false)
@@ -134,72 +134,72 @@ export function ServiceCaseForm({
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
       <div style={{ ...ui.panel, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 14 }}>
-        <Field label="Issue title *">
+        <Field label="ქეისის სათაური *">
           <input value={values.issueTitle} onChange={(event) => setValue('issueTitle', event.target.value)} style={ui.input} />
         </Field>
-        <Field label="Reported at">
+        <Field label="დაფიქსირდა">
           <input type="datetime-local" value={values.reportedAt} onChange={(event) => setValue('reportedAt', event.target.value)} style={ui.input} />
         </Field>
-        <Field label="Inspection result">
+        <Field label="ინსპექტირების შედეგი">
           <input value={values.inspectionResult} onChange={(event) => setValue('inspectionResult', event.target.value)} style={ui.input} />
         </Field>
-        <Field label="Action taken">
+        <Field label="გატარებული ქმედება">
           <input value={values.actionTaken} onChange={(event) => setValue('actionTaken', event.target.value)} style={ui.input} />
         </Field>
-        <Field label="Mechanical damage">
+        <Field label="მექანიკური დაზიანება">
           <select value={String(values.isMechanicalDamage)} onChange={(event) => setValue('isMechanicalDamage', event.target.value === 'true' ? true : event.target.value === 'false' ? false : null)} style={ui.input}>
-            <option value="null">Unknown</option>
-            <option value="true">Yes</option>
-            <option value="false">No</option>
+            <option value="null">უცნობია</option>
+            <option value="true">კი</option>
+            <option value="false">არა</option>
           </select>
         </Field>
-        <Field label="Under warranty">
+        <Field label="გარანტიაში შედის">
           <select value={String(values.isUnderWarranty)} onChange={(event) => setValue('isUnderWarranty', event.target.value === 'true' ? true : event.target.value === 'false' ? false : null)} style={ui.input}>
-            <option value="null">Unknown</option>
-            <option value="true">Yes</option>
-            <option value="false">No</option>
+            <option value="null">უცნობია</option>
+            <option value="true">კი</option>
+            <option value="false">არა</option>
           </select>
         </Field>
-        <Field label="Replaced unit / part">
+        <Field label="შეცვლილი ერთეული / ნაწილი">
           <input value={values.replacedUnit} onChange={(event) => setValue('replacedUnit', event.target.value)} style={ui.input} />
         </Field>
-        <Field label="Sent to factory">
+        <Field label="ქარხანაში გაიგზავნა">
           <select value={String(values.sentToFactory)} onChange={(event) => setValue('sentToFactory', event.target.value === 'true')} style={ui.input}>
-            <option value="false">No</option>
-            <option value="true">Yes</option>
+            <option value="false">არა</option>
+            <option value="true">კი</option>
           </select>
         </Field>
-        <Field label="Factory sent at">
+        <Field label="ქარხანაში გაგზავნის დრო">
           <input type="datetime-local" value={values.factorySentAt} onChange={(event) => setValue('factorySentAt', event.target.value)} style={ui.input} />
         </Field>
-        <Field label="Factory returned at">
+        <Field label="ქარხნიდან დაბრუნების დრო">
           <input type="datetime-local" value={values.factoryReturnedAt} onChange={(event) => setValue('factoryReturnedAt', event.target.value)} style={ui.input} />
         </Field>
-        <Field label="Closed at">
+        <Field label="დახურვის დრო">
           <input type="datetime-local" value={values.closedAt} onChange={(event) => setValue('closedAt', event.target.value)} style={ui.input} />
         </Field>
-        <Field label="Outcome">
+        <Field label="შედეგი">
           <select value={values.outcome} onChange={(event) => setValue('outcome', event.target.value as ServiceCaseFormValues['outcome'])} style={ui.input}>
-            <option value="">Select outcome</option>
-            <option value="repaired">repaired</option>
-            <option value="replaced">replaced</option>
-            <option value="rejected">rejected</option>
-            <option value="returned_from_factory">returned_from_factory</option>
-            <option value="closed_no_fault_found">closed_no_fault_found</option>
+            <option value="">აირჩიე შედეგი</option>
+            <option value="repaired">შეკეთდა</option>
+            <option value="replaced">შეიცვალა</option>
+            <option value="rejected">უარი</option>
+            <option value="returned_from_factory">ქარხნიდან დაბრუნდა</option>
+            <option value="closed_no_fault_found">ხარვეზი არ დადასტურდა</option>
           </select>
         </Field>
         <div style={{ gridColumn: '1 / -1' }}>
-          <Field label="Issue description">
+          <Field label="პრობლემის აღწერა">
             <textarea value={values.issueDescription} onChange={(event) => setValue('issueDescription', event.target.value)} style={ui.textarea} />
           </Field>
         </div>
         <div style={{ gridColumn: '1 / -1' }}>
-          <Field label="Internal notes">
+          <Field label="შიდა შენიშვნები">
             <textarea value={values.notes} onChange={(event) => setValue('notes', event.target.value)} style={ui.textarea} />
           </Field>
         </div>
         <div style={{ gridColumn: '1 / -1' }}>
-          <Field label="Attachments">
+          <Field label="დანართები">
             <input
               type="file"
               multiple
@@ -229,18 +229,18 @@ export function ServiceCaseForm({
       <div style={{ ...ui.panel, display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
         <div>
           <p style={{ margin: 0, fontSize: 14, fontWeight: 700, color: colors.text }}>
-            {serviceCase ? 'Update service case' : 'Create service case'}
+            {serviceCase ? 'სერვის ქეისის განახლება' : 'სერვის ქეისის შექმნა'}
           </p>
           <p style={{ margin: '4px 0 0', fontSize: 12, color: colors.muted }}>
-            Every service case stays linked to the selected warranty.
+            ყველა სერვის ქეისი რჩება არჩეულ გარანტიასთან მიბმული.
           </p>
         </div>
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
           <Link href={`/admin/warranty/${warrantyId}`} style={ui.secondaryButton}>
-            Cancel
+            გაუქმება
           </Link>
           <button type="button" onClick={save} disabled={saving} style={{ ...ui.primaryButton, opacity: saving ? 0.7 : 1 }}>
-            {saving ? 'Saving…' : 'Save Service Case'}
+            {saving ? 'ინახება...' : 'სერვის ქეისის შენახვა'}
           </button>
         </div>
       </div>

@@ -38,17 +38,17 @@ export default async function WarrantyVerifyPage({ params }: { params: Promise<{
           }}
         >
           <p style={{ margin: 0, fontSize: 12, color: '#9FE1CB' }}>Medical Line Georgia</p>
-          <h1 style={{ margin: '10px 0 0', fontSize: 30, fontWeight: 700 }}>Warranty Verification</h1>
+          <h1 style={{ margin: '10px 0 0', fontSize: 30, fontWeight: 700 }}>გარანტიის ვერიფიკაცია</h1>
           <p style={{ margin: '10px 0 0', fontSize: 14, color: '#D6F2E8', lineHeight: 1.7 }}>
-            This page is opened from a warranty QR code or tokenized link and shows the public verification summary for the registered product.
+            ეს გვერდი იხსნება გარანტიის QR კოდიდან ან დაცული ბმულიდან და აჩვენებს რეგისტრირებული პროდუქტის საჯარო ვერიფიკაციის მოკლე შეჯამებას.
           </p>
         </div>
 
         {!warranty ? (
           <div style={{ background: '#fff', borderRadius: 20, padding: 28, border: '1px solid rgba(15, 23, 42, 0.08)', textAlign: 'center' }}>
-            <p style={{ margin: 0, fontSize: 22, fontWeight: 700, color: '#18212F' }}>Warranty not found</p>
+            <p style={{ margin: 0, fontSize: 22, fontWeight: 700, color: '#18212F' }}>გარანტია ვერ მოიძებნა</p>
             <p style={{ margin: '10px auto 0', maxWidth: 480, fontSize: 14, color: '#6B7280', lineHeight: 1.7 }}>
-              The verification token may be invalid, rotated, or not generated yet for this warranty certificate.
+              ვერიფიკაციის ტოკენი შეიძლება არასწორი იყოს, განახლებული იყოს ან ამ გარანტიის სერტიფიკატისთვის ჯერ არ იყოს გენერირებული.
             </p>
             <div style={{ marginTop: 18 }}>
               <Link
@@ -65,7 +65,7 @@ export default async function WarrantyVerifyPage({ params }: { params: Promise<{
                   fontWeight: 700,
                 }}
               >
-                Back to Medical Line
+                დაბრუნება Medical Line-ზე
               </Link>
             </div>
           </div>
@@ -73,17 +73,17 @@ export default async function WarrantyVerifyPage({ params }: { params: Promise<{
           <div style={{ background: '#fff', borderRadius: 20, padding: 22, border: '1px solid rgba(15, 23, 42, 0.08)' }}>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12 }}>
               {[
-                ['Warranty #', warranty.warranty_number],
-                ['Status', WARRANTY_STATUS_LABELS[warranty.status] || warranty.status],
-                ['Clinic', warranty.clinic_name || '—'],
-                ['Customer', warranty.customer_name || '—'],
-                ['Product', warranty.product_name],
-                ['Brand / Model', `${warranty.brand}${warranty.model ? ` / ${warranty.model}` : ''}`],
-                ['Serial Number', warranty.serial_number],
-                ['Purchase Date', formatDate(warranty.purchase_date)],
-                ['Installation Date', formatDate(warranty.installation_date)],
-                ['Warranty Start', formatDate(warranty.warranty_start)],
-                ['Warranty End', formatDate(warranty.warranty_end)],
+                ['გარანტიის ნომერი', warranty.warranty_number],
+                ['სტატუსი', WARRANTY_STATUS_LABELS[warranty.status] || warranty.status],
+                ['კლინიკა', warranty.clinic_name || '—'],
+                ['მომხმარებელი', warranty.customer_name || '—'],
+                ['პროდუქტი', warranty.product_name],
+                ['ბრენდი / მოდელი', `${warranty.brand}${warranty.model ? ` / ${warranty.model}` : ''}`],
+                ['სერიული ნომერი', warranty.serial_number],
+                ['ყიდვის თარიღი', formatDate(warranty.purchase_date)],
+                ['ინსტალაციის თარიღი', formatDate(warranty.installation_date)],
+                ['გარანტიის დაწყება', formatDate(warranty.warranty_start)],
+                ['გარანტიის დასრულება', formatDate(warranty.warranty_end)],
               ].map(([label, value]) => (
                 <div key={label} style={{ background: '#FAFAF8', borderRadius: 16, padding: '14px 15px', border: '1px solid rgba(15, 23, 42, 0.06)' }}>
                   <p style={{ margin: 0, fontSize: 12, color: '#6B7280' }}>{label}</p>
@@ -92,7 +92,7 @@ export default async function WarrantyVerifyPage({ params }: { params: Promise<{
               ))}
             </div>
             <p style={{ margin: '18px 0 0', fontSize: 13, color: '#6B7280', lineHeight: 1.7 }}>
-              If the product requires support, contact Medical Line Georgia and provide the warranty number or serial number shown above.
+              თუ პროდუქტს სერვისი სჭირდება, დაუკავშირდი Medical Line Georgia-ს და მიუთითე გარანტიის ნომერი ან სერიული ნომერი.
             </p>
           </div>
         )}

@@ -3,8 +3,6 @@ import QRCode from 'qrcode'
 import { buildWarrantyVerifyUrl, formatDate, WARRANTY_STATUS_LABELS } from './warranty'
 import type { WarrantyRecord } from './warranty-types'
 
-const ACCENT = '#085041'
-
 export function getAppBaseUrl(explicitOrigin?: string | null) {
   const configured =
     process.env.NEXT_PUBLIC_SITE_URL?.trim() ||
@@ -41,27 +39,27 @@ export async function generateWarrantyPdfBuffer(warranty: WarrantyRecord, origin
   pdf.text('Medical Line Georgia', margin + 6, 26)
   pdf.setFontSize(11)
   pdf.setFont('helvetica', 'normal')
-  pdf.text('Warranty Certificate', margin + 6, 33)
+  pdf.text('საგარანტიო სერტიფიკატი', margin + 6, 33)
 
   pdf.setTextColor(17, 24, 39)
   pdf.setFont('helvetica', 'bold')
   pdf.setFontSize(16)
-  pdf.text('Warranty Summary', margin, 54)
+  pdf.text('გარანტიის შეჯამება', margin, 54)
 
   const rows: Array<[string, string]> = [
-    ['Warranty #', warranty.warranty_number],
-    ['Status', WARRANTY_STATUS_LABELS[warranty.status] || warranty.status],
-    ['Clinic', warranty.clinic_name || '—'],
-    ['Customer', warranty.customer_name || '—'],
-    ['Product', warranty.product_name],
-    ['Brand / Model', `${warranty.brand}${warranty.model ? ` / ${warranty.model}` : ''}`],
-    ['Serial Number', warranty.serial_number],
-    ['Purchase Date', formatDate(warranty.purchase_date)],
-    ['Installation Date', formatDate(warranty.installation_date)],
-    ['Warranty Start', formatDate(warranty.warranty_start)],
-    ['Warranty End', formatDate(warranty.warranty_end)],
-    ['Invoice #', warranty.invoice_number || '—'],
-    ['Sold By', warranty.sold_by || '—'],
+    ['გარანტიის ნომერი', warranty.warranty_number],
+    ['სტატუსი', WARRANTY_STATUS_LABELS[warranty.status] || warranty.status],
+    ['კლინიკა', warranty.clinic_name || '—'],
+    ['მომხმარებელი', warranty.customer_name || '—'],
+    ['პროდუქტი', warranty.product_name],
+    ['ბრენდი / მოდელი', `${warranty.brand}${warranty.model ? ` / ${warranty.model}` : ''}`],
+    ['სერიული ნომერი', warranty.serial_number],
+    ['ყიდვის თარიღი', formatDate(warranty.purchase_date)],
+    ['ინსტალაციის თარიღი', formatDate(warranty.installation_date)],
+    ['გარანტიის დაწყება', formatDate(warranty.warranty_start)],
+    ['გარანტიის დასრულება', formatDate(warranty.warranty_end)],
+    ['ინვოისის ნომერი', warranty.invoice_number || '—'],
+    ['გამყიდველი', warranty.sold_by || '—'],
   ]
 
   let y = 62
@@ -83,11 +81,11 @@ export async function generateWarrantyPdfBuffer(warranty: WarrantyRecord, origin
   pdf.roundedRect(margin, y + 4, usableWidth, 28, 4, 4, 'F')
   pdf.setFont('helvetica', 'bold')
   pdf.setFontSize(11)
-  pdf.text('Terms', margin + 4, y + 12)
+  pdf.text('პირობები', margin + 4, y + 12)
   pdf.setFont('helvetica', 'normal')
   pdf.setFontSize(9.5)
   pdf.text(
-    'Warranty coverage applies only to verified purchases, original serial numbers, and approved service history. Mechanical damage, unauthorized repair, and misuse may void coverage.',
+    'გარანტია ვრცელდება მხოლოდ დადასტურებულ შესყიდვაზე, ორიგინალ სერიულ ნომერზე და ავტორიზებულ სერვის ისტორიაზე. მექანიკურმა დაზიანებამ, თვითნებურმა შეკეთებამ ან არასწორმა გამოყენებამ შეიძლება გარანტია გააუქმოს.',
     margin + 4,
     y + 19,
     { maxWidth: usableWidth - 8 },
@@ -102,18 +100,18 @@ export async function generateWarrantyPdfBuffer(warranty: WarrantyRecord, origin
   pdf.addImage(qrDataUrl, 'PNG', qrBoxX + 4, qrBoxY + 4, 34, 34)
   pdf.setFontSize(8)
   pdf.setTextColor(75, 85, 99)
-  pdf.text('Scan to verify', qrBoxX + 21, qrBoxY + 42, { align: 'center' })
+  pdf.text('სკანირებით შეამოწმე', qrBoxX + 21, qrBoxY + 42, { align: 'center' })
   pdf.text('medicalline.ge', qrBoxX + 21, qrBoxY + 47, { align: 'center' })
 
   pdf.setFont('helvetica', 'bold')
   pdf.setFontSize(10)
   pdf.setTextColor(11, 63, 52)
-  pdf.text('Authorized by Medical Line Georgia', margin, 258)
+  pdf.text('დამოწმებულია Medical Line Georgia-ს მიერ', margin, 258)
   pdf.setDrawColor(8, 80, 65)
   pdf.line(margin, 268, 90, 268)
   pdf.setFont('helvetica', 'normal')
   pdf.setFontSize(9)
-  pdf.text('Signature / stamp', margin, 273)
+  pdf.text('ხელმოწერა / ბეჭედი', margin, 273)
 
   pdf.setTextColor(107, 114, 128)
   pdf.setFontSize(8)

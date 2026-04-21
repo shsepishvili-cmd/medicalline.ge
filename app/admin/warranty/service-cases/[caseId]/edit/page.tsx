@@ -19,14 +19,14 @@ export default function EditServiceCasePage() {
     })
   }, [params.caseId, profile])
 
-  if (loading) return <LoadingView label="Loading service case…" />
-  if (error || !profile) return <AuthBlockedView message={error || 'Access denied.'} />
-  if (!serviceCase) return <LoadingView label="Fetching service case data…" />
+  if (loading) return <LoadingView label="სერვის ქეისი იტვირთება..." />
+  if (error || !profile) return <AuthBlockedView message={error || 'წვდომა აკრძალულია.'} />
+  if (!serviceCase) return <LoadingView label="სერვის ქეისის მონაცემები მოიძებნება..." />
 
   return (
     <WarrantyAdminShell
-      title={`Edit ${serviceCase.case_number}`}
-      subtitle="Update inspection notes, outcome, factory dates, and linked attachments for this service case."
+      title={`რედაქტირება: ${serviceCase.case_number}`}
+      subtitle="განაახლე ინსპექტირების ჩანაწერები, შედეგი, ქარხანასთან დაკავშირებული თარიღები და მიბმული დანართები."
       profile={profile}
     >
       <ServiceCaseForm warrantyId={serviceCase.warranty_id} profile={profile} serviceCase={serviceCase} />

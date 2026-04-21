@@ -114,79 +114,79 @@ export default function WarrantyListPage() {
     setBusyId(null)
   }
 
-  if (loading) return <LoadingView label="Warranty records are loading…" />
-  if (error || !profile || !accessToken) return <AuthBlockedView message={error || 'Access denied.'} />
+  if (loading) return <LoadingView label="გარანტიების ჩანაწერები იტვირთება..." />
+  if (error || !profile || !accessToken) return <AuthBlockedView message={error || 'წვდომა აკრძალულია.'} />
 
   return (
     <WarrantyAdminShell
-      title="Warranty Management"
-      subtitle="Create warranties, search by serial or clinic, regenerate certificates, and track every service case from one admin workspace."
+      title="გარანტიების მართვა"
+      subtitle="შექმენი გარანტიები, მოძებნე სერიული ნომრით ან კლინიკით, თავიდან გენერირე სერტიფიკატები და აკონტროლე ყველა სერვის-ქეისი ერთი ადმინ სივრციდან."
       profile={profile}
       actions={
         <>
-          <span style={{ fontSize: 13, color: colors.muted }}>Fast search works across serial number, clinic, doctor, brand, model, and status.</span>
-          <Link href="/admin/warranty/new" style={ui.primaryButton}>Register Warranty</Link>
+          <span style={{ fontSize: 13, color: colors.muted }}>სწრაფი ძებნა მუშაობს სერიულ ნომერზე, კლინიკაზე, ექიმზე, ბრენდზე, მოდელსა და სტატუსზე.</span>
+          <Link href="/admin/warranty/new" style={ui.primaryButton}>გარანტიის დამატება</Link>
         </>
       }
     >
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: 12 }}>
-        <InfoStat value={warranties.length} label="Total warranties" />
-        <InfoStat value={stats.active} label="Active" />
-        <InfoStat value={stats.expiring} label="Expiring in 30 days" />
-        <InfoStat value={stats.expired} label="Expired" />
+        <InfoStat value={warranties.length} label="სულ გარანტიები" />
+        <InfoStat value={stats.active} label="აქტიური" />
+        <InfoStat value={stats.expiring} label="30 დღეში გასდის" />
+        <InfoStat value={stats.expired} label="ვადაგასული" />
       </div>
 
       <div style={{ ...ui.panel, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12 }}>
-        <Field label="Search">
-          <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Serial, clinic, customer…" style={ui.input} />
+        <Field label="ძებნა">
+          <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="სერიული, კლინიკა, მომხმარებელი..." style={ui.input} />
         </Field>
-        <Field label="Brand">
+        <Field label="ბრენდი">
           <select value={brand} onChange={(event) => setBrand(event.target.value)} style={ui.input}>
-            <option value="">All brands</option>
+            <option value="">ყველა ბრენდი</option>
             {brands.map((item) => <option key={item} value={item}>{item}</option>)}
           </select>
         </Field>
-        <Field label="Model">
+        <Field label="მოდელი">
           <select value={model} onChange={(event) => setModel(event.target.value)} style={ui.input}>
-            <option value="">All models</option>
+            <option value="">ყველა მოდელი</option>
             {models.map((item) => <option key={item} value={item}>{item}</option>)}
           </select>
         </Field>
-        <Field label="Status">
+        <Field label="სტატუსი">
           <select value={status} onChange={(event) => setStatus(event.target.value)} style={ui.input}>
-            <option value="">All statuses</option>
-            <option value="pending">pending</option>
-            <option value="active">active</option>
-            <option value="expired">expired</option>
-            <option value="void">void</option>
-            <option value="replaced">replaced</option>
+            <option value="">ყველა სტატუსი</option>
+            <option value="pending">მოლოდინში</option>
+            <option value="active">აქტიური</option>
+            <option value="expired">ვადაგასული</option>
+            <option value="void">გაუქმებული</option>
+            <option value="replaced">შეცვლილი</option>
           </select>
         </Field>
-        <Field label="Start from">
+        <Field label="დაწყება-დან">
           <input type="date" value={dateFrom} onChange={(event) => setDateFrom(event.target.value)} style={ui.input} />
         </Field>
-        <Field label="Start to">
+        <Field label="დაწყება-მდე">
           <input type="date" value={dateTo} onChange={(event) => setDateTo(event.target.value)} style={ui.input} />
         </Field>
         <label style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 14, fontWeight: 600, color: colors.text, paddingTop: 24 }}>
           <input type="checkbox" checked={expiringSoon} onChange={(event) => setExpiringSoon(event.target.checked)} />
-          Expiring soon
+          მალე გასდით
         </label>
       </div>
 
       {filtered.length === 0 ? (
         <EmptyState
-          title="No warranties found"
-          description="Adjust the filters above or register the first warranty from the admin panel."
-          action={<Link href="/admin/warranty/new" style={ui.primaryButton}>New Warranty</Link>}
+          title="გარანტიები ვერ მოიძებნა"
+          description="შეცვალე ფილტრები ან დაამატე პირველი გარანტია ადმინ პანელიდან."
+          action={<Link href="/admin/warranty/new" style={ui.primaryButton}>ახალი გარანტია</Link>}
         />
       ) : (
         <div style={{ ...ui.panel, padding: 0, overflow: 'hidden' }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1.7fr 1fr 0.8fr 1.3fr', gap: 12, padding: '14px 16px', background: '#F8FAFC', fontSize: 12, fontWeight: 700, color: colors.muted }}>
-            <span>Warranty</span>
-            <span>Product</span>
-            <span>Status</span>
-            <span>Actions</span>
+            <span>გარანტია</span>
+            <span>პროდუქტი</span>
+            <span>სტატუსი</span>
+            <span>ქმედებები</span>
           </div>
           {filtered.map((item) => (
             <div
@@ -210,23 +210,23 @@ export default function WarrantyListPage() {
               <div>
                 <p style={{ margin: 0, fontSize: 14, fontWeight: 700, color: colors.text }}>{item.product_name}</p>
                 <p style={{ margin: '5px 0 0', fontSize: 12, color: colors.muted }}>
-                  {item.brand}{item.model ? ` · ${item.model}` : ''} · Sold by {item.sold_by || '—'}
+                  {item.brand}{item.model ? ` · ${item.model}` : ''} · გაყიდა: {item.sold_by || '—'}
                 </p>
-                <p style={{ margin: '5px 0 0', fontSize: 12, color: colors.muted }}>Created {formatDate(item.created_at)}</p>
+                <p style={{ margin: '5px 0 0', fontSize: 12, color: colors.muted }}>შეიქმნა {formatDate(item.created_at)}</p>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 <WarrantyStatusBadge status={item.status} />
-                <span style={{ fontSize: 12, color: colors.muted }}>Ends {formatDate(item.warranty_end)}</span>
+                <span style={{ fontSize: 12, color: colors.muted }}>სრულდება {formatDate(item.warranty_end)}</span>
               </div>
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                <Link href={`/admin/warranty/${item.id}`} style={ui.secondaryButton}>View</Link>
-                <Link href={`/admin/warranty/${item.id}/edit`} style={ui.secondaryButton}>Edit</Link>
+                <Link href={`/admin/warranty/${item.id}`} style={ui.secondaryButton}>ნახვა</Link>
+                <Link href={`/admin/warranty/${item.id}/edit`} style={ui.secondaryButton}>რედაქტირება</Link>
                 <button type="button" onClick={() => openPdf(item.id)} disabled={busyId === item.id} style={{ ...ui.secondaryButton, opacity: busyId === item.id ? 0.7 : 1 }}>
                   PDF
                 </button>
-                <Link href={`/admin/warranty/${item.id}/service/new`} style={ui.secondaryButton}>Add Service</Link>
+                <Link href={`/admin/warranty/${item.id}/service/new`} style={ui.secondaryButton}>სერვისის დამატება</Link>
                 <button type="button" onClick={() => archiveWarranty(item.id)} disabled={busyId === item.id} style={{ ...ui.secondaryButton, color: '#991B1B' }}>
-                  Archive
+                  დაარქივება
                 </button>
               </div>
             </div>

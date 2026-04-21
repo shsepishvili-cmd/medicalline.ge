@@ -134,7 +134,7 @@ export function WarrantyForm({
 
   async function save({ generatePdf }: { generatePdf: boolean }) {
     if (!values.brand.trim() || !values.productName.trim() || !values.serialNumber.trim() || !values.warrantyStart || !values.warrantyMonths) {
-      setError('შეავსე აუცილებელი ველები: brand, product, serial number, warranty start, months.')
+      setError('შეავსე აუცილებელი ველები: ბრენდი, პროდუქტი, სერიული ნომერი, გარანტიის დაწყება და თვეები.')
       return
     }
 
@@ -173,13 +173,13 @@ export function WarrantyForm({
 
       if (saveError) {
         if (saveError.message.toLowerCase().includes('serial_number')) {
-          throw new Error('ეს serial number უკვე არსებობს სხვა გარანტიაში.')
+          throw new Error('ეს სერიული ნომერი უკვე არსებობს სხვა გარანტიაში.')
         }
         throw new Error(saveError.message)
       }
 
       const savedWarranty = (savedRows || [])[0] as WarrantyRecord | undefined
-      if (!savedWarranty?.id) throw new Error('Warranty ჩანაწერი ვერ შეინახა.')
+      if (!savedWarranty?.id) throw new Error('გარანტიის ჩანაწერი ვერ შეინახა.')
 
       await uploadAttachments(savedWarranty.id)
 
@@ -190,7 +190,7 @@ export function WarrantyForm({
       router.push(`/admin/warranty/${savedWarranty.id}${generatePdf ? '?pdf=1' : ''}`)
       router.refresh()
     } catch (cause) {
-      const message = cause instanceof Error ? cause.message : 'Warranty შენახვა ვერ მოხერხდა.'
+      const message = cause instanceof Error ? cause.message : 'გარანტიის შენახვა ვერ მოხერხდა.'
       setError(message)
     } finally {
       setSaving(false)
@@ -200,13 +200,13 @@ export function WarrantyForm({
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
       <div style={{ ...ui.panel, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 14 }}>
-        <Field label="Linked product preset">
+        <Field label="დაკავშირებული პროდუქტი">
           <select
             value={values.productId}
             onChange={(event) => setValue('productId', event.target.value)}
             style={ui.input}
           >
-            <option value="">Select product (optional)</option>
+            <option value="">აირჩიე პროდუქტი (არასავალდებულო)</option>
             {products.map((product) => (
               <option key={product.id} value={product.id}>
                 {product.name} · {product.brand}
@@ -214,73 +214,73 @@ export function WarrantyForm({
             ))}
           </select>
         </Field>
-        <Field label="Brand *">
+        <Field label="ბრენდი *">
           <input value={values.brand} onChange={(event) => setValue('brand', event.target.value)} style={ui.input} />
         </Field>
-        <Field label="Product category">
+        <Field label="პროდუქტის კატეგორია">
           <input value={values.productCategory} onChange={(event) => setValue('productCategory', event.target.value)} style={ui.input} />
         </Field>
-        <Field label="Product name *">
+        <Field label="პროდუქტის სახელი *">
           <input value={values.productName} onChange={(event) => setValue('productName', event.target.value)} style={ui.input} />
         </Field>
-        <Field label="Model">
+        <Field label="მოდელი">
           <input value={values.model} onChange={(event) => setValue('model', event.target.value)} style={ui.input} />
         </Field>
-        <Field label="Serial number *">
+        <Field label="სერიული ნომერი *">
           <input value={values.serialNumber} onChange={(event) => setValue('serialNumber', event.target.value)} style={ui.input} />
         </Field>
-        <Field label="Clinic name">
+        <Field label="კლინიკის სახელი">
           <input value={values.clinicName} onChange={(event) => setValue('clinicName', event.target.value)} style={ui.input} />
         </Field>
-        <Field label="Doctor / customer name">
+        <Field label="ექიმი / მომხმარებელი">
           <input value={values.customerName} onChange={(event) => setValue('customerName', event.target.value)} style={ui.input} />
         </Field>
-        <Field label="Phone">
+        <Field label="ტელეფონი">
           <input value={values.phone} onChange={(event) => setValue('phone', event.target.value)} style={ui.input} />
         </Field>
-        <Field label="Email">
+        <Field label="ელფოსტა">
           <input type="email" value={values.email} onChange={(event) => setValue('email', event.target.value)} style={ui.input} />
         </Field>
-        <Field label="Purchase date">
+        <Field label="ყიდვის თარიღი">
           <input type="date" value={values.purchaseDate} onChange={(event) => setValue('purchaseDate', event.target.value)} style={ui.input} />
         </Field>
-        <Field label="Installation date">
+        <Field label="ინსტალაციის თარიღი">
           <input type="date" value={values.installationDate} onChange={(event) => setValue('installationDate', event.target.value)} style={ui.input} />
         </Field>
-        <Field label="Warranty start *">
+        <Field label="გარანტიის დაწყება *">
           <input type="date" value={values.warrantyStart} onChange={(event) => setValue('warrantyStart', event.target.value)} style={ui.input} />
         </Field>
-        <Field label="Warranty months *">
+        <Field label="გარანტიის ხანგრძლივობა თვეებში *">
           <input type="number" min={0} value={values.warrantyMonths} onChange={(event) => setValue('warrantyMonths', event.target.value)} style={ui.input} />
         </Field>
-        <Field label="Warranty end (auto)">
+        <Field label="გარანტიის დასრულება (ავტო)">
           <input value={computedEnd} readOnly style={{ ...ui.input, background: '#F8FAFC' }} />
         </Field>
-        <Field label="Derived status">
+        <Field label="ავტომატური სტატუსი">
           <input value={derivedStatus} readOnly style={{ ...ui.input, background: '#F8FAFC' }} />
         </Field>
-        <Field label="Invoice number">
+        <Field label="ინვოისის ნომერი">
           <input value={values.invoiceNumber} onChange={(event) => setValue('invoiceNumber', event.target.value)} style={ui.input} />
         </Field>
-        <Field label="Sold by">
+        <Field label="გამყიდველი">
           <input value={values.soldBy} onChange={(event) => setValue('soldBy', event.target.value)} style={ui.input} />
         </Field>
-        <Field label="Manual override status">
+        <Field label="სტატუსის ხელით მითითება">
           <select value={values.status} onChange={(event) => setValue('status', event.target.value as WarrantyFormValues['status'])} style={ui.input}>
-            <option value="pending">pending</option>
-            <option value="active">active</option>
-            <option value="expired">expired</option>
-            <option value="void">void</option>
-            <option value="replaced">replaced</option>
+            <option value="pending">მოლოდინში</option>
+            <option value="active">აქტიური</option>
+            <option value="expired">ვადაგასული</option>
+            <option value="void">გაუქმებული</option>
+            <option value="replaced">შეცვლილი</option>
           </select>
         </Field>
         <div style={{ gridColumn: '1 / -1' }}>
-          <Field label="Notes">
+          <Field label="შენიშვნები">
             <textarea value={values.notes} onChange={(event) => setValue('notes', event.target.value)} style={ui.textarea} />
           </Field>
         </div>
         <div style={{ gridColumn: '1 / -1' }}>
-          <Field label="Attachments">
+          <Field label="დანართები">
             <input
               type="file"
               multiple
@@ -310,21 +310,21 @@ export function WarrantyForm({
       <div style={{ ...ui.panel, display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
         <div>
           <p style={{ margin: 0, fontSize: 14, fontWeight: 700, color: colors.text }}>
-            {warranty ? 'Update warranty' : 'Create warranty'}
+            {warranty ? 'გარანტიის განახლება' : 'გარანტიის შექმნა'}
           </p>
           <p style={{ margin: '4px 0 0', fontSize: 12, color: colors.muted }}>
-            Staff users can create/edit records. Delete remains admin-only through RLS.
+            staff მომხმარებლებს შეუძლიათ ჩანაწერის შექმნა და რედაქტირება. წაშლა ისევ მხოლოდ admin-ისთვის რჩება.
           </p>
         </div>
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
           <Link href={warranty ? `/admin/warranty/${warranty.id}` : '/admin/warranty'} style={ui.secondaryButton}>
-            Cancel
+            გაუქმება
           </Link>
           <button type="button" onClick={() => save({ generatePdf: false })} disabled={saving} style={{ ...ui.secondaryButton, opacity: saving ? 0.7 : 1 }}>
-            {saving ? 'Saving…' : 'Save Draft'}
+            {saving ? 'ინახება...' : 'დრაფტის შენახვა'}
           </button>
           <button type="button" onClick={() => save({ generatePdf: true })} disabled={saving} style={{ ...ui.primaryButton, opacity: saving ? 0.7 : 1 }}>
-            {saving ? 'Working…' : 'Save and Generate PDF'}
+            {saving ? 'მუშავდება...' : 'შენახვა და PDF გენერაცია'}
           </button>
         </div>
       </div>

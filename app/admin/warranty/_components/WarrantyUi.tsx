@@ -131,7 +131,7 @@ export function useWarrantyAdminGate(): AuthState {
         if (mounted) {
           setState({
             loading: false,
-            error: 'Warranty მოდული ხელმისაწვდომია მხოლოდ ავტორიზებული admin/staff მომხმარებლებისთვის.',
+            error: 'გარანტიების მოდული ხელმისაწვდომია მხოლოდ ავტორიზებული admin/staff მომხმარებლებისთვის.',
             profile: null,
             accessToken: null,
           })
@@ -160,7 +160,7 @@ export function useWarrantyAdminGate(): AuthState {
       if (profile.status !== 'active' || !isInternalWarrantyRole(profile.role)) {
         setState({
           loading: false,
-          error: 'Warranty მოდულზე წვდომა ამ ანგარიშს არ აქვს.',
+          error: 'გარანტიების მოდულზე წვდომა ამ ანგარიშს არ აქვს.',
           profile: null,
           accessToken: null,
         })
@@ -214,20 +214,20 @@ export function WarrantyAdminShell({
             }}
           >
             <div>
-              <p style={{ margin: 0, fontSize: 12, opacity: 0.88 }}>Admin / Warranty</p>
+              <p style={{ margin: 0, fontSize: 12, opacity: 0.88 }}>ადმინი / გარანტიები</p>
               <h1 style={{ margin: '8px 0 6px', fontSize: 30, fontWeight: 700 }}>{title}</h1>
               <p style={{ margin: 0, maxWidth: 720, fontSize: 14, lineHeight: 1.55, color: '#D6F2E8' }}>{subtitle}</p>
             </div>
             <div style={{ minWidth: 220, display: 'flex', flexDirection: 'column', gap: 10, alignItems: 'flex-end' }}>
               <div style={{ textAlign: 'right' }}>
-                <p style={{ margin: 0, fontSize: 12, color: '#9FE1CB' }}>Signed in as</p>
-                <p style={{ margin: '4px 0 0', fontSize: 16, fontWeight: 600 }}>{profile.full_name || 'Medical Line Staff'}</p>
+                <p style={{ margin: 0, fontSize: 12, color: '#9FE1CB' }}>შესულია როგორც</p>
+                <p style={{ margin: '4px 0 0', fontSize: 16, fontWeight: 600 }}>{profile.full_name || 'Medical Line თანამშრომელი'}</p>
                 <p style={{ margin: '4px 0 0', fontSize: 12, color: '#C6ECDD' }}>{profile.role} · {profile.clinic_name || 'Medical Line Georgia'}</p>
               </div>
               <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-                <Link href="/admin" style={ui.secondaryButton}>Admin</Link>
-                <Link href="/admin/warranty" style={ui.secondaryButton}>Warranty List</Link>
-                <Link href="/admin/warranty/new" style={ui.primaryButton}>New Warranty</Link>
+                <Link href="/admin" style={ui.secondaryButton}>ადმინი</Link>
+                <Link href="/admin/warranty" style={ui.secondaryButton}>გარანტიების სია</Link>
+                <Link href="/admin/warranty/new" style={ui.primaryButton}>ახალი გარანტია</Link>
               </div>
             </div>
           </div>
@@ -307,11 +307,11 @@ export function AuthBlockedView({ message }: { message: string }) {
     <div style={ui.page}>
       <div style={{ ...ui.wrap, maxWidth: 720 }}>
         <div style={{ ...ui.panel, padding: 28, textAlign: 'center' }}>
-          <p style={{ margin: 0, fontSize: 22, fontWeight: 700, color: colors.text }}>Warranty Module</p>
+          <p style={{ margin: 0, fontSize: 22, fontWeight: 700, color: colors.text }}>გარანტიების მოდული</p>
           <p style={{ margin: '10px auto 0', maxWidth: 520, fontSize: 14, color: colors.muted, lineHeight: 1.7 }}>{message}</p>
           <div style={{ marginTop: 18, display: 'flex', justifyContent: 'center', gap: 10, flexWrap: 'wrap' }}>
-            <Link href="/admin" style={ui.primaryButton}>Go to Admin</Link>
-            <Link href="/" style={ui.secondaryButton}>Homepage</Link>
+            <Link href="/admin" style={ui.primaryButton}>ადმინში გადასვლა</Link>
+            <Link href="/" style={ui.secondaryButton}>მთავარი გვერდი</Link>
           </div>
         </div>
       </div>
@@ -347,9 +347,9 @@ export function Field({
 }
 
 export function formatAttachmentLabel(fileName: string, fileType?: string | null) {
-  if ((fileType || '').startsWith('image/')) return `🖼 ${fileName}`
-  if ((fileType || '').startsWith('video/')) return `🎥 ${fileName}`
-  if ((fileType || '').includes('pdf')) return `📄 ${fileName}`
+  if ((fileType || '').startsWith('image/')) return `ფოტო · ${fileName}`
+  if ((fileType || '').startsWith('video/')) return `ვიდეო · ${fileName}`
+  if ((fileType || '').includes('pdf')) return `PDF · ${fileName}`
   return fileName
 }
 
@@ -429,13 +429,13 @@ export function WarrantyQrCard({ verifyUrl }: { verifyUrl: string }) {
         <div style={{ width: 190, height: 190, borderRadius: 16, background: '#F3F4F6' }} />
       )}
       <div>
-        <p style={{ margin: 0, fontSize: 14, fontWeight: 700, color: colors.text }}>QR Verification</p>
+        <p style={{ margin: 0, fontSize: 14, fontWeight: 700, color: colors.text }}>QR ვერიფიკაცია</p>
         <p style={{ margin: '6px 0 0', fontSize: 12, color: colors.muted, lineHeight: 1.6 }}>
-          QR კოდი ხსნის verify გვერდს ამ გარანტიისთვის.
+          QR კოდი ხსნის ვერიფიკაციის გვერდს ამ გარანტიისთვის.
         </p>
       </div>
       <a href={verifyUrl} target="_blank" rel="noreferrer" style={{ ...ui.secondaryButton, width: '100%' }}>
-        Open Verify Page
+        ვერიფიკაციის გვერდის გახსნა
       </a>
     </div>
   )
@@ -460,7 +460,7 @@ export function WarrantyRowMeta({
       <p style={{ margin: 0, fontSize: 12, color: colors.muted }}>
         SN: {serialNumber} · {clinic || 'კლინიკა მითითებული არ არის'} · {customer || 'მყიდველი მითითებული არ არის'}
       </p>
-      <p style={{ margin: 0, fontSize: 12, color: colors.muted }}>Warranty end: {formatDate(endDate)}</p>
+      <p style={{ margin: 0, fontSize: 12, color: colors.muted }}>გარანტიის დასასრული: {formatDate(endDate)}</p>
     </div>
   )
 }

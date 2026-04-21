@@ -19,14 +19,14 @@ export default function EditWarrantyPage() {
     })
   }, [params.id, profile])
 
-  if (loading) return <LoadingView label="Loading warranty form…" />
-  if (error || !profile || !accessToken) return <AuthBlockedView message={error || 'Access denied.'} />
-  if (!warranty) return <LoadingView label="Fetching warranty data…" />
+  if (loading) return <LoadingView label="გარანტიის ფორმა იტვირთება..." />
+  if (error || !profile || !accessToken) return <AuthBlockedView message={error || 'წვდომა აკრძალულია.'} />
+  if (!warranty) return <LoadingView label="გარანტიის მონაცემები მოიძებნება..." />
 
   return (
     <WarrantyAdminShell
-      title={`Edit ${warranty.warranty_number}`}
-      subtitle="Update customer details, extend documents, or correct product metadata without recreating the warranty."
+      title={`რედაქტირება: ${warranty.warranty_number}`}
+      subtitle="განაახლე მომხმარებლის დეტალები, დაამატე დოკუმენტები ან შეასწორე პროდუქტის ინფორმაცია ისე, რომ ახალი გარანტიის შექმნა არ დაგჭირდეს."
       profile={profile}
     >
       <WarrantyForm profile={profile} accessToken={accessToken} warranty={warranty} />
