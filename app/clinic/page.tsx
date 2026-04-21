@@ -7,7 +7,7 @@ type Screen = 'login' | 'register' | 'catalog' | 'product' | 'service' | 'academ
 type User = { id: string; full_name: string; clinic_name: string; city: string; phone: string; role: string; status: string }
 type Product = { id: string; dbId?: string | null; slug: string; name: string; category_slug: string; brand: string; short_desc: string; specs: Record<string,string>; images?: string[]; prices: { price_gel: number; price_usd: number; installment_monthly: number; installment_months: number; note: string }[] }
 type Request = { id: string; type: string; status: string; created_at: string; products: { name: string } }
-type AcademyItem = { id: string; type: string; title: string; description: string; duration_sec: number; webinar_date: string }
+type AcademyItem = { id: string; product_id: string | null; title: string; description: string | null; video_type: string; youtube_video_id: string | null; youtube_url: string | null; thumbnail_url: string | null; channel_title: string | null; duration_iso: string | null; is_featured: boolean; sort_order: number; products?: { id: string; name: string; brand: string | null; slug: string } | null }
 type ServiceTicket = { id: string; serial_number: string | null; problem_desc: string; status: string; created_at: string; visit_date: string | null; resolution: string | null; attachments?: string[] | null; products?: { name: string } | null }
 type ProposalForm = {
   recipientName: string
@@ -324,8 +324,14 @@ export default function ClinicApp() {
   }
 
   async function loadAcademy() {
-    const { data } = await supabase.from('academy_items').select('*').eq('is_active', true).order('sort_order')
-    if (data) setAcademy(data)
+    const { data } = await supabase
+      .from('academy_videos')
+      .select('*, products(id, name, brand, slug)')
+      .eq('is_active', true)
+      .order('is_featured', { ascending: false })
+      .order('sort_order', { ascending: true })
+      .order('published_at', { ascending: false })
+    if (data) setAcademy(data as AcademyItem[])
   }
 
   async function loadServiceTickets(uid: string) {
@@ -1439,39 +1445,117 @@ export default function ClinicApp() {
         )}
 
         {/* ── ACADEMY ── */}
-        {screen === 'academy' && (
-          <>
-            {academy.filter(a => a.type === 'webinar').map(w => (
-              <div key={w.id} style={s.wcard}>
-                <p style={{ fontSize: 11, color: '#085041', fontWeight: 600, margin: '0 0 3px' }}>📅 {w.webinar_date ? new Date(w.webinar_date).toLocaleDateString('ka-GE') : 'მალე'}</p>
-                <p style={{ fontSize: 14, fontWeight: 600, color: '#04342C', margin: '0 0 8px' }}>{w.title}</p>
-                <button style={{ fontSize: 12, background: G, color: '#fff', border: 'none', borderRadius: 8, padding: '6px 14px', cursor: 'pointer', fontFamily: 'Georgia, serif' }}>დარეგისტრირება</button>
+        {screen === 'academy' && (() => {
+          const VIDEO_TYPE_KA: Record<string, string> = {
+            training: 'ტრენინგი', setup: 'გამართვა',
+            troubleshooting: 'პრობლემის გადაჭრა', demo: 'დემო', marketing: 'მარკეტინგი',
+          }
+          const TYPE_COLOR: Record<string, string> = {
+            training: '#1D4ED8', setup: '#15803D',
+            troubleshooting: '#C2410C', demo: '#7C3AED', marketing: '#BE123C',
+          }
+          function fmtDuration(iso: string | null | undefined) {
+            if (!iso) return ''
+            const m = iso.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/)
+            if (!m) return ''
+            const h = parseInt(m[1]||'0'), min = parseInt(m[2]||'0'), sec = parseInt(m[3]||'0')
+            if (h > 0) return `${h}:${String(min).padStart(2,'0')}:${String(sec).padStart(2,'0')}`
+            return `${min}:${String(sec).padStart(2,'0')}`
+          }
+
+          // Group by product_id → product name
+          const groups: { productName: string; productSlug: string | null; items: AcademyItem[] }[] = []
+          const seen = new Map<string | null, number>()
+          for (const v of academy) {
+            const key = v.product_id ?? '__none__'
+            if (!seen.has(key)) {
+              seen.set(key, groups.length)
+              groups.push({
+                productName: (v.products as any)?.name ?? (v.product_id ? 'პროდუქტი' : 'ზოგადი სასწავლო მასალა'),
+                productSlug: (v.products as any)?.slug ?? null,
+                items: [],
+              })
+            }
+            groups[seen.get(key)!].items.push(v)
+          }
+
+          return (
+            <>
+              {/* Header */}
+              <div style={{ background: '#1E3A8A', padding: '16px 14px 14px' }}>
+                <p style={{ margin: 0, fontSize: 11, color: '#93C5FD', fontWeight: 700, letterSpacing: 0.5 }}>MEDICAL LINE</p>
+                <p style={{ margin: '4px 0 0', fontSize: 17, fontWeight: 700, color: '#fff' }}>🎓 აკადემია</p>
+                <p style={{ margin: '4px 0 0', fontSize: 12, color: '#BFDBFE' }}>სასწავლო ვიდეოები თქვენი პროდუქტებისთვის</p>
               </div>
-            ))}
-            <p style={s.sectionTitle}>ტრენინგ ვიდეოები</p>
-            {academy.filter(a => a.type === 'video').map(v => (
-              <div key={v.id} style={s.vcard}>
-                <div style={s.vthumb}><div style={{ width: 20, height: 20, borderRadius: 10, background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><div style={{ borderLeft: '8px solid #fff', borderTop: '5px solid transparent', borderBottom: '5px solid transparent', marginLeft: 2 }} /></div></div>
-                <div style={s.vinfo}>
-                  <p style={{ fontSize: 10, color: G, fontWeight: 600, margin: '0 0 2px' }}>ვიდეო</p>
-                  <p style={{ fontSize: 12, fontWeight: 600, color: '#1a1a1a', margin: '0 0 3px', lineHeight: 1.3 }}>{v.title}</p>
-                  {v.duration_sec && <p style={{ fontSize: 11, color: '#aaa', margin: 0 }}>▶ {Math.floor(v.duration_sec/60)}:{String(v.duration_sec%60).padStart(2,'0')}</p>}
+
+              {academy.length === 0 ? (
+                <div style={{ padding: '32px 14px', textAlign: 'center' }}>
+                  <p style={{ fontSize: 32, margin: '0 0 8px' }}>🎓</p>
+                  <p style={{ fontSize: 14, fontWeight: 600, color: '#1a1a1a', margin: '0 0 4px' }}>ვიდეოები მალე დაემატება</p>
+                  <p style={{ fontSize: 12, color: '#888', margin: 0 }}>სასწავლო მასალები მომზადდება</p>
                 </div>
+              ) : (
+                groups.map((group, gi) => (
+                  <div key={gi}>
+                    <div style={{ padding: '14px 14px 6px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <p style={{ ...s.sectionTitle, padding: 0, margin: 0 }}>{group.productName}</p>
+                      {group.productSlug && (
+                        <a href={`/academy/${group.productSlug}`} style={{ fontSize: 10, color: '#1D4ED8', textDecoration: 'none', fontWeight: 700 }}>
+                          ყველა →
+                        </a>
+                      )}
+                    </div>
+                    {group.items.map(v => {
+                      const thumb = v.thumbnail_url || (v.youtube_video_id ? `https://img.youtube.com/vi/${v.youtube_video_id}/hqdefault.jpg` : null)
+                      const href = v.youtube_video_id ? `https://youtu.be/${v.youtube_video_id}` : (v.youtube_url ?? '#')
+                      const dur = fmtDuration(v.duration_iso)
+                      const typeColor = TYPE_COLOR[v.video_type] || G
+                      return (
+                        <a key={v.id} href={href} target="_blank" rel="noreferrer" style={{ ...s.vcard, textDecoration: 'none', alignItems: 'stretch' }}>
+                          {/* Thumbnail */}
+                          <div style={{ ...s.vthumb, position: 'relative', width: 90, height: 64, overflow: 'hidden', flexShrink: 0 }}>
+                            {thumb
+                              ? <img src={thumb} alt={v.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                              : <div style={{ width: '100%', height: '100%', background: G, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                  <div style={{ borderLeft: '10px solid #fff', borderTop: '6px solid transparent', borderBottom: '6px solid transparent', marginLeft: 3 }} />
+                                </div>
+                            }
+                            {/* Play overlay */}
+                            <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                              <div style={{ width: 22, height: 22, borderRadius: 11, background: 'rgba(255,255,255,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                <div style={{ borderLeft: '7px solid #1a1a1a', borderTop: '4px solid transparent', borderBottom: '4px solid transparent', marginLeft: 2 }} />
+                              </div>
+                            </div>
+                            {dur && <span style={{ position: 'absolute', bottom: 3, right: 4, background: 'rgba(0,0,0,0.7)', color: '#fff', fontSize: 9, padding: '1px 4px', borderRadius: 3, fontFamily: 'monospace' }}>{dur}</span>}
+                          </div>
+                          {/* Info */}
+                          <div style={{ ...s.vinfo, padding: '8px 10px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 3 }}>
+                              <span style={{ fontSize: 9, fontWeight: 700, color: typeColor, background: `${typeColor}18`, padding: '1px 6px', borderRadius: 20 }}>
+                                {VIDEO_TYPE_KA[v.video_type] || v.video_type}
+                              </span>
+                              {v.is_featured && <span style={{ fontSize: 9, color: '#92400E', background: '#FEF3C7', padding: '1px 5px', borderRadius: 20, fontWeight: 700 }}>★</span>}
+                            </div>
+                            <p style={{ fontSize: 12, fontWeight: 600, color: '#1a1a1a', margin: 0, lineHeight: 1.35, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{v.title}</p>
+                            {v.channel_title && <p style={{ fontSize: 10, color: '#aaa', margin: '3px 0 0' }}>{v.channel_title}</p>}
+                          </div>
+                        </a>
+                      )
+                    })}
+                  </div>
+                ))
+              )}
+
+              {/* Full Academy link */}
+              <div style={{ padding: 14 }}>
+                <a href="/academy" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, background: '#EFF6FF', border: '1px solid #BFDBFE', borderRadius: 12, padding: '11px 14px', textDecoration: 'none', color: '#1D4ED8', fontSize: 13, fontWeight: 700 }}>
+                  🎓 სრული Academy გვერდი →
+                </a>
               </div>
-            ))}
-            <p style={s.sectionTitle}>მანუალები</p>
-            {academy.filter(a => a.type === 'manual').map(m => (
-              <div key={m.id} style={{ ...s.vcard, alignItems: 'center' }}>
-                <div style={{ ...s.vthumb, background: '#3C3489' }}><span style={{ fontSize: 20 }}>📄</span></div>
-                <div style={s.vinfo}>
-                  <p style={{ fontSize: 10, color: '#534AB7', fontWeight: 600, margin: '0 0 2px' }}>მანუალი</p>
-                  <p style={{ fontSize: 12, fontWeight: 600, color: '#1a1a1a', margin: 0, lineHeight: 1.3 }}>{m.title}</p>
-                </div>
-              </div>
-            ))}
-            <div style={{ height: 20 }} />
-          </>
-        )}
+              <div style={{ height: 10 }} />
+            </>
+          )
+        })()}
 
         {/* ── PROFILE ── */}
         {screen === 'profile' && (

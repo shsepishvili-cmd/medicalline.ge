@@ -115,6 +115,7 @@ export default function SiteHeader() {
             <Link href="/catalog" className={`${isScrolled ? 'text-slate-900' : 'text-white'} hover:text-blue-500 transition`}>პროდუქცია</Link>
             <Link href="/gallery" className={`${isScrolled ? 'text-slate-900' : 'text-white'} hover:text-blue-500 transition`}>გალერეა</Link>
             <Link href="/blog" className={`${isScrolled ? 'text-slate-900' : 'text-white'} hover:text-blue-500 transition underline decoration-blue-500 underline-offset-4`}>ბლოგი</Link>
+            <Link href="/academy" className={`${isScrolled ? 'text-slate-900' : 'text-white'} hover:text-blue-500 transition`}>აკადემია</Link>
             <Link href="#contact" className={`${isScrolled ? 'text-slate-900' : 'text-white'} hover:text-blue-500 transition`}>კონტაქტი</Link>
           </div>
           <div className="hidden md:flex items-center gap-3">
@@ -176,6 +177,7 @@ export default function SiteHeader() {
               <Link href="/catalog" onClick={() => setShowMobileMenu(false)} className="text-slate-900 hover:text-blue-600 transition">პროდუქცია</Link>
               <Link href="/gallery" onClick={() => setShowMobileMenu(false)} className="text-slate-900 hover:text-blue-600 transition">გალერეა</Link>
               <Link href="/blog" onClick={() => setShowMobileMenu(false)} className="text-slate-900 hover:text-blue-600 transition">ბლოგი</Link>
+              <Link href="/academy" onClick={() => setShowMobileMenu(false)} className="text-slate-900 hover:text-blue-600 transition">აკადემია</Link>
               <Link href="#contact" onClick={() => setShowMobileMenu(false)} className="text-slate-900 hover:text-blue-600 transition">კონტაქტი</Link>
             </div>
             <div className="mt-5 flex flex-col gap-3">
