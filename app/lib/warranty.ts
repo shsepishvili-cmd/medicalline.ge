@@ -78,6 +78,8 @@ export function createEmptyWarrantyForm(): WarrantyFormValues {
     serialNumber: '',
     clinicName: '',
     customerName: '',
+    customerIdNumber: '',
+    customerAddress: '',
     phone: '',
     email: '',
     purchaseDate: today,

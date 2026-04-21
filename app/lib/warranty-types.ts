@@ -34,6 +34,8 @@ export type WarrantyRecord = {
   serial_number: string
   clinic_name: string | null
   customer_name: string | null
+  customer_id_number: string | null
+  customer_address: string | null
   phone: string | null
   email: string | null
   purchase_date: string | null
@@ -44,11 +46,13 @@ export type WarrantyRecord = {
   invoice_number: string | null
   sold_by: string | null
   status: WarrantyStatus
+  terms_version: string
   notes: string | null
   created_by: string | null
   pdf_path: string | null
   qr_url: string | null
   verify_token: string
+  generated_at: string | null
   archived_at: string | null
   products?: ProductOption | null
 }
@@ -103,6 +107,8 @@ export type WarrantyFormValues = {
   serialNumber: string
   clinicName: string
   customerName: string
+  customerIdNumber: string
+  customerAddress: string
   phone: string
   email: string
   purchaseDate: string

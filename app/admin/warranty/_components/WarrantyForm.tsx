@@ -18,6 +18,8 @@ function mapWarrantyToFormValues(warranty: WarrantyRecord): WarrantyFormValues {
     serialNumber: warranty.serial_number || '',
     clinicName: warranty.clinic_name || '',
     customerName: warranty.customer_name || '',
+    customerIdNumber: warranty.customer_id_number || '',
+    customerAddress: warranty.customer_address || '',
     phone: warranty.phone || '',
     email: warranty.email || '',
     purchaseDate: warranty.purchase_date || '',
@@ -151,6 +153,8 @@ export function WarrantyForm({
         serial_number: values.serialNumber.trim(),
         clinic_name: values.clinicName.trim() || null,
         customer_name: values.customerName.trim() || null,
+        customer_id_number: values.customerIdNumber.trim() || null,
+        customer_address: values.customerAddress.trim() || null,
         phone: values.phone.trim() || null,
         email: values.email.trim() || null,
         purchase_date: values.purchaseDate || null,
@@ -234,6 +238,12 @@ export function WarrantyForm({
         </Field>
         <Field label="ექიმი / მომხმარებელი">
           <input value={values.customerName} onChange={(event) => setValue('customerName', event.target.value)} style={ui.input} />
+        </Field>
+        <Field label="პირადი/სამეწარმეო ნომერი">
+          <input value={values.customerIdNumber} onChange={(event) => setValue('customerIdNumber', event.target.value)} placeholder="ID / სამეწარმეო კოდი" style={ui.input} />
+        </Field>
+        <Field label="მისამართი">
+          <input value={values.customerAddress} onChange={(event) => setValue('customerAddress', event.target.value)} style={ui.input} />
         </Field>
         <Field label="ტელეფონი">
           <input value={values.phone} onChange={(event) => setValue('phone', event.target.value)} style={ui.input} />

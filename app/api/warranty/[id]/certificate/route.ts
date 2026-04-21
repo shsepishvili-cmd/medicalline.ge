@@ -50,6 +50,7 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
       .update({
         pdf_path: pdfPath,
         qr_url: qrUrl,
+        generated_at: new Date().toISOString(),
       })
       .eq('id', id)
 
