@@ -399,7 +399,9 @@ export default function AdminPage() {
                     <button onClick={() => setTab('users')} style={{ fontSize: 12, padding: '6px 10px', background: '#FAEEDA', color: '#633806', border: 'none', borderRadius: 8, cursor: 'pointer' }}>Users</button>
                     <button onClick={() => setTab('requests')} style={{ fontSize: 12, padding: '6px 10px', background: '#E6F1FB', color: '#0C447C', border: 'none', borderRadius: 8, cursor: 'pointer' }}>Requests</button>
                     <button onClick={() => setTab('engineering')} style={{ fontSize: 12, padding: '6px 10px', background: '#E1F5EE', color: '#085041', border: 'none', borderRadius: 8, cursor: 'pointer' }}>Engineering</button>
-                    <button onClick={() => window.location.href = '/admin/warranty'} style={{ fontSize: 12, padding: '6px 10px', background: '#EDF7F3', color: '#085041', border: '1px solid rgba(8,80,65,0.12)', borderRadius: 8, cursor: 'pointer' }}>Warranty</button>
+                    <button onClick={() => window.location.href = '/admin/warranty'} style={{ fontSize: 12, padding: '6px 10px', background: '#EDF7F3', color: '#085041', border: '1px solid rgba(8,80,65,0.12)', borderRadius: 8, cursor: 'pointer' }}>გარანტიები</button>
+                    <button onClick={() => window.location.href = '/admin/contracts'} style={{ fontSize: 12, padding: '6px 10px', background: '#EEF2FF', color: '#3730A3', border: '1px solid rgba(55,48,163,0.12)', borderRadius: 8, cursor: 'pointer' }}>ხელშეკრულებები</button>
+                    <button onClick={() => window.location.href = '/admin/academy'} style={{ fontSize: 12, padding: '6px 10px', background: '#FFF7ED', color: '#9A3412', border: '1px solid rgba(154,52,18,0.12)', borderRadius: 8, cursor: 'pointer' }}>აკადემია</button>
                   </div>
                 </div>
               </div>
