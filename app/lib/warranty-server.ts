@@ -324,6 +324,258 @@ export async function generateWarrantyPdfBuffer(warranty: WarrantyRecord, origin
 }
 
 // ---------------------------------------------------------------------------
+// Mini warranty contract PDF — compact one-page, print & sign at point of sale
+// ---------------------------------------------------------------------------
+
+export async function generateMiniWarrantyContractBuffer(warranty: WarrantyRecord): Promise<Buffer> {
+  const pdf = new jsPDF('p', 'mm', 'a4')
+  registerPdfFont(pdf)
+
+  const pageW = 210
+  const pageH = 297
+  const ml = 16
+  const mr = 16
+  const uw = pageW - ml - mr
+  let y = 0
+
+  // ── Header ──────────────────────────────────────────────────────────────────
+  pdf.setFillColor(8, 80, 65)
+  pdf.rect(0, 0, pageW, 30, 'F')
+
+  try { pdf.addImage(ML_LOGO_BASE64, 'PNG', ml, 3, 24, 24) } catch { /* skip */ }
+
+  pdf.setFont('Sylfaen', 'bold')
+  pdf.setFontSize(12)
+  pdf.setTextColor(255, 255, 255)
+  pdf.text('Medical Line Georgia', ml + 28, 13)
+  pdf.setFont('Sylfaen', 'normal')
+  pdf.setFontSize(8.5)
+  pdf.setTextColor(180, 230, 210)
+  pdf.text('შ.პ.ს „მედიქალ ლაინ ჯორჯია"  ·  514 011 116  ·  medicalline.ge', ml + 28, 20)
+  pdf.text('ს/ნ: 405526831  ·  თბილისი, საქართველო', ml + 28, 26)
+
+  pdf.setFont('Sylfaen', 'bold')
+  pdf.setFontSize(8)
+  pdf.setTextColor(200, 240, 220)
+  pdf.text(`# ${warranty.warranty_number}`, pageW - mr, 16, { align: 'right' })
+  pdf.setFont('Sylfaen', 'normal')
+  pdf.setFontSize(7.5)
+  pdf.setTextColor(160, 215, 195)
+  pdf.text(formatDate(new Date().toISOString().slice(0, 10)), pageW - mr, 23, { align: 'right' })
+
+  y = 38
+
+  // ── Title ────────────────────────────────────────────────────────────────────
+  pdf.setFont('Sylfaen', 'bold')
+  pdf.setFontSize(16)
+  pdf.setTextColor(8, 80, 65)
+  pdf.text('საგარანტიო კონტრაქტი', pageW / 2, y, { align: 'center' })
+  y += 6
+
+  pdf.setDrawColor(8, 80, 65)
+  pdf.setLineWidth(0.5)
+  pdf.line(ml, y, pageW - mr, y)
+  y += 7
+
+  // ── Parties ──────────────────────────────────────────────────────────────────
+  const halfW = uw / 2 - 3
+
+  // Left box — seller
+  pdf.setFillColor(245, 248, 250)
+  pdf.roundedRect(ml, y, halfW, 28, 2, 2, 'F')
+  pdf.setFont('Sylfaen', 'bold')
+  pdf.setFontSize(8.5)
+  pdf.setTextColor(8, 80, 65)
+  pdf.text('მომწოდებელი:', ml + 3, y + 7)
+  pdf.setFont('Sylfaen', 'normal')
+  pdf.setFontSize(8.5)
+  pdf.setTextColor(18, 24, 38)
+  pdf.text('შ.პ.ს „მედიქალ ლაინ ჯორჯია"', ml + 3, y + 14)
+  pdf.setTextColor(80, 90, 105)
+  pdf.text('ს/ნ: 405526831', ml + 3, y + 20)
+  pdf.text('ტელ: 514 011 116', ml + 3, y + 26)
+
+  // Right box — buyer
+  const rx = ml + halfW + 6
+  pdf.setFillColor(245, 248, 250)
+  pdf.roundedRect(rx, y, halfW, 28, 2, 2, 'F')
+  pdf.setFont('Sylfaen', 'bold')
+  pdf.setFontSize(8.5)
+  pdf.setTextColor(8, 80, 65)
+  pdf.text('მყიდველი / კლინიკა:', rx + 3, y + 7)
+  pdf.setFont('Sylfaen', 'normal')
+  pdf.setFontSize(8.5)
+  pdf.setTextColor(18, 24, 38)
+  pdf.text(warranty.customer_name || warranty.clinic_name || '—', rx + 3, y + 14)
+  pdf.setTextColor(80, 90, 105)
+  if (warranty.clinic_name && warranty.customer_name) {
+    pdf.text(warranty.clinic_name, rx + 3, y + 20)
+  }
+  if (warranty.phone) pdf.text(`ტელ: ${warranty.phone}`, rx + 3, y + 26)
+
+  y += 32
+
+  // ── Product table ─────────────────────────────────────────────────────────────
+  pdf.setFillColor(8, 80, 65)
+  pdf.roundedRect(ml, y, uw, 8, 1.5, 1.5, 'F')
+  pdf.setFont('Sylfaen', 'bold')
+  pdf.setFontSize(9)
+  pdf.setTextColor(255, 255, 255)
+  pdf.text('პროდუქტი და საგარანტიო პირობები', ml + 3, y + 5.5)
+  y += 11
+
+  const productRows: Array<[string, string]> = [
+    ['პროდუქტი', warranty.product_name],
+    ['ბრენდი / მოდელი', `${warranty.brand}${warranty.model ? ` / ${warranty.model}` : ''}`],
+    ['სერიული ნომერი', warranty.serial_number],
+    ['ყიდვის თარიღი', formatDate(warranty.purchase_date)],
+    ['ინსტალაციის თარიღი', formatDate(warranty.installation_date)],
+    ['საგარანტიო ვადა', `${warranty.warranty_months} თვე`],
+    ['გარანტიის დაწყება', formatDate(warranty.warranty_start)],
+    ['გარანტიის დასრულება', formatDate(warranty.warranty_end)],
+    ['ინვოისის ნომერი', warranty.invoice_number || '—'],
+    ['გამყიდველი', warranty.sold_by || '—'],
+  ]
+
+  const labelW = 52
+  const rowH = 8
+
+  productRows.forEach(([label, value], i) => {
+    const rowY = y + i * rowH
+    if (i % 2 === 0) {
+      pdf.setFillColor(248, 250, 251)
+      pdf.roundedRect(ml, rowY - 5, uw, rowH, 1, 1, 'F')
+    }
+    pdf.setFont('Sylfaen', 'bold')
+    pdf.setFontSize(8.5)
+    pdf.setTextColor(70, 80, 95)
+    pdf.text(label, ml + 3, rowY)
+    pdf.setFont('Sylfaen', 'normal')
+    pdf.setFontSize(9)
+    pdf.setTextColor(18, 24, 38)
+    const lines: string[] = pdf.splitTextToSize(String(value || '—'), uw - labelW - 4)
+    pdf.text(lines[0] as string, ml + labelW, rowY)
+  })
+
+  y += productRows.length * rowH + 6
+
+  // ── Condensed Georgian terms ───────────────────────────────────────────────
+  pdf.setFillColor(240, 250, 245)
+  pdf.roundedRect(ml, y, uw, 42, 2, 2, 'F')
+  pdf.setDrawColor(180, 215, 200)
+  pdf.setLineWidth(0.3)
+  pdf.roundedRect(ml, y, uw, 42, 2, 2)
+
+  pdf.setFont('Sylfaen', 'bold')
+  pdf.setFontSize(8.5)
+  pdf.setTextColor(8, 80, 65)
+  pdf.text('საგარანტიო პირობები:', ml + 3, y + 6)
+
+  const miniTerms = [
+    '1. გარანტია მოიცავს ქარხნულ წარმოებისეულ დეფექტებს მხოლოდ ნორმალური ექსპლუატაციის პირობებში.',
+    '2. გარანტია არ ვრცელდება: მექანიკურ დაზიანებაზე, სითხის მოხვედრაზე, არასწორ ექსპლუატაციაზე, თვითნებურ შეკეთებაზე ან სახარჯ მასალებზე.',
+    '3. საგარანტიო შემთხვევის დადასტურება ხდება მომწოდებლის ტექნიკური სპეციალისტის მიერ. მომწოდებელი იღებს გადაწყვეტილებას შეკეთების, შეცვლის ან სხვა ღონისძიების შესახებ.',
+    '4. გარანტია უქმდება: სერიული ნომრის დაზიანებისას, უნებართვო გახსნის ან მოდიფიკაციისას.',
+    '5. სერვისის მოთხოვნისას წარმოადგინეთ ეს დოკუმენტი, სერიული ნომერი და შეძენის დამადასტურებელი.',
+  ]
+
+  pdf.setFont('Sylfaen', 'normal')
+  pdf.setFontSize(8.2)
+  pdf.setTextColor(25, 35, 45)
+
+  let ty = y + 13
+  miniTerms.forEach((term) => {
+    const lines: string[] = pdf.splitTextToSize(term, uw - 6)
+    pdf.text(lines, ml + 3, ty)
+    ty += lines.length * 4.5 + 1.5
+  })
+
+  y += 46
+
+  // ── Signature block ───────────────────────────────────────────────────────
+  // Keep signatures near bottom, push down if there's room
+  const sigY = Math.max(y + 6, pageH - 52)
+
+  pdf.setDrawColor(200, 210, 218)
+  pdf.setLineWidth(0.3)
+  pdf.line(ml, sigY, pageW - mr, sigY)
+
+  const sbW = (uw - 10) / 2
+
+  // Left — seller
+  pdf.setFont('Sylfaen', 'bold')
+  pdf.setFontSize(8.5)
+  pdf.setTextColor(40, 50, 65)
+  pdf.text('მომწოდებელი', ml, sigY + 7)
+  pdf.setFont('Sylfaen', 'normal')
+  pdf.setFontSize(8)
+  pdf.setTextColor(90, 100, 115)
+  pdf.text('შ.პ.ს „მედიქალ ლაინ ჯორჯია"', ml, sigY + 13)
+
+  try {
+    pdf.addImage(INVOICE_STAMP_BASE64, 'JPEG', ml, sigY + 14, 26, 18)
+  } catch {
+    pdf.setDrawColor(8, 80, 65)
+    pdf.setLineWidth(0.4)
+    pdf.circle(ml + 12, sigY + 23, 8)
+  }
+
+  pdf.setDrawColor(8, 80, 65)
+  pdf.setLineWidth(0.4)
+  pdf.line(ml, sigY + 34, ml + sbW, sigY + 34)
+  pdf.setFont('Sylfaen', 'normal')
+  pdf.setFontSize(7.5)
+  pdf.setTextColor(130, 140, 150)
+  pdf.text('ხელმოწერა / ბეჭედი', ml, sigY + 38)
+
+  // Right — buyer
+  const srX = ml + sbW + 10
+  pdf.setFont('Sylfaen', 'bold')
+  pdf.setFontSize(8.5)
+  pdf.setTextColor(40, 50, 65)
+  pdf.text('მყიდველი / კლინიკა', srX, sigY + 7)
+  pdf.setFont('Sylfaen', 'normal')
+  pdf.setFontSize(8)
+  pdf.setTextColor(90, 100, 115)
+  pdf.text(warranty.customer_name || warranty.clinic_name || '—', srX, sigY + 13)
+
+  pdf.setFont('Sylfaen', 'normal')
+  pdf.setFontSize(8)
+  pdf.setTextColor(90, 100, 115)
+  pdf.text('ადგილი ბეჭდისთვის:', srX, sigY + 22)
+  pdf.setDrawColor(180, 190, 200)
+  pdf.setLineWidth(0.3)
+  pdf.roundedRect(srX, sigY + 24, 28, 10, 1, 1)
+
+  pdf.setDrawColor(8, 80, 65)
+  pdf.setLineWidth(0.4)
+  pdf.line(srX, sigY + 34, srX + sbW - 10, sigY + 34)
+  pdf.setFont('Sylfaen', 'normal')
+  pdf.setFontSize(7.5)
+  pdf.setTextColor(130, 140, 150)
+  pdf.text('ხელმოწერა / ბეჭედი', srX, sigY + 38)
+
+  // Date fields
+  pdf.setFontSize(8)
+  pdf.setTextColor(90, 100, 115)
+  pdf.text('თარიღი: _____ / _____ / _______', ml, sigY + 45)
+  pdf.text('თარიღი: _____ / _____ / _______', srX, sigY + 45)
+
+  // Footer
+  pdf.setFillColor(245, 247, 244)
+  pdf.rect(0, pageH - 6, pageW, 6, 'F')
+  pdf.setFont('Sylfaen', 'normal')
+  pdf.setFontSize(7)
+  pdf.setTextColor(155, 163, 175)
+  pdf.text(
+    `Medical Line Georgia  ·  ${warranty.warranty_number}  ·  სერია: ${warranty.serial_number}`,
+    pageW / 2, pageH - 2, { align: 'center' },
+  )
+
+  return Buffer.from(pdf.output('arraybuffer'))
+}
+
+// ---------------------------------------------------------------------------
 // Storage helpers (unchanged)
 // ---------------------------------------------------------------------------
 

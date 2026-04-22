@@ -96,6 +96,30 @@ export default function WarrantyDetailPage() {
     }
   }
 
+  async function openMiniContract() {
+    if (!accessToken || !params.id) return
+    setWorking(true)
+    try {
+      const res = await fetch(`/api/warranty/${params.id}/mini-contract`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${accessToken}` },
+      })
+      if (!res.ok) {
+        const err = await res.json()
+        throw new Error(err?.error || 'შეცდომა')
+      }
+      const blob = await res.blob()
+      const url  = URL.createObjectURL(blob)
+      const a    = document.createElement('a')
+      a.href     = url
+      a.download = `mini-contract-${warranty?.warranty_number || params.id}.pdf`
+      a.click()
+      URL.revokeObjectURL(url)
+    } finally {
+      setWorking(false)
+    }
+  }
+
   if (loading) return <LoadingView label="გარანტიის დეტალები იტვირთება..." />
   if (error || !profile || !accessToken) return <AuthBlockedView message={error || 'წვდომა აკრძალულია.'} />
   if (!warranty) return <LoadingView label="გარანტიის ჩანაწერი ვერ მოიძებნა..." />
@@ -111,9 +135,10 @@ export default function WarrantyDetailPage() {
             {searchParams.get('pdf') ? 'PDF სერტიფიკატი წარმატებით განახლდა.' : 'მარჯვნივ არსებული მოქმედებებიდან შეგიძლია სერტიფიკატის თავიდან გენერაცია ან ახალი სერვის ქეისის დამატება.'}
           </span>
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-            <button type="button" onClick={() => openPdf(true)} disabled={working} style={{ ...ui.primaryButton, opacity: working ? 0.7 : 1 }}>PDF გენერაცია</button>
-            <Link href={`/admin/warranty/${warranty.id}/edit`} style={ui.secondaryButton}>გარანტიის რედაქტირება</Link>
-            <Link href={`/admin/warranty/${warranty.id}/service/new`} style={ui.secondaryButton}>სერვის ქეისის დამატება</Link>
+            <button type="button" onClick={() => openPdf(true)} disabled={working} style={{ ...ui.primaryButton, opacity: working ? 0.7 : 1 }}>PDF სერტიფიკატი</button>
+            <button type="button" onClick={() => openMiniContract()} disabled={working} style={{ ...ui.secondaryButton, opacity: working ? 0.7 : 1 }}>მინი კონტრაქტი</button>
+            <Link href={`/admin/warranty/${warranty.id}/edit`} style={ui.secondaryButton}>რედაქტირება</Link>
+            <Link href={`/admin/warranty/${warranty.id}/service/new`} style={ui.secondaryButton}>სერვის ქეისი</Link>
           </div>
         </>
       }
