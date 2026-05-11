@@ -10,6 +10,22 @@ export const metadata = buildPageMetadata({
   keywords: ['dental blog georgia', 'სტომატოლოგიური ბლოგი', 'Medical Line blog'],
 });
 
+const featuredArticles = [
+  {
+    id: 22,
+    slug: 'orion-kit-digital-implant-solution',
+    title: 'Orion Kit: ციფრული იმპლანტაციის workflow Helios სკანერთან ერთად',
+    excerpt:
+      'Eighteeth Orion Kit აერთიანებს Helios ინტრაორალურ სკანირებასა და 3D ფოტოგრამეტრიის პრინციპებზე დაფუძნებულ იმპლანტის მონაცემების აღებას ერთ სამუშაო პროცესში.',
+    date: '12 მაისი, 2026',
+    image: '/images/helios700.png',
+    category: 'ციფრული სტომატოლოგია',
+    tags: ['Orion Kit', 'Eighteeth', 'Helios 700', 'ციფრული იმპლანტაცია'],
+    readTime: '7 წთ',
+    baseViews: 900,
+  },
+];
+
 export default function BlogPage() {
   const blogSchema = {
     '@context': 'https://schema.org',
@@ -26,7 +42,7 @@ export default function BlogPage() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(blogSchema) }}
       />
-      <BlogClient blogArticles={blogArticles} />
+      <BlogClient blogArticles={[...featuredArticles, ...blogArticles]} />
     </>
   );
 }
