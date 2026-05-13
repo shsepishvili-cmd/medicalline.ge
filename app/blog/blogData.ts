@@ -2,26 +2,26 @@ export const blogArticles = [
   {
     id: 25,
     slug: "perio-edu-tskaltubo-conference-2026",
-    title: "Perio Edu წყალტუბოს კონფერენცია Medical Line Georgia-ს მხარდაჭერით",
-    excerpt: "წყალტუბოში გამართული Perio Edu-ს კონფერენცია Medical Line Georgia-ს მხარდაჭერით ჩატარდა. ღონისძიებაზე წამყვანმა სპიკერებმა პრაქტიკული გამოცდილება გაუზიარეს მონაწილეებს, ჩვენ კი Orion KIT, CBCT-ის ახალი პროგრამა და Nanomotor 4-1 ფუნქციით წარვადგინეთ.",
+    title: "Perio Edu Academy წყალტუბოს კონფერენცია Medical Line Georgia-ს მხარდაჭერით",
+    excerpt: "წყალტუბოში გამართული Perio Edu Academy-ს კონფერენცია Medical Line Georgia-ს მხარდაჭერით ჩატარდა. ღონისძიებაზე წამყვანმა სპიკერებმა პრაქტიკული გამოცდილება გაუზიარეს მონაწილეებს, ჩვენ კი Orion KIT, CBCT-ის ახალი პროგრამა და Nanomotor 4-1 ფუნქციით წარვადგინეთ.",
     date: "13 მაისი, 2026",
     image: "/images/blog/perio-edu-tskaltubo/perio-edu-overview.jpeg",
     ogImage: "/images/blog/perio-edu-tskaltubo/perio-edu-overview.jpeg",
     imageFit: "contain-full",
     category: "ღონისძიებები",
-    tags: ["Perio Edu", "წყალტუბო", "კონფერენცია", "Medical Line Georgia", "Orion KIT", "CBCT", "Nanomotor"],
+    tags: ["Perio Edu Academy", "წყალტუბო", "კონფერენცია", "Medical Line Georgia", "Orion KIT", "CBCT", "Nanomotor"],
     readTime: "4 წთ",
     baseViews: 620,
     content: `
       <p style="font-size:1.12rem; font-weight:700; color:#0f3156; background:#eef7ff; border-left:4px solid #0ea5e9; padding:1rem 1.2rem; border-radius:0 14px 14px 0; margin-bottom:2rem;">
-        წყალტუბოში გამართული Perio Edu-ს კონფერენცია Medical Line Georgia-ს მხარდაჭერით ჩატარდა და პროფესიული შეხვედრის მთავარი ღირებულება ცოდნის, გამოცდილებისა და თანამედროვე ტექნოლოგიების პრაქტიკული გაზიარება იყო.
+        წყალტუბოში გამართული Perio Edu Academy-ს კონფერენცია Medical Line Georgia-ს მხარდაჭერით ჩატარდა და პროფესიული შეხვედრის მთავარი ღირებულება ცოდნის, გამოცდილებისა და თანამედროვე ტექნოლოგიების პრაქტიკული გაზიარება იყო.
       </p>
 
       <p>კონფერენციაში მონაწილეობდნენ წამყვანი სპიკერები, რომლებმაც მონაწილეებს გაუზიარეს თანამედროვე პაროდონტოლოგიის, ორთოდონტიის, ენდოდონტიისა და კლინიკური მუშაობის პრაქტიკული ხედვები. დღის განმავლობაში აქცენტი გაკეთდა იმ საკითხებზე, რომლებიც ექიმის ყოველდღიურ პრაქტიკაში რეალურ შედეგს ქმნის: ზუსტი დიაგნოსტიკა, სწორად დაგეგმილი მკურნალობა, პროგნოზირებადი სამუშაო პროცესი და ტექნოლოგიების გააზრებული გამოყენება.</p>
 
       <figure style="margin:2rem 0;">
-        <img src="/images/blog/perio-edu-tskaltubo/perio-edu-materials.jpg" alt="Perio Edu წყალტუბოს კონფერენციის მასალები" style="width:100%; border-radius:24px; display:block;" loading="lazy" />
-        <figcaption style="font-size:.9rem; color:#64748b; margin-top:.75rem;">Perio Edu 2026 - პროფესიული შეხვედრა, სადაც განათლება და პრაქტიკული დემონსტრაცია ერთ სივრცეში გაერთიანდა.</figcaption>
+        <img src="/images/blog/perio-edu-tskaltubo/perio-edu-materials.jpg" alt="Perio Edu Academy წყალტუბოს კონფერენციის მასალები" style="width:100%; border-radius:24px; display:block;" loading="lazy" />
+        <figcaption style="font-size:.9rem; color:#64748b; margin-top:.75rem;">Perio Edu Academy 2026 - პროფესიული შეხვედრა, სადაც განათლება და პრაქტიკული დემონსტრაცია ერთ სივრცეში გაერთიანდა.</figcaption>
       </figure>
 
       <h2>Medical Line Georgia-ს მხარდაჭერა</h2>
@@ -45,7 +45,7 @@ export const blogArticles = [
       </div>
 
       <figure style="margin:2rem 0;">
-        <img src="/images/blog/perio-edu-tskaltubo/medical-line-stand.jpg" alt="Medical Line Georgia-ს სტენდი Perio Edu კონფერენციაზე" style="width:100%; border-radius:24px; display:block;" loading="lazy" />
+        <img src="/images/blog/perio-edu-tskaltubo/medical-line-stand.jpg" alt="Medical Line Georgia-ს სტენდი Perio Edu Academy კონფერენციაზე" style="width:100%; border-radius:24px; display:block;" loading="lazy" />
       </figure>
 
       <h2>პრაქტიკული დემონსტრაციები ექიმებისთვის</h2>
@@ -63,7 +63,7 @@ export const blogArticles = [
 
       <blockquote>ჩვენ გვჯერა, რომ ძლიერი კლინიკური შედეგი იქ იწყება, სადაც ხარისხიანი განათლება, სწორი ტექნოლოგია და საიმედო მხარდაჭერა ერთმანეთს ხვდება.</blockquote>
 
-      <p>Perio Edu-ს წყალტუბოს კონფერენცია იყო კიდევ ერთი ნაბიჯი პროფესიული საზოგადოების გაძლიერებისკენ. მადლობა ორგანიზატორებს, სპიკერებს და ყველა მონაწილეს აქტიური ჩართულობისთვის. Medical Line Georgia გააგრძელებს მსგავსი საგანმანათლებლო ინიციატივების მხარდაჭერას და თანამედროვე სტომატოლოგიური ტექნოლოგიების ქართულ პრაქტიკაში დანერგვას.</p>
+      <p>Perio Edu Academy-ს წყალტუბოს კონფერენცია იყო კიდევ ერთი ნაბიჯი პროფესიული საზოგადოების გაძლიერებისკენ. მადლობა ორგანიზატორებს, სპიკერებს და ყველა მონაწილეს აქტიური ჩართულობისთვის. Medical Line Georgia გააგრძელებს მსგავსი საგანმანათლებლო ინიციატივების მხარდაჭერას და თანამედროვე სტომატოლოგიური ტექნოლოგიების ქართულ პრაქტიკაში დანერგვას.</p>
     `
   },
   {
