@@ -5,6 +5,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import Script from 'next/script';
 import { ArrowLeft, Clock, Calendar, Share2, Facebook, X, MessageSquare, Phone } from 'lucide-react';
+import { blogArticles } from '../blogData';
 
 export default function BlogContent({ post }: { post: any }) {
   const [showShareTooltip, setShowShareTooltip] = useState(false);
@@ -29,6 +30,9 @@ export default function BlogContent({ post }: { post: any }) {
   const pageUrl = typeof window !== 'undefined'
     ? window.location.href
     : `https://medicalline.ge/blog/${post.slug}`;
+  const relatedArticles = blogArticles
+    .filter((article: any) => article.slug !== post.slug)
+    .slice(0, 3);
 
   return (
     <article className="min-h-screen bg-white pb-20">
@@ -84,12 +88,14 @@ export default function BlogContent({ post }: { post: any }) {
 
       {/* Main content */}
       <div className="max-w-4xl mx-auto px-6">
-        <div className="relative h-[220px] md:h-[360px] w-full rounded-3xl overflow-hidden mb-12 bg-slate-100 flex items-center justify-center">
+        <div className={post.imageFit === 'contain-full'
+          ? 'relative w-full aspect-video rounded-3xl overflow-hidden mb-12 bg-white border border-slate-200 flex items-center justify-center'
+          : 'relative h-[220px] md:h-[360px] w-full rounded-3xl overflow-hidden mb-12 bg-slate-100 flex items-center justify-center'}>
           <Image
             src={post.image || '/images/cover.png'}
             alt={post.title}
             fill
-            className="object-contain p-6"
+            className={post.imageFit === 'cover' ? 'object-cover p-0' : post.imageFit === 'contain-full' ? 'object-contain p-0' : 'object-contain p-6'}
             priority
           />
         </div>
@@ -121,6 +127,48 @@ export default function BlogContent({ post }: { post: any }) {
             </Link>
           </div>
         </div>
+
+        {relatedArticles.length > 0 && (
+          <section className="mt-16 pt-12 border-t border-slate-200">
+            <div className="flex items-end justify-between gap-4 mb-8">
+              <div>
+                <p className="text-blue-600 text-xs font-black uppercase tracking-widest mb-2">Medical Line Blog</p>
+                <h3 className="text-2xl font-black text-slate-900">სხვა სტატიები</h3>
+              </div>
+              <Link href="/blog" className="text-sm font-black text-blue-600 hover:text-blue-800 transition-colors">
+                ყველა სტატია
+              </Link>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+              {relatedArticles.map((article: any) => (
+                <Link
+                  href={`/blog/${article.slug}`}
+                  key={article.id}
+                  className="group rounded-2xl border border-slate-200 overflow-hidden bg-white hover:shadow-xl transition-all duration-300"
+                >
+                  <div className="relative h-40 w-full overflow-hidden bg-slate-100">
+                    <Image
+                      src={article.image || '/images/placeholder.jpg'}
+                      alt={article.title}
+                      fill
+                      className="object-cover group-hover:scale-105 transition-transform duration-500"
+                      unoptimized
+                    />
+                  </div>
+                  <div className="p-5">
+                    <div className="flex items-center gap-3 text-[11px] font-semibold text-slate-400 mb-3">
+                      <span className="flex items-center gap-1"><Calendar size={13} /> {article.date}</span>
+                      <span className="flex items-center gap-1"><Clock size={13} /> {article.readTime}</span>
+                    </div>
+                    <h4 className="text-base font-black text-slate-900 leading-snug line-clamp-2 group-hover:text-blue-600 transition-colors">
+                      {article.title}
+                    </h4>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </section>
+        )}
 
         {/* Facebook Comments */}
         <div className="mt-16 pt-12 border-t border-slate-200">

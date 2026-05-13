@@ -1,5 +1,210 @@
 export const blogArticles = [
   {
+    id: 25,
+    slug: "perio-edu-tskaltubo-conference-2026",
+    title: "Perio Edu წყალტუბოს კონფერენცია Medical Line Georgia-ს მხარდაჭერით",
+    excerpt: "წყალტუბოში გამართული Perio Edu-ს კონფერენცია Medical Line Georgia-ს მხარდაჭერით ჩატარდა. ღონისძიებაზე წამყვანმა სპიკერებმა პრაქტიკული გამოცდილება გაუზიარეს მონაწილეებს, ჩვენ კი Orion KIT, CBCT-ის ახალი პროგრამა და Nanomotor 4-1 ფუნქციით წარვადგინეთ.",
+    date: "13 მაისი, 2026",
+    image: "/images/blog/perio-edu-tskaltubo/perio-edu-overview.jpeg",
+    ogImage: "/images/blog/perio-edu-tskaltubo/perio-edu-overview.jpeg",
+    imageFit: "contain-full",
+    category: "ღონისძიებები",
+    tags: ["Perio Edu", "წყალტუბო", "კონფერენცია", "Medical Line Georgia", "Orion KIT", "CBCT", "Nanomotor"],
+    readTime: "4 წთ",
+    baseViews: 620,
+    content: `
+      <p style="font-size:1.12rem; font-weight:700; color:#0f3156; background:#eef7ff; border-left:4px solid #0ea5e9; padding:1rem 1.2rem; border-radius:0 14px 14px 0; margin-bottom:2rem;">
+        წყალტუბოში გამართული Perio Edu-ს კონფერენცია Medical Line Georgia-ს მხარდაჭერით ჩატარდა და პროფესიული შეხვედრის მთავარი ღირებულება ცოდნის, გამოცდილებისა და თანამედროვე ტექნოლოგიების პრაქტიკული გაზიარება იყო.
+      </p>
+
+      <p>კონფერენციაში მონაწილეობდნენ წამყვანი სპიკერები, რომლებმაც მონაწილეებს გაუზიარეს თანამედროვე პაროდონტოლოგიის, ორთოდონტიის, ენდოდონტიისა და კლინიკური მუშაობის პრაქტიკული ხედვები. დღის განმავლობაში აქცენტი გაკეთდა იმ საკითხებზე, რომლებიც ექიმის ყოველდღიურ პრაქტიკაში რეალურ შედეგს ქმნის: ზუსტი დიაგნოსტიკა, სწორად დაგეგმილი მკურნალობა, პროგნოზირებადი სამუშაო პროცესი და ტექნოლოგიების გააზრებული გამოყენება.</p>
+
+      <figure style="margin:2rem 0;">
+        <img src="/images/blog/perio-edu-tskaltubo/perio-edu-materials.jpg" alt="Perio Edu წყალტუბოს კონფერენციის მასალები" style="width:100%; border-radius:24px; display:block;" loading="lazy" />
+        <figcaption style="font-size:.9rem; color:#64748b; margin-top:.75rem;">Perio Edu 2026 - პროფესიული შეხვედრა, სადაც განათლება და პრაქტიკული დემონსტრაცია ერთ სივრცეში გაერთიანდა.</figcaption>
+      </figure>
+
+      <h2>Medical Line Georgia-ს მხარდაჭერა</h2>
+      <p>Medical Line Georgia-მ ღონისძიებას მხარი დაუჭირა როგორც ტექნოლოგიურმა პარტნიორმა. ჩვენი მიზანი იყო, მონაწილეებს ადგილზე ენახათ და პრაქტიკულად შეეფასებინათ ის გადაწყვეტილებები, რომლებიც თანამედროვე სტომატოლოგიურ კლინიკას დიაგნოსტიკის, მკურნალობის დაგეგმვისა და სამუშაო პროცესის გაუმჯობესებაში ეხმარება.</p>
+
+      <p>კონფერენციის სივრცეში ექიმებს ჰქონდათ შესაძლებლობა დაეთვალიერებინათ აპარატურა, დაესვათ ტექნიკური და კლინიკური კითხვები და უშუალოდ გასცნობოდნენ Medical Line Georgia-ს მიერ წარმოდგენილ სიახლეებს.</p>
+
+      <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:1rem; margin:2rem 0;">
+        <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:20px; padding:1.2rem;">
+          <h3 style="margin-top:0;">Orion KIT</h3>
+          <p>წარვადგინეთ Orion KIT, როგორც პრაქტიკული გადაწყვეტილება ციფრული დაგეგმვისა და კლინიკური workflow-ს უფრო ორგანიზებულად წარმართვისთვის.</p>
+        </div>
+        <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:20px; padding:1.2rem;">
+          <h3 style="margin-top:0;">CBCT-ის ახალი პროგრამა</h3>
+          <p>მონაწილეებმა ნახეს CBCT-ის ახალი პროგრამა, რომელიც ექიმს ეხმარება მონაცემების უფრო კომფორტულად ანალიზში, დაგეგმვასა და პაციენტთან ვიზუალურ კომუნიკაციაში.</p>
+        </div>
+        <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:20px; padding:1.2rem;">
+          <h3 style="margin-top:0;">Nanomotor 4-1 ფუნქციით</h3>
+          <p>განსაკუთრებული ყურადღება დაეთმო ახალ ენდომოტორს Nanomotor-ს 4-1 ფუნქციით, რომელიც ენდოდონტიურ მუშაობაში მოქნილობას, კონტროლს და კომფორტს ზრდის.</p>
+        </div>
+      </div>
+
+      <figure style="margin:2rem 0;">
+        <img src="/images/blog/perio-edu-tskaltubo/medical-line-stand.jpg" alt="Medical Line Georgia-ს სტენდი Perio Edu კონფერენციაზე" style="width:100%; border-radius:24px; display:block;" loading="lazy" />
+      </figure>
+
+      <h2>პრაქტიკული დემონსტრაციები ექიმებისთვის</h2>
+      <p>ღონისძიების ერთ-ერთი მნიშვნელოვანი ნაწილი იყო პრაქტიკული დემონსტრაციები. მონაწილეებმა ახლოდან ნახეს როგორ მუშაობს ციფრული სკანირება, როგორ ერთვება CBCT მონაცემები დაგეგმვის პროცესში და რა უპირატესობა აქვს თანამედროვე ენდოდონტიურ ინსტრუმენტებს ყოველდღიურ კლინიკურ სიტუაციებში.</p>
+
+      <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:1rem; margin:2rem 0;">
+        <img src="/images/blog/perio-edu-tskaltubo/technology-demo.jpg" alt="ტექნოლოგიური დემონსტრაცია კონფერენციაზე" style="width:100%; height:100%; min-height:220px; object-fit:cover; border-radius:20px;" loading="lazy" />
+        <img src="/images/blog/perio-edu-tskaltubo/hands-on-demo.jpg" alt="პრაქტიკული დემონსტრაცია ექიმებისთვის" style="width:100%; height:100%; min-height:220px; object-fit:cover; border-radius:20px;" loading="lazy" />
+      </div>
+
+      <p>ასეთი ფორმატის შეხვედრები განსაკუთრებით მნიშვნელოვანია, რადგან ექიმი ტექნოლოგიას მხოლოდ ბროშურიდან არ ეცნობა. ის ხედავს მოწყობილობას რეალურ სამუშაო გარემოში, იღებს პასუხებს კონკრეტულ კითხვებზე და უკეთ აფასებს, როგორ შეიძლება ამ გადაწყვეტის ინტეგრაცია საკუთარ კლინიკაში.</p>
+
+      <h2>განათლება, მხარდაჭერა და განვითარება</h2>
+      <p>Medical Line Georgia-სთვის ტექნოლოგიის მიწოდება ყოველთვის უკავშირდება განათლებას, ტრენინგს და შემდგომ მხარდაჭერას. ჩვენი მონაწილეობა წყალტუბოს კონფერენციაში სწორედ ამ მიდგომას ასახავდა: ექიმებისთვის ხელმისაწვდომი გავხადოთ არა მხოლოდ თანამედროვე აპარატურა, არამედ ის ცოდნა და სერვისი, რომელიც ამ აპარატურას ყოველდღიურ პრაქტიკაში რეალურ ღირებულებად აქცევს.</p>
+
+      <blockquote>ჩვენ გვჯერა, რომ ძლიერი კლინიკური შედეგი იქ იწყება, სადაც ხარისხიანი განათლება, სწორი ტექნოლოგია და საიმედო მხარდაჭერა ერთმანეთს ხვდება.</blockquote>
+
+      <p>Perio Edu-ს წყალტუბოს კონფერენცია იყო კიდევ ერთი ნაბიჯი პროფესიული საზოგადოების გაძლიერებისკენ. მადლობა ორგანიზატორებს, სპიკერებს და ყველა მონაწილეს აქტიური ჩართულობისთვის. Medical Line Georgia გააგრძელებს მსგავსი საგანმანათლებლო ინიციატივების მხარდაჭერას და თანამედროვე სტომატოლოგიური ტექნოლოგიების ქართულ პრაქტიკაში დანერგვას.</p>
+    `
+  },
+  {
+    id: 24,
+    slug: "esanit-autoclave-maintenance",
+    title: "12 რჩევა Esanit-ის ავტოკლავის მოსავლელად",
+    excerpt: "ავტოკლავის სწორი მოვლა სტერილიზაციის ხარისხს, კლინიკის უსაფრთხოებას და აპარატის ხანგრძლივ მუშაობას იცავს. გაეცანით Esanit-ის ყოველდღიური და გეგმიური მოვლის პრაქტიკულ წესებს.",
+    date: "19 თებერვალი, 2026",
+    image: "/images/autoclave_main.jpg",
+    ogImage: "/images/autoclave_main.jpg",
+    imageFit: "contain",
+    category: "სერვისი",
+    tags: ["Esanit", "ავტოკლავი", "სტერილიზაცია", "სერვისი", "ჰიგიენა"],
+    readTime: "5 წთ",
+    baseViews: 980,
+    content: `
+      <p style="font-size:1.12rem; font-weight:700; color:#0f3156; background:#eef7ff; border-left:4px solid #0ea5e9; padding:1rem 1.2rem; border-radius:0 14px 14px 0; margin-bottom:2rem;">
+        ავტოკლავი კლინიკის გულია. სწორი ექსპლუატაცია არა მხოლოდ სტერილიზაციის გარანტიაა, არამედ აპარატის ხანგრძლივი მუშაობის წინაპირობა.
+      </p>
+
+      <figure style="margin:2rem 0;">
+        <img src="/images/esanit.png" alt="Esanit ავტოკლავი Medical Line Georgia" style="width:100%; max-height:520px; object-fit:contain; border-radius:24px; display:block; background:#f8fafc; padding:1.5rem;" loading="lazy" />
+        <figcaption style="font-size:.9rem; color:#64748b; margin-top:.75rem;">Esanit-ის ავტოკლავის სწორად დაყენება და რეგულარული მოვლა ამცირებს გაუმართაობის რისკს და ინარჩუნებს სტერილიზაციის სტაბილურ ხარისხს.</figcaption>
+      </figure>
+
+      <h2>რატომ არის მოვლა მნიშვნელოვანი</h2>
+      <p>სტერილიზაციის პროცესი დამოკიდებულია არა მხოლოდ პროგრამის სწორ არჩევაზე, არამედ წყლის ხარისხზე, კამერის სისუფთავეზე, კარის ჰერმეტულობაზე და ვაკუუმის გამართულ მუშაობაზე. მცირე ყოველდღიური ჩვევები ხშირად თავიდან გვარიდებს დიდ სერვისულ ხარჯს.</p>
+
+      <div style="display:grid; gap:1rem; margin:2rem 0;">
+        <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:24px; padding:1.25rem;"><h3>1. ინსტრუქცია</h3><p>უპირველეს ყოვლისა, გაეცანით ექსპლუატაციის წესებს. Esanit-ის ყოველ მოდელს აქვს თავისი სპეციფიკა, რომელიც უნდა იცოდეთ.</p></div>
+        <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:24px; padding:1.25rem;"><h3>2. ზედაპირი</h3><p>ავტოკლავი უნდა იდგეს იდეალურად სწორ ზედაპირზე, რათა წყლის დრენაჟი და ვაკუუმირება მოხდეს შეფერხების გარეშე.</p></div>
+        <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:24px; padding:1.25rem;"><h3>3. ვენტილაცია</h3><p>დატოვეთ მინიმუმ 10 სმ დაშორება უკანა კედლიდან და 5 სმ გვერდებიდან. აპარატს სჭირდება ჰაერის თავისუფალი ცირკულაცია.</p></div>
+        <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:24px; padding:1.25rem;"><h3>4. მზის შუქი</h3><p>მოერიდეთ აპარატის დადგმას პირდაპირი მზის სხივების ქვეშ. ამან შეიძლება გამოიწვიოს კორპუსის გადახურება და სენსორების არაზუსტი მუშაობა.</p></div>
+        <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:24px; padding:1.25rem;"><h3>5. ინსტრუმენტების შერჩევა</h3><p>დარწმუნდით, რომ ინსტრუმენტები ვარგისია 135°C ორთქლით სტერილიზაციისთვის. ყურადღება მიაქციეთ შესაბამის მარკირებას.</p></div>
+        <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:24px; padding:1.25rem;"><h3>6. წინასწარი გასუფთავება</h3><p>ინსტრუმენტები უნდა იყოს დეზინფიცირებული და სუფთა. ბიოლოგიური ნარჩენები აზიანებს კამერის ზედაპირს და ფილტრებს.</p></div>
+        <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:24px; padding:1.25rem;"><h3>7. სწორი განლაგება</h3><p>ინსტრუმენტები, ღია ან პაკეტებში, დაალაგეთ ერთ ფენად. ისინი არ უნდა ეხებოდეს ერთმანეთს და კამერის კედლებს.</p></div>
+        <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:24px; padding:1.25rem;"><h3>8. წყლის ხარისხი</h3><p>გამოიყენეთ მხოლოდ დისტილატი. გამტარობა არ უნდა აღემატებოდეს 15 მიკროსიმენსს. ნადები ნაადრევად აზიანებს ვაკუუმ-ტუმბოს.</p></div>
+        <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:24px; padding:1.25rem;"><h3>9. ავზის ჰიგიენა</h3><p>თვეში ერთხელ დაცალეთ წყლის ავზი და გაწმინდეთ სადეზინფექციო საშუალებით, შემდეგ კარგად გამორეცხეთ.</p></div>
+        <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:24px; padding:1.25rem;"><h3>10. რეზინის მოვლა</h3><p>ყოველდღიურად გაწმინდეთ კარის რეზინის შუასადები რბილი ქსოვილით. ეს უზრუნველყოფს იდეალურ ჰერმეტულობას.</p></div>
+        <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:24px; padding:1.25rem;"><h3>11. განიავება</h3><p>არასამუშაო საათებში ავტოკლავის კარი დატოვეთ ნახევრად ღია მდგომარეობაში, რათა ნესტი სრულად გამოვიდეს კამერიდან.</p></div>
+        <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:24px; padding:1.25rem;"><h3>12. ტექ-მომსახურება</h3><p>სამ თვეში ერთხელ მაინც ჩაატარეთ გეგმიური ტექნიკური ინსპექცია სერტიფიცირებულ სპეციალისტთან.</p></div>
+      </div>
+
+      <blockquote>ინჟინრის რჩევა: ბაქტერიოლოგიური ფილტრის შეცვლა ყოველ 500 ციკლში აუცილებელია. გაჭედილი ფილტრი აზიანებს ვაკუუმ-ტუმბოს.</blockquote>
+      <p>თუ ავტოკლავს უჩვეულო ხმა, გაჭიანურებული ციკლი, წყლის გაჟონვა ან ვაკუუმის შეცდომა დაეწყო, სჯობს მოწყობილობა დროულად შემოწმდეს. დროული დიაგნოსტიკა ბევრად მარტივია, ვიდრე დაზიანებული ტუმბოს ან კამერის შეკეთება.</p>
+    `
+  },
+  {
+    id: 23,
+    slug: "davit-mamulashvili-clinic-philden-x500-installation",
+    title: "დავით მამულაშვილის კლინიკაში Philden X500 დამონტაჟდა — Medical Line Georgia-ს ჩართულობით",
+    excerpt: "დავით მამულაშვილის კლინიკაში, Medical Line Georgia-ს ჩართულობით, დამონტაჟდა Philden X500 — ჰიბრიდული საღარავი სისტემა, რომელიც ციფრულ სტომატოლოგიურ ლაბორატორიას ახალ სისწრაფესა და სიზუსტეს აძლევს.",
+    date: "1 მაისი, 2026",
+    image: "/images/blog/philden-x500-dmc/philden-x500-social-cover.jpg",
+    ogImage: "/images/blog/philden-x500-dmc/philden-x500-social-cover.jpg",
+    imageFit: "cover",
+    category: "ინსტალაცია",
+    tags: ["Philden X500", "CAD/CAM", "Medical Line Georgia", "დავით მამულაშვილის კლინიკა", "ციფრული სტომატოლოგია"],
+    readTime: "4 წთ",
+    baseViews: 640,
+    content: `
+      <p style="font-size:1.12rem; font-weight:600; color:#0f3156; background:#eef7ff; border-left:4px solid #0ea5e9; padding:1rem 1.2rem; border-radius:0 14px 14px 0; margin-bottom:2rem;">
+        დავით მამულაშვილის კლინიკაში თანამედროვე ციფრული სტომატოლოგიის მიმართულებით მნიშვნელოვანი ტექნოლოგიური სიახლე დაინერგა: <strong>Medical Line Georgia-ს ჩართულობით</strong> კლინიკაში დამონტაჟდა ინოვაციური ჰიბრიდული საღარავი სისტემა <strong>Philden X500</strong>.
+      </p>
+
+      <p>Philden X500 განკუთვნილია სტომატოლოგიური რესტავრაციების მაღალი სიზუსტით დასამზადებლად და კლინიკას საშუალებას აძლევს, ციფრული სამუშაო პროცესი უფრო სწრაფი, პროგნოზირებადი და პრაქტიკულად მართვადი გახადოს. მოწყობილობა განსაკუთრებით მნიშვნელოვანია იმ გარემოში, სადაც ექიმსა და ლაბორატორიას შორის დრო, სიზუსტე და მასალებთან მოქნილი მუშაობა გადამწყვეტ როლს ასრულებს.</p>
+
+      <figure style="margin:2rem 0;">
+        <img src="/images/blog/philden-x500-dmc/philden-x500-team.jpg" alt="დავით მამულაშვილის კლინიკაში Philden X500-ის ინსტალაცია Medical Line Georgia-ს ჩართულობით" style="width:100%; border-radius:24px; display:block; object-fit:cover;" loading="lazy" />
+        <figcaption style="font-size:.9rem; color:#64748b; margin-top:.75rem;">Philden X500 დავით მამულაშვილის კლინიკაში — ინსტალაციისა და დანერგვის პროცესი Medical Line Georgia-ს მხარდაჭერით.</figcaption>
+      </figure>
+
+      <h2>Medical Line Georgia-ს როლი პროექტში</h2>
+      <p>Medical Line Georgia-ს ჩართულობა ამ პროექტში მოიცავდა არა მხოლოდ აპარატის მიწოდებას, არამედ ინსტალაციის პროცესის ორგანიზებას, სამუშაო გარემოში მოწყობილობის სწორად გამართვას და კლინიკის გუნდისთვის ტექნიკური მხარდაჭერის უზრუნველყოფას. ასეთი მიდგომა მნიშვნელოვანია, რადგან თანამედროვე CAD/CAM სისტემა მაქსიმალურ შედეგს მაშინ იძლევა, როდესაც ტექნოლოგია სწორად არის დანერგილი და ყოველდღიურ პრაქტიკასთან არის მორგებული.</p>
+
+      <p>ჩვენი მიზანია, პარტნიორ კლინიკებს მივაწოდოთ არა უბრალოდ აპარატურა, არამედ სრულფასოვანი გადაწყვეტილება: კონსულტაცია, სწორი კონფიგურაცია, ინსტალაცია, ტრენინგი და შემდგომი სერვისული მხარდაჭერა.</p>
+
+      <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:1rem; margin:2rem 0; align-items:stretch;">
+        <img src="/images/blog/philden-x500-dmc/philden-x500-training.jpg" alt="Philden X500-ის სამუშაო ეკრანის გაცნობა დავით მამულაშვილის კლინიკაში" style="width:100%; height:100%; max-height:620px; object-fit:cover; border-radius:20px;" loading="lazy" />
+        <img src="/images/blog/philden-x500-dmc/philden-x500-machine.jpg" alt="Philden X500 ჰიბრიდული საღარავი სისტემა დავით მამულაშვილის კლინიკაში" style="width:100%; height:100%; max-height:620px; object-fit:cover; border-radius:20px;" loading="lazy" />
+      </div>
+
+      <h2>რას ცვლის Philden X500 კლინიკისთვის</h2>
+      <p>Philden X500-ის დანერგვა კლინიკას აძლევს შესაძლებლობას, რესტავრაციების დამზადების პროცესი უფრო სწრაფად და მაღალი სიზუსტით მართოს. ციფრული დაგეგმარებისა და ავტომატიზებული დამუშავების კომბინაცია ამცირებს ადამიანურ შეცდომებს, ზრდის შედეგის განმეორებადობას და ექიმს აძლევს მეტ კონტროლს საბოლოო კონსტრუქციის ხარისხზე.</p>
+
+      <p>ჰიბრიდული საღარავი სისტემა განსაკუთრებით ღირებულია იმ მიმართულებებისთვის, სადაც საჭიროა ინდივიდუალურად მორგებული, ესთეტიკური და ფუნქციური კონსტრუქციების შექმნა. სწორად აწყობილი ციფრული სამუშაო პროცესი პაციენტისთვისაც უფრო კომფორტულ გამოცდილებას ქმნის, ხოლო კლინიკის გუნდისთვის ყოველდღიურ სამუშაოს უფრო ეფექტიანს ხდის.</p>
+
+      <figure style="margin:2rem 0;">
+        <img src="/images/blog/philden-x500-dmc/philden-x500-materials.jpg" alt="Philden X500 ციფრული სიზუსტე სტომატოლოგიაში" style="width:100%; border-radius:24px; display:block; object-fit:cover;" loading="lazy" />
+        <figcaption style="font-size:.9rem; color:#64748b; margin-top:.75rem;">CAD/CAM სამუშაო პროცესი კლინიკას ეხმარება რესტავრაციების დაგეგმვასა და დამზადებაში მეტი სიზუსტით.</figcaption>
+      </figure>
+
+      <h2>კიდევ ერთი ნაბიჯი ციფრული სტომატოლოგიის განვითარებისთვის</h2>
+      <p>დავით მამულაშვილის კლინიკაში Philden X500-ის დამონტაჟება კიდევ ერთი მაგალითია იმისა, თუ როგორ ვითარდება საქართველოში ციფრული სტომატოლოგია პრაქტიკულ დონეზე. თანამედროვე ტექნოლოგიების დანერგვა კლინიკებს აძლევს შესაძლებლობას, პაციენტებს შესთავაზონ უფრო სწრაფი, ზუსტი და პროგნოზირებადი მომსახურება.</p>
+
+      <blockquote>Medical Line Georgia აგრძელებს პარტნიორი კლინიკების მხარდაჭერას თანამედროვე აპარატურით, პროფესიული ცოდნითა და სერვისით, რათა მაღალი ტექნოლოგიები საქართველოში რეალურ კლინიკურ პრაქტიკაში უფრო ხელმისაწვდომი გახდეს.</blockquote>
+
+      <p>ვულოცავთ დავით მამულაშვილის კლინიკას ახალ ტექნოლოგიურ შენაძენს და წარმატებებს ვუსურვებთ Philden X500-თან ერთად ახალ ციფრულ სამუშაო ეტაპზე.</p>
+    `
+  },
+  {
+    id: 22,
+    slug: "eighteeth-katrina-zhou-finscan-f350-visit",
+    title: "Eighteeth-ის რეგიონალური წარმომადგენლის, Katrina Zhou-ს ვიზიტი საქართველოში",
+    excerpt: "Medical Line Georgia-მ უმასპინძლა Eighteeth-ის რეგიონალურ წარმომადგენელს Katrina Zhou-ს. ვიზიტის ფარგლებში დავათვალიერეთ უკვე დამონტაჟებული FinScan F350 ტომოგრაფები და კლინიკებს გავაცანით უახლესი სამუშაო მიდგომები.",
+    date: "29 აპრილი, 2026",
+    image: "/images/blog/katrina-eighteeth/hero-f350-visit.webp",
+    ogImage: "/images/blog/katrina-eighteeth/finscan-f350-facebook-cover-sharp-20260429.jpg",
+    imageFit: "cover",
+    category: "პარტნიორობა",
+    tags: ["Eighteeth", "FinScan F350", "CBCT", "Katrina Zhou", "Medical Line Georgia"],
+    readTime: "3 წთ",
+    baseViews: 520,
+    content: `
+      <p><strong>Medical Line Georgia-სთვის</strong> მნიშვნელოვანი სამუშაო ვიზიტი შედგა: საქართველოში გვეწვია Eighteeth-ის რეგიონალური წარმომადგენელი <strong>Katrina Zhou</strong>. ვიზიტის მთავარი მიზანი იყო უკვე დამონტაჟებული <strong>FinScan F350</strong> ტომოგრაფების ნახვა რეალურ კლინიკურ გარემოში, მომხმარებლების უკუკავშირის მოსმენა და გუნდისთვის უახლესი სიახლეების გაზიარება.</p>
+
+      <figure style="margin:2rem 0;">
+        <img src="/images/blog/katrina-eighteeth/katrina-f350-team.webp" alt="Katrina Zhou, Medical Line Georgia-ს გუნდი და FinScan F350 ტომოგრაფი" style="width:100%; border-radius:24px; display:block; object-fit:cover;" loading="lazy" />
+        <figcaption style="font-size:.9rem; color:#64748b; margin-top:.75rem;">Katrina Zhou-ს ვიზიტი უკვე დამონტაჟებულ FinScan F350 ტომოგრაფთან.</figcaption>
+      </figure>
+
+      <h2>ვიზიტი დამონტაჟებულ ობიექტებზე</h2>
+      <p>დავთვალიერეთ კლინიკებში მიმდინარე სამუშაო პროცესი, სადაც FinScan F350 ყოველდღიურად გამოიყენება 3D დიაგნოსტიკისთვის. განსაკუთრებული ყურადღება დაეთმო გამოსახულების ხარისხს, პროგრამულ სამუშაო ნაკადს, პაციენტის პოზიციონირებას და იმ დეტალებს, რომლებიც ექიმისთვის ყოველდღიურ გამოყენებას უფრო სწრაფს და პროგნოზირებადს ხდის.</p>
+
+      <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:1rem; margin:2rem 0; align-items:stretch;">
+        <img src="/images/blog/katrina-eighteeth/f350-room-portrait.webp" alt="Katrina Zhou და Medical Line Georgia-ს წარმომადგენელი FinScan F350 ტომოგრაფთან" style="width:100%; height:100%; max-height:560px; object-fit:cover; border-radius:20px;" loading="lazy" />
+        <img src="/images/blog/katrina-eighteeth/f350-clinical-case.webp" alt="FinScan F350 კლინიკური ქეისის პრომო მასალა" style="width:100%; height:100%; max-height:560px; object-fit:cover; object-position:top; border-radius:20px;" loading="lazy" />
+      </div>
+
+      <h2>სიახლეები და პრაქტიკული რეკომენდაციები</h2>
+      <p>Katrina Zhou-მ ჩვენს გუნდს და პარტნიორ კლინიკებს გააცნო Eighteeth-ის უახლესი მიდგომები FinScan F350-ის გამოყენებაში. ვისაუბრეთ პროგრამული უზრუნველყოფის შესაძლებლობებზე, სკანირების პროტოკოლებზე, სერვისულ მხარდაჭერაზე და იმ პრაქტიკულ საკითხებზე, რომლებიც ტომოგრაფის მაქსიმალური ეფექტურობით გამოყენებას განსაზღვრავს.</p>
+
+      <blockquote>ჩვენთვის მნიშვნელოვანია, რომ კლინიკამ მიიღოს არა მხოლოდ აპარატი, არამედ სრული მხარდაჭერა: სწორი ინსტალაცია, ტრენინგი, სწრაფი კომუნიკაცია და რეალური ტექნიკური პარტნიორობა.</blockquote>
+
+      <h2>რას ნიშნავს ეს კლინიკებისთვის</h2>
+      <p>ოფიციალურ პარტნიორთან პირდაპირი კომუნიკაცია გვაძლევს შესაძლებლობას, საქართველოში დამონტაჟებული სისტემები მუდმივად იყოს მწარმოებლის სტანდარტთან შესაბამისობაში. ეს ეხება როგორც სწორ კონფიგურაციას და ინსტალაციას, ისე შემდგომ მხარდაჭერას, ტრენინგს და საჭიროების შემთხვევაში სწრაფ ტექნიკურ რეაგირებას.</p>
+
+      <p>Medical Line Georgia აგრძელებს Eighteeth-ის ტექნოლოგიების განვითარებას საქართველოში და პარტნიორ კლინიკებთან მუშაობას ისე, რომ თითოეული ინსტალაცია იყოს არა ერთჯერადი მიწოდება, არამედ გრძელვადიანი მხარდაჭერის ნაწილი.</p>
+    `
+  },
+  {
     id: 21,
     slug: "ultramint-pro-review",
     title: "Eighteeth Ultramint Pro: ულტრაბგერითი ტექნოლოგიების მწვერვალი – პერიო და ენდო რევოლუცია თქვენს კლინიკაში",
