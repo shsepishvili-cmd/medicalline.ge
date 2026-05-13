@@ -1,5 +1,79 @@
 export const blogArticles = [
   {
+    id: 26,
+    slug: "surfyone-sonic-activator-overview",
+    title: "Eighteeth SurfyOne Sonic Activator - სრული მიმოხილვა ქართულად",
+    excerpt:
+      "SurfyOne Sonic Activator არის ენდოდონტიური მოწყობილობა, რომელიც აერთიანებს სონიკურ აქტივაციასა და ბიოკერამიკული სილერის მიწოდებას. გთავაზობთ დეტალურ ქართულ მიმოხილვას ფუნქციებით, რეჟიმებითა და ტექნიკური მახასიათებლებით.",
+    date: "13 მაისი, 2026",
+    image: "/images/surfyone.png",
+    ogImage: "/images/surfyone.png",
+    imageFit: "contain-full",
+    category: "პროდუქტის მიმოხილვა",
+    tags: ["SurfyOne", "Sonic Activator", "Eighteeth", "ენდოდონტია", "Medical Line Georgia"],
+    readTime: "5 წთ",
+    baseViews: 180,
+    content: `
+      <p style="font-size:1.08rem; font-weight:600; color:#0f3156; background:#eef7ff; border-left:4px solid #0ea5e9; padding:1rem 1.2rem; border-radius:0 14px 14px 0; margin-bottom:2rem;">
+        ეს სტატია მომზადებულია Eighteeth-ის ოფიციალური პროდუქტის გვერდისა და ღია ტექნიკური მასალების მიხედვით და ქართულად გაწვდით SurfyOne Sonic Activator-ის მთავარ შესაძლებლობებს.
+      </p>
+
+      <figure style="margin:2rem 0;">
+        <img src="/images/surfyone.png" alt="Eighteeth SurfyOne Sonic Activator" style="width:100%; max-height:460px; object-fit:contain; border-radius:20px; background:#fff; padding:1rem;" loading="lazy" />
+      </figure>
+
+      <h2>რა არის SurfyOne?</h2>
+      <p>SurfyOne არის სონიკური აქტივატორი ენდოდონტიისთვის, რომელიც მუშაობს brushless ძრავაზე და პოლიმერული სამუშაო თავაკის ვიბრაციით ქმნის მაღალი სიხშირის ენერგიას. მოწყობილობის მიზანია არხის ირიგაციის ეფექტურობის ზრდა და ბიოკერამიკული სილერის უფრო ზუსტი მიწოდება.</p>
+
+      <h2>ორმაგი ფუნქცია ერთ მოწყობილობაში</h2>
+      <ul>
+        <li><strong>Sonic Activation:</strong> სითხის სწრაფი მიმოცვლა არხში, ნალექისა და debris-ის უკეთ მოსაშორებლად.</li>
+        <li><strong>Bioceramic Sealer Delivery:</strong> სილერის კონტროლირებადი მიწოდება, მაღალი სიმკვრივის obturation-ისთვის და void-ების შემცირებისთვის.</li>
+      </ul>
+
+      <h2>ძირითადი უპირატესობები</h2>
+      <ul>
+        <li><strong>Mini Head (Ø10 mm):</strong> უკეთესი ხილვადობა მიკროსკოპის ქვეშ.</li>
+        <li><strong>Brushless Motor:</strong> სტაბილური სიმძლავრე და ხანგრძლივი რესურსი.</li>
+        <li><strong>Rechargeable Battery:</strong> 1400mAh ელემენტი, სწრაფი დამუხტვით.</li>
+        <li><strong>სტერილიზებადი პოლიმერული თავაკები:</strong> მოქნილი მასალა, არხთან კარგი ადაპტაციით.</li>
+      </ul>
+
+      <h2>6 სამუშაო რეჟიმი</h2>
+      <p><strong>Sonic Activation რეჟიმები:</strong></p>
+      <ul>
+        <li>100Hz / 0.7W - მგრძნობიარე შემთხვევებისთვის</li>
+        <li>200Hz / 2.7W - სტანდარტული ყოველდღიური რეჟიმი</li>
+        <li>250Hz / 7.5W - ინტენსიური წმენდის რეჟიმი</li>
+        <li>400Hz / 7.5W - ღრმა აქტივაცია რთულ არხებში</li>
+      </ul>
+      <p><strong>Bioceramic Sealer Delivery რეჟიმები:</strong></p>
+      <ul>
+        <li>40Hz / 0.61W - სტანდარტული მიწოდება</li>
+        <li>60Hz / 0.65W - უფრო რთული/მრუდე არხებისთვის</li>
+      </ul>
+
+      <h2>ტექნიკური მახასიათებლები</h2>
+      <ul>
+        <li>ზომა: 25 x 23 x 176 მმ</li>
+        <li>წონა: 110 გ</li>
+        <li>თავაკის დიამეტრი: Ø10 მმ</li>
+        <li>დამუხტვის დრო: დაახლოებით 4 საათი</li>
+        <li>მუშაობის სიხშირე: 40Hz - 400Hz</li>
+        <li>სიმძლავრე: 0.7-7.5W (activation), 0.61-0.65W (sealer delivery)</li>
+      </ul>
+
+      <h2>ვისთვის არის ეს მოწყობილობა?</h2>
+      <p>SurfyOne განსაკუთრებით საინტერესოა ენდოდონტისტებისთვის და ზოგადი პროფილის ექიმებისთვის, ვინც ცდილობს უკეთ მართოს ირიგაციის ხარისხი, შეამციროს მკურნალობის ცვლადობა და მიიღოს უფრო პროგნოზირებადი შედეგი რთულ არხობრივ შემთხვევებში.</p>
+
+      <blockquote>
+        შენიშვნა: კონკრეტული რეჟიმის შერჩევა და თავაკის ზომა უნდა შეესაბამებოდეს კლინიკურ სიტუაციასა და ექიმის პროტოკოლს.
+      </blockquote>
+
+      <p>თუ გსურთ SurfyOne-ის პრაქტიკული დემო ან კლინიკური კონსულტაცია, დაგვიკავშირდით - Medical Line Georgia დაგეხმარებათ სწორი კონფიგურაციის შერჩევაში.</p>
+    `,
+  },
+  {
     id: 25,
     slug: "perio-edu-tskaltubo-conference-2026",
     title: "Perio Edu Academy წყალტუბოს კონფერენცია Medical Line Georgia-ს მხარდაჭერით",
