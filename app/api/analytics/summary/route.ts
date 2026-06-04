@@ -33,7 +33,6 @@ export async function GET() {
   if (pages.error || blogs.error) {
     return NextResponse.json(
       { ok: false, error: pages.error?.message || blogs.error?.message },
-      { status: 500 },
     )
   }
 
