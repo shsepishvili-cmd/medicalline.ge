@@ -4,6 +4,46 @@ import { useEffect, useRef } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 import { trackEvent, trackPageView } from "@/app/lib/analytics";
 
+function getVisitorId() {
+  const storageKey = "ml_visitor_id";
+  const existing = localStorage.getItem(storageKey);
+  if (existing) return existing;
+
+  const generated =
+    typeof crypto !== "undefined" && "randomUUID" in crypto
+      ? crypto.randomUUID()
+      : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+
+  localStorage.setItem(storageKey, generated);
+  return generated;
+}
+
+function recordFirstPartyPageView(path: string) {
+  try {
+    const visitorId = getVisitorId();
+    const payload = JSON.stringify({
+      path,
+      title: document.title,
+      visitorId,
+    });
+
+    if (navigator.sendBeacon) {
+      const blob = new Blob([payload], { type: "application/json" });
+      navigator.sendBeacon("/api/analytics/page-view", blob);
+      return;
+    }
+
+    fetch("/api/analytics/page-view", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: payload,
+      keepalive: true,
+    }).catch(() => {});
+  } catch {
+    // Analytics must never block the page.
+  }
+}
+
 export default function AnalyticsBootstrap() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -15,6 +55,14 @@ export default function AnalyticsBootstrap() {
 
     trackedScrollMarks.current.clear();
     trackPageView(path);
+    recordFirstPartyPageView(path);
+
+    if (pathname.startsWith("/blog/")) {
+      trackEvent("view_blog_article", {
+        page_path: path,
+        blog_slug: pathname.split("/").filter(Boolean)[1],
+      });
+    }
   }, [pathname, searchParams]);
 
   useEffect(() => {

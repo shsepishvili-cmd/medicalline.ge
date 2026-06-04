@@ -4,11 +4,12 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import Script from 'next/script';
-import { ArrowLeft, Clock, Calendar, Share2, Facebook, X, MessageSquare, Phone } from 'lucide-react';
+import { ArrowLeft, Clock, Calendar, Share2, Facebook, X, MessageSquare, Phone, Eye } from 'lucide-react';
 import { blogArticles } from '../blogData';
 
 export default function BlogContent({ post }: { post: any }) {
   const [showShareTooltip, setShowShareTooltip] = useState(false);
+  const [viewCount, setViewCount] = useState<number | null>(null);
 
   const handleShare = () => {
     if (typeof window === 'undefined') return;
@@ -26,6 +27,25 @@ export default function BlogContent({ post }: { post: any }) {
       (window as any).FB.XFBML.parse();
     }
   }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    const timer = window.setTimeout(() => {
+      fetch(`/api/analytics/blog-views/${post.slug}`, { cache: 'no-store' })
+        .then((response) => response.json())
+        .then((payload) => {
+          if (!cancelled && payload?.ok) {
+            setViewCount(Number(payload.views || 0));
+          }
+        })
+        .catch(() => {});
+    }, 700);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [post.slug]);
 
   const pageUrl = typeof window !== 'undefined'
     ? window.location.href
@@ -83,6 +103,7 @@ export default function BlogContent({ post }: { post: any }) {
         <div className="flex gap-6 text-slate-400 text-sm mb-12 border-b pb-6">
           <span className="flex items-center gap-1"><Calendar size={16} /> {post.date}</span>
           <span className="flex items-center gap-1"><Clock size={16} /> {post.readTime}</span>
+          <span className="flex items-center gap-1"><Eye size={16} /> {viewCount ?? post.baseViews ?? 0}</span>
         </div>
       </header>
 

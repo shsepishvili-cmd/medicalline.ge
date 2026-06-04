@@ -1,12 +1,47 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
-import { findCatalogProductByAny, findDatabaseProductMatch, inferBrand, localCatalogProducts, mapCategoryToSlug, specsArrayToRecord } from '../lib/catalogSync'
+import { collapseDatabaseProducts, findCatalogProductByAny, findDatabaseProductMatch, inferBrand, localCatalogProducts, mapCategoryToSlug, specsArrayToRecord } from '../lib/catalogSync'
 
-type Tab = 'dashboard' | 'users' | 'prices' | 'requests' | 'service' | 'engineering'
+type Tab = 'dashboard' | 'analytics' | 'users' | 'prices' | 'requests' | 'service' | 'engineering'
+
+function dedupeProductList<T extends { slug?: string; name?: string }>(list: T[]) {
+  const seen = new Set<string>()
+  return list.filter((item) => {
+    const key = (item.slug || item.name || '').toString().trim().toLowerCase()
+    if (!key || seen.has(key)) return false
+    seen.add(key)
+    return true
+  })
+}
+
+function resolveRequestPrice(request: any, productList: any[]) {
+  if (request?.type !== 'price') return null
+  const direct = request?.products?.prices?.[0]
+  if (direct?.price_gel) return direct
+  const requestName = (request?.products?.name || '').toString().trim().toLowerCase()
+  const requestSlug = (request?.products?.slug || '').toString().trim().toLowerCase()
+  const requestMsg = (request?.message || '').toString().trim().toLowerCase()
+  const matched = productList.find((product) => {
+    const productName = (product?.name || '').toString().trim().toLowerCase()
+    const productSlug = (product?.slug || '').toString().trim().toLowerCase()
+    return (
+      (requestSlug && productSlug === requestSlug) ||
+      (requestName && productName === requestName) ||
+      (requestMsg && (requestMsg.includes(productName) || requestMsg.includes(productSlug)))
+    )
+  })
+  return matched?.prices?.[0] || null
+}
 
 export default function AdminPage() {
-  const [auth, setAuth] = useState(false)
+  const [auth, setAuth] = useState(() => {
+    try {
+      return sessionStorage.getItem('ml_admin_auth') === '1'
+    } catch {
+      return false
+    }
+  })
   const [adminEmail, setAdminEmail] = useState('')
   const [adminPassword, setAdminPassword] = useState('')
   const [authError, setAuthError] = useState('')
@@ -15,6 +50,7 @@ export default function AdminPage() {
   const [products, setProducts] = useState<any[]>([])
   const [requests, setRequests] = useState<any[]>([])
   const [serviceTickets, setServiceTickets] = useState<any[]>([])
+  const [analyticsSummary, setAnalyticsSummary] = useState<any>({ pages: [], blogs: [], totals: {} })
   const [manualItems, setManualItems] = useState<any[]>([])
   const [manualTitle, setManualTitle] = useState('')
   const [manualDescription, setManualDescription] = useState('')
@@ -24,6 +60,9 @@ export default function AdminPage() {
   const [manualFile, setManualFile] = useState<File | null>(null)
   const [saved, setSaved] = useState<string | null>(null)
   const [saveError, setSaveError] = useState<string | null>(null)
+  const [lastPriceSaveResult, setLastPriceSaveResult] = useState<string | null>(null)
+  const [savingPriceId, setSavingPriceId] = useState<string | null>(null)
+  const [priceDrafts, setPriceDrafts] = useState<Record<string, string>>({})
   const [requestFilter, setRequestFilter] = useState<'all' | 'new' | 'inprogress' | 'done'>('all')
   const [requestSearch, setRequestSearch] = useState('')
 
@@ -54,46 +93,67 @@ export default function AdminPage() {
   }, [])
 
   useEffect(() => {
-    if (auth) {
-      try { sessionStorage.setItem('ml_admin_auth', '1') } catch {}
-      loadAll()
-    } else {
-      try { sessionStorage.removeItem('ml_admin_auth') } catch {}
-    }
+    if (!auth) return
+    try { sessionStorage.setItem('ml_admin_auth', '1') } catch {}
+    loadAll()
   }, [auth])
 
   async function loadAdminProfile(userId: string) {
-    const { data, error } = await supabase.from('profiles').select('*').eq('id', userId).single()
-    if (error || !data) {
-      setAuth(false)
-      setAuthError('Admin profile could not be loaded.')
-      return
-    }
+    try {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession()
 
-    if (data.role !== 'admin') {
-      setAuth(false)
-      setAuthError('This account does not have admin access.')
-      await supabase.auth.signOut()
-      return
-    }
+      if (!session?.access_token) {
+        if (!auth) setAuth(false)
+        setAuthError('Admin session could not be loaded.')
+        return
+      }
 
-    setAuthError('')
-    setAuth(true)
+      const response = await fetch('/api/admin/profile', {
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
+      })
+      const payload = await response.json().catch(() => null)
+
+      if (response.ok && payload?.ok) {
+        setAuthError('')
+        setAuth(true)
+        return
+      }
+
+      // Fallback path: try reading profile directly if API is temporarily unavailable.
+      const { data, error } = await supabase.from('profiles').select('*').eq('id', userId).single()
+      if (!error && data?.role === 'admin') {
+        setAuthError('')
+        setAuth(true)
+        return
+      }
+
+      if (!auth) setAuth(false)
+      setAuthError(payload?.error || error?.message || 'Admin profile could not be loaded.')
+    } catch (error) {
+      if (!auth) setAuth(false)
+      setAuthError(error instanceof Error ? error.message : 'Admin profile could not be loaded.')
+    }
   }
 
   async function loadAll() {
-    const [u, p, r, s, a] = await Promise.all([
+    const [u, p, r, s, a, analytics] = await Promise.all([
       supabase.from('profiles').select('*').order('created_at', { ascending: false }),
       supabase.from('products').select('*, prices(*)').order('sort_order'),
-      supabase.from('requests').select('*, client:profiles!requests_user_id_fkey(full_name,clinic_name,phone), assignee:profiles!requests_assigned_to_fkey(full_name,phone), products(name)').order('created_at', { ascending: false }),
+      supabase.from('requests').select('*, client:profiles!requests_user_id_fkey(full_name,clinic_name,phone), assignee:profiles!requests_assigned_to_fkey(full_name,phone), products(id, slug, name, prices(price_gel, installment_monthly, installment_months))').order('created_at', { ascending: false }),
       supabase.from('service_tickets').select('*, client:profiles!service_tickets_user_id_fkey(full_name,clinic_name,phone), engineer:profiles!service_tickets_engineer_id_fkey(full_name,phone), products(name)').order('created_at', { ascending: false }),
       supabase.from('academy_items').select('id, title, description, audience, mime_type, url, created_at, products(name)').eq('type', 'manual').order('created_at', { ascending: false }),
+      fetch('/api/analytics/summary', { cache: 'no-store' }).then((response) => response.json()).catch(() => null),
     ])
     if (u.data) setUsers(u.data)
     if (p.data) {
+      const canonicalDbProducts = collapseDatabaseProducts(p.data)
       const matchedIds = new Set<string>()
       const mergedProducts = localCatalogProducts.map((item) => {
-        const dbMatch = findDatabaseProductMatch(p.data, item)
+        const dbMatch = findDatabaseProductMatch(canonicalDbProducts, item)
 
         if (dbMatch?.id) matchedIds.add(dbMatch.id)
 
@@ -112,22 +172,33 @@ export default function AdminPage() {
         }
       })
 
-      const dbOnlyProducts = p.data
+      const dbOnlyProducts = canonicalDbProducts
         .filter((item: any) => !matchedIds.has(item.id))
         .map((item: any) => ({ ...item, dbId: item.id, catalogSource: findCatalogProductByAny(item) }))
+        .filter((item: any) => !item.catalogSource)
 
-      setProducts([...mergedProducts, ...dbOnlyProducts])
+      const nextProducts = dedupeProductList([...mergedProducts, ...dbOnlyProducts])
+      setProducts(nextProducts)
+      setPriceDrafts((prev) => {
+        const next = { ...prev }
+        nextProducts.forEach((product: any) => {
+          const key = product.dbId || product.id
+          if (next[key] === undefined) next[key] = String(product.prices?.[0]?.price_gel || '')
+        })
+        return next
+      })
     }
     if (r.data) setRequests(r.data)
     if (s.data) setServiceTickets(s.data)
     if (a.data) setManualItems(a.data)
+    if (analytics?.ok) setAnalyticsSummary(analytics)
   }
 
   async function loginAsAdmin() {
     setAuthError('')
     const { data, error } = await supabase.auth.signInWithPassword({ email: adminEmail, password: adminPassword })
     if (error || !data.user) {
-      setAuthError('Admin login failed.')
+      setAuthError(error?.message || 'Admin login failed.')
       return
     }
 
@@ -137,6 +208,7 @@ export default function AdminPage() {
   async function logoutAdmin() {
     await supabase.auth.signOut()
     setAuth(false)
+    try { sessionStorage.removeItem('ml_admin_auth') } catch {}
     setAdminEmail('')
     setAdminPassword('')
   }
@@ -175,30 +247,91 @@ export default function AdminPage() {
 
   async function updatePrice(product: any, price: number) {
     setSaveError(null)
-    const productId = await ensureProductRecord(product)
-    if (!productId) return
-
-    const baseMonthly = Math.round(price / 12)
-
-    // delete all existing price rows for this product (handles duplicates)
-    await supabase.from('prices').delete().eq('product_id', productId)
-
-    const { error } = await supabase.from('prices').insert({
-      product_id: productId,
-      price_gel: price,
-      installment_monthly: baseMonthly,
-      installment_months: 12,
-      note: 'განვადება Credo-ს გავლით',
-    })
-
-    if (error) {
-      setSaveError(error.message)
+    setLastPriceSaveResult(null)
+    if (!Number.isFinite(price) || price < 0) {
+      setSaveError('ფასი სწორად ჩაწერე.')
       return
     }
 
-    setSaved(productId)
-    setTimeout(() => setSaved(null), 2000)
-    loadAll()
+    const draftKey = product.dbId || product.id
+    setSavingPriceId(draftKey)
+    const baseMonthly = Math.round(price / 12)
+    const note = 'განვადება Credo-ს გავლით'
+    try {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession()
+
+      if (!session?.access_token) {
+        const message = 'ადმინის სესია ვერ მოიძებნა. თავიდან შედი admin-ში.'
+        setSaveError(message)
+        setLastPriceSaveResult(message)
+        alert(message)
+        return
+      }
+
+      const response = await fetch('/api/admin/prices', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({
+          product: {
+            id: product.id,
+            dbId: product.dbId,
+            slug: product.slug,
+            name: product.name,
+            category_slug: product.category_slug,
+            brand: product.brand,
+            short_desc: product.short_desc,
+            specs: product.specs || {},
+            images: product.images || [],
+            sort_order: product.catalogSource?.id || product.sort_order || 9999,
+          },
+          price,
+          installmentMonths: 12,
+          note,
+        }),
+      })
+
+      const result = await response.json().catch(() => null)
+      if (!response.ok || !result?.ok) {
+        const message = result?.error || `ფასი ვერ შეინახა. HTTP ${response.status}`
+        const details = result?.code ? `${message} (${result.code})` : message
+        setSaveError(details)
+        setLastPriceSaveResult(`ვერ შეინახა: HTTP ${response.status} · ${details}`)
+        alert(`ფასი ვერ შეინახა: ${details}`)
+        return
+      }
+
+      const productId = result.productId || product.dbId || product.id
+      setProducts((prev) => prev.map((item) => {
+        if (item.id !== product.id && item.dbId !== productId) return item
+        return {
+          ...item,
+          dbId: productId,
+          prices: [{
+            price_gel: price,
+            installment_monthly: baseMonthly,
+            installment_months: 12,
+            note,
+          }],
+        }
+      }))
+      setPriceDrafts((prev) => ({ ...prev, [productId]: String(price), [product.id]: String(price) }))
+      setLastPriceSaveResult(`შენახულია: ${product.name} · ₾${price.toLocaleString('ka-GE')}`)
+      setSaved(productId)
+      setTimeout(() => setSaved(null), 2000)
+      loadAll()
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'უცნობი ქსელის შეცდომა'
+      setSaveError(message)
+      setLastPriceSaveResult(`ვერ შეინახა: ${message}`)
+      alert(`ფასი ვერ შეინახა: ${message}`)
+    } finally {
+      setSavingPriceId(null)
+    }
   }
 
   async function updateUserStatus(id: string, status: string) {
@@ -343,6 +476,7 @@ export default function AdminPage() {
         </div>
         {([
           { id: 'dashboard', label: '📊 Dashboard' },
+          { id: 'analytics', label: '📈 Analytics' },
           { id: 'users', label: '👥 მომხმარებლები' },
           { id: 'prices', label: '💰 ფასები' },
           { id: 'requests', label: `📨 მოთხოვნები${newReqs > 0 ? ` (${newReqs})` : ''}` },
@@ -364,7 +498,7 @@ export default function AdminPage() {
       <div style={{ flex: 1, background: '#f5f5f0', overflow: 'auto' }}>
         <div style={{ background: '#fff', padding: '14px 24px', borderBottom: '0.5px solid rgba(0,0,0,0.08)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <h2 style={{ fontSize: 16, fontWeight: 500, color: '#1a1a1a' }}>
-            {tab === 'dashboard' ? 'Dashboard' : tab === 'users' ? 'მომხმარებლები' : tab === 'prices' ? 'ფასების მართვა' : tab === 'requests' ? 'მოთხოვნები' : tab === 'service' ? 'Service Dispatch' : 'Engineering Division'}
+            {tab === 'dashboard' ? 'Dashboard' : tab === 'analytics' ? 'Analytics' : tab === 'users' ? 'მომხმარებლები' : tab === 'prices' ? 'ფასების მართვა' : tab === 'requests' ? 'მოთხოვნები' : tab === 'service' ? 'Service Dispatch' : 'Engineering Division'}
           </h2>
           <span style={{ fontSize: 12, color: '#888' }}>Medical Line Pro · {new Date().toLocaleDateString('ka-GE')}</span>
         </div>
@@ -401,6 +535,7 @@ export default function AdminPage() {
                     <button onClick={() => setTab('engineering')} style={{ fontSize: 12, padding: '6px 10px', background: '#E1F5EE', color: '#085041', border: 'none', borderRadius: 8, cursor: 'pointer' }}>Engineering</button>
                     <button onClick={() => window.location.href = '/admin/warranty'} style={{ fontSize: 12, padding: '6px 10px', background: '#EDF7F3', color: '#085041', border: '1px solid rgba(8,80,65,0.12)', borderRadius: 8, cursor: 'pointer' }}>გარანტიები</button>
                     <button onClick={() => window.location.href = '/admin/contracts'} style={{ fontSize: 12, padding: '6px 10px', background: '#EEF2FF', color: '#3730A3', border: '1px solid rgba(55,48,163,0.12)', borderRadius: 8, cursor: 'pointer' }}>ხელშეკრულებები</button>
+                    <button onClick={() => window.location.href = '/invoice'} style={{ fontSize: 12, padding: '6px 10px', background: '#EFF6FF', color: '#1D4ED8', border: '1px solid rgba(29,78,216,0.12)', borderRadius: 8, cursor: 'pointer' }}>ინვოისები</button>
                     <button onClick={() => window.location.href = '/admin/academy'} style={{ fontSize: 12, padding: '6px 10px', background: '#FFF7ED', color: '#9A3412', border: '1px solid rgba(154,52,18,0.12)', borderRadius: 8, cursor: 'pointer' }}>აკადემია</button>
                   </div>
                 </div>
@@ -432,6 +567,62 @@ export default function AdminPage() {
                     ))}
                   </tbody>
                 </table>
+              </div>
+            </div>
+          )}
+
+          {/* ANALYTICS */}
+          {tab === 'analytics' && (
+            <div style={{ display: 'grid', gap: 16 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 12 }}>
+                {[
+                  { label: 'Top 20 გვერდის ნახვები', value: analyticsSummary.totals?.pageViews || 0 },
+                  { label: 'Top 20 ბლოგის ნახვები', value: analyticsSummary.totals?.blogViews || 0 },
+                  { label: 'დათვლილი ბლოგები', value: analyticsSummary.blogs?.length || 0 },
+                ].map((item) => (
+                  <div key={item.label} style={{ background: '#fff', borderRadius: 12, padding: 16, border: '0.5px solid rgba(0,0,0,0.08)' }}>
+                    <p style={{ fontSize: 26, fontWeight: 700, color: '#085041', margin: 0 }}>{Number(item.value).toLocaleString('ka-GE')}</p>
+                    <p style={{ fontSize: 12, color: '#888', margin: '4px 0 0' }}>{item.label}</p>
+                  </div>
+                ))}
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                <div style={{ background: '#fff', borderRadius: 12, border: '0.5px solid rgba(0,0,0,0.08)', overflow: 'hidden' }}>
+                  <div style={{ padding: '12px 16px', borderBottom: '0.5px solid rgba(0,0,0,0.08)', fontSize: 13, fontWeight: 600 }}>ყველაზე ნანახი გვერდები</div>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+                    <tbody>
+                      {(analyticsSummary.pages || []).map((page: any) => (
+                        <tr key={page.path} style={{ borderTop: '0.5px solid rgba(0,0,0,0.06)' }}>
+                          <td style={{ padding: '10px 12px', color: '#1a1a1a' }}>{page.path}</td>
+                          <td style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 700, color: '#085041' }}>{Number(page.total_views || 0).toLocaleString('ka-GE')}</td>
+                          <td style={{ padding: '10px 12px', textAlign: 'right', color: '#888' }}>{Number(page.unique_visitors || 0).toLocaleString('ka-GE')} visitor</td>
+                        </tr>
+                      ))}
+                      {(!analyticsSummary.pages || analyticsSummary.pages.length === 0) && (
+                        <tr><td style={{ padding: 16, color: '#888' }}>მონაცემები ჯერ არ არის. SQL migration გაუშვით Supabase-ში.</td></tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+
+                <div style={{ background: '#fff', borderRadius: 12, border: '0.5px solid rgba(0,0,0,0.08)', overflow: 'hidden' }}>
+                  <div style={{ padding: '12px 16px', borderBottom: '0.5px solid rgba(0,0,0,0.08)', fontSize: 13, fontWeight: 600 }}>ყველაზე ნანახი ბლოგები</div>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+                    <tbody>
+                      {(analyticsSummary.blogs || []).map((blog: any) => (
+                        <tr key={blog.slug} style={{ borderTop: '0.5px solid rgba(0,0,0,0.06)' }}>
+                          <td style={{ padding: '10px 12px', color: '#1a1a1a' }}>/blog/{blog.slug}</td>
+                          <td style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 700, color: '#085041' }}>{Number(blog.total_views || 0).toLocaleString('ka-GE')}</td>
+                          <td style={{ padding: '10px 12px', textAlign: 'right', color: '#888' }}>{Number(blog.unique_visitors || 0).toLocaleString('ka-GE')} visitor</td>
+                        </tr>
+                      ))}
+                      {(!analyticsSummary.blogs || analyticsSummary.blogs.length === 0) && (
+                        <tr><td style={{ padding: 16, color: '#888' }}>ბლოგის ნახვები ჯერ არ დაფიქსირებულა.</td></tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </div>
           )}
@@ -601,25 +792,41 @@ export default function AdminPage() {
                   {saveError}
                 </div>
               )}
+              {lastPriceSaveResult && (
+                <div style={{ gridColumn: '1 / -1', background: lastPriceSaveResult.startsWith('შენახულია') ? '#ecfdf5' : '#fff7ed', color: lastPriceSaveResult.startsWith('შენახულია') ? '#047857' : '#9a3412', border: `1px solid ${lastPriceSaveResult.startsWith('შენახულია') ? '#a7f3d0' : '#fed7aa'}`, borderRadius: 12, padding: 12, fontSize: 12, fontWeight: 700 }}>
+                  ბოლო ფასის შენახვა: {lastPriceSaveResult}
+                </div>
+              )}
               {products.map(p => (
                 <div key={p.id} style={{ background: '#fff', borderRadius: 12, padding: 14, border: '0.5px solid rgba(0,0,0,0.08)' }}>
                   <p style={{ fontSize: 12, color: '#085041', fontWeight: 500 }}>{p.category_slug}</p>
                   <p style={{ fontSize: 14, fontWeight: 500, color: '#1a1a1a', margin: '4px 0 10px' }}>{p.name}</p>
+                  {p.prices?.[0]?.price_gel ? (
+                    <p style={{ fontSize: 11, color: '#0f766e', margin: '0 0 8px', fontWeight: 700 }}>
+                      შენახული ფასი: ₾{Number(p.prices[0].price_gel).toLocaleString('ka-GE')}
+                    </p>
+                  ) : (
+                    <p style={{ fontSize: 11, color: '#9f1239', margin: '0 0 8px', fontWeight: 700 }}>
+                      ფასი ჯერ არ არის შენახული
+                    </p>
+                  )}
                   <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
                     <span style={{ fontSize: 13, color: '#888' }}>₾</span>
                     <input
                       type="number"
-                      defaultValue={p.prices?.[0]?.price_gel || 0}
+                      value={priceDrafts[p.dbId || p.id] ?? String(p.prices?.[0]?.price_gel || '')}
+                      onChange={(event) => setPriceDrafts((prev) => ({ ...prev, [p.dbId || p.id]: event.target.value }))}
                       id={`price-${p.id}`}
                       style={{ flex: 1, padding: '6px 8px', border: '0.5px solid rgba(0,0,0,0.2)', borderRadius: 8, fontSize: 13 }}
                     />
                     <button
                       onClick={() => {
-                        const el = document.getElementById(`price-${p.id}`) as HTMLInputElement
-                        updatePrice(p, parseFloat(el.value))
+                        const draft = priceDrafts[p.dbId || p.id] ?? String(p.prices?.[0]?.price_gel || '')
+                        updatePrice(p, parseFloat(draft))
                       }}
+                      disabled={savingPriceId === (p.dbId || p.id)}
                       style={{ padding: '6px 10px', background: '#085041', color: '#fff', border: 'none', borderRadius: 8, fontSize: 12, cursor: 'pointer' }}>
-                      {saved === (p.dbId || p.id) ? '✓' : 'შენახვა'}
+                      {savingPriceId === (p.dbId || p.id) ? 'ინახება...' : saved === (p.dbId || p.id) ? '✓' : 'შენახვა'}
                     </button>
                   </div>
                 </div>
@@ -741,13 +948,18 @@ export default function AdminPage() {
                 <input value={requestSearch} onChange={e => setRequestSearch(e.target.value)} placeholder="Search request..." style={{ marginLeft: 'auto', minWidth: 220, padding: '7px 10px', borderRadius: 10, border: '0.5px solid rgba(0,0,0,0.15)', fontSize: 12 }} />
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                {filteredRequests.map(r => (
+                {filteredRequests.map(r => {
+                  const requestPrice = resolveRequestPrice(r, products)
+                  return (
                   <div key={r.id} style={{ background: '#fff', borderRadius: 12, padding: '12px 16px', border: '0.5px solid rgba(0,0,0,0.08)', display: 'flex', alignItems: 'center', gap: 12 }}>
                     <div style={{ width: 8, height: 8, borderRadius: 4, background: r.status === 'new' ? '#185FA5' : r.status === 'done' ? '#1D9E75' : '#BA7517', flexShrink: 0 }} />
                     <div style={{ flex: 1 }}>
                       <p style={{ fontSize: 13, fontWeight: 500, color: '#1a1a1a' }}>{r.products?.name || '—'} — {r.type === 'price' ? 'ფასის მოთხოვნა' : r.type === 'demo' ? 'დემო' : r.type}</p>
                       <p style={{ fontSize: 12, color: '#888', marginTop: 2 }}>{r.client?.full_name} · {r.client?.clinic_name} · {r.client?.phone}</p>
                     </div>
+                    {requestPrice && (
+                      <span style={{ fontSize: 12, color: '#085041', fontWeight: 700 }}>₾{Number(requestPrice.price_gel).toLocaleString('ka-GE')}</span>
+                    )}
                     <span style={{ fontSize: 11, color: '#aaa' }}>{new Date(r.created_at).toLocaleDateString('ka-GE')}</span>
                     <div style={{ display: 'flex', gap: 4 }}>
                       {r.status === 'new' && (
@@ -767,7 +979,8 @@ export default function AdminPage() {
                       )}
                     </div>
                   </div>
-                ))}
+                  )
+                })}
                 {filteredRequests.length === 0 && (
                   <p style={{ textAlign: 'center', color: '#aaa', padding: 24 }}>მოთხოვნა არ არის</p>
                 )}
