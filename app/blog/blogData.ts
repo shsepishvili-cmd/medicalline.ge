@@ -1,5 +1,96 @@
 export const blogArticles = [
   {
+    id: 27,
+    slug: "medical-line-georgia-gdda-dental-outlet-2026",
+    title: "Medical Line Georgia საქართველოში პირველ GDDA Dental Outlet 2026-ზე",
+    excerpt:
+      "Medical Line Georgia მონაწილეობდა საქართველოში პირველ სტომატოლოგიურ აუთლეტში — GDDA Dental Outlet 2026-ზე, რომელიც 2026 წლის 29-30 მაისს თბილისში, Courtyard by Marriott-ში გაიმართა.",
+    date: "4 ივნისი, 2026",
+    image: "/images/blog/gdda-dental-outlet-2026/medical-line-gdda-dental-outlet-2026-hero.jpg",
+    ogImage: "/images/blog/gdda-dental-outlet-2026/medical-line-gdda-dental-outlet-2026-hero.jpg",
+    imageFit: "cover",
+    category: "ღონისძიებები",
+    tags: [
+      "Medical Line Georgia",
+      "GDDA Dental Outlet 2026",
+      "სტომატოლოგიური აუთლეტი საქართველოში",
+      "სტომატოლოგიური აპარატურა",
+      "დენტალური აპარატურა საქართველო",
+      "სტომატოლოგიური ტექნოლოგიები",
+    ],
+    readTime: "5 წთ",
+    baseViews: 320,
+    content: `
+      <p style="font-size:1.12rem; font-weight:700; color:#0f3156; background:#eef7ff; border-left:4px solid #0ea5e9; padding:1rem 1.2rem; border-radius:0 14px 14px 0; margin-bottom:2rem;">
+        თანამედროვე სტომატოლოგიური ტექნოლოგიები, სპეციალური შეთავაზებები და პროფესიული შეხვედრები ერთ სივრცეში - Medical Line Georgia საქართველოში პირველი GDDA Dental Outlet 2026-ის მონაწილე იყო.
+      </p>
+
+      <p>საქართველოში სტომატოლოგიური ინდუსტრიისთვის ახალი ფორმატის ღონისძიება შედგა - 2026 წლის 29-30 მაისს, თბილისში, Courtyard by Marriott-ში გაიმართა <strong>GDDA Dental Outlet 2026</strong>, რომელიც ორგანიზატორებისა და ღონისძიების საკომუნიკაციო მასალების მიხედვით, საქართველოში პირველი სტომატოლოგიური აუთლეტი იყო. Medical Line Georgia მოხარულია, რომ ამ მნიშვნელოვანი მოვლენის მონაწილე გახდა.</p>
+
+      <figure style="margin:2rem 0;">
+        <img src="/images/blog/gdda-dental-outlet-2026/medical-line-gdda-dental-outlet-2026-hero.jpg" alt="Medical Line Georgia GDDA Dental Outlet 2026-ზე" style="width:100%; border-radius:24px; display:block;" loading="lazy" />
+        <figcaption style="font-size:.9rem; color:#64748b; margin-top:.75rem;">Medical Line Georgia-ს სივრცე GDDA Dental Outlet 2026-ზე.</figcaption>
+      </figure>
+
+      <h2>ახალი შესაძლებლობა სტომატოლოგიური სფეროსთვის</h2>
+      <p>GDDA Dental Outlet 2026 განსხვავებული კონცეფციის ღონისძიება იყო: ერთ სივრცეში გაერთიანდა სტომატოლოგიური აპარატურა, კლინიკური გადაწყვეტილებები, სპეციალური შეთავაზებები და პროფესიული შეხვედრები.</p>
+      <p>ღონისძიებამ სტომატოლოგებს, კლინიკების წარმომადგენლებსა და სფეროს პროფესიონალებს მისცა შესაძლებლობა, ადგილზე გაცნობოდნენ თანამედროვე ტექნოლოგიებს, შეედარებინათ სხვადასხვა გადაწყვეტა და მიეღოთ მათთვის საინტერესო პროდუქცია განსაკუთრებული პირობებით.</p>
+      <p>Medical Line Georgia-სთვის ეს იყო კიდევ ერთი მნიშვნელოვანი შესაძლებლობა, პირადად შეხვედროდა ექიმებსა და კლინიკების წარმომადგენლებს, მოესმინა მათი საჭიროებები და გაეზიარებინა თანამედროვე სტომატოლოგიური ტექნოლოგიების პრაქტიკული შესაძლებლობები.</p>
+
+      <figure style="margin:2rem 0;">
+        <img src="/images/blog/gdda-dental-outlet-2026/helios-demo.jpg" alt="ციფრული სტომატოლოგიის დემო სივრცე GDDA Dental Outlet 2026-ზე" style="width:100%; border-radius:24px; display:block;" loading="lazy" />
+      </figure>
+
+      <h2>Medical Line Georgia-ს მონაწილეობა GDDA Dental Outlet-ზე</h2>
+      <p>Medical Line Georgia საქართველოში წარმოადგენს თანამედროვე სტომატოლოგიურ აპარატურასა და ციფრულ გადაწყვეტილებებს, რომლებიც კლინიკებს ეხმარება სამუშაო პროცესის გაუმჯობესებაში, დიაგნოსტიკის განვითარებასა და პაციენტებისთვის უფრო კომფორტული სერვისის შეთავაზებაში.</p>
+      <p>GDDA Dental Outlet 2026-ის ფარგლებში დაინტერესებულ სტუმრებს შესაძლებლობა ჰქონდათ, გაცნობოდნენ Medical Line Georgia-ს შეთავაზებებს, მათ შორის თანამედროვე მიმართულებებს:</p>
+      <ul>
+        <li>ციფრული სტომატოლოგიის აპარატურა;</li>
+        <li>ინტრაორალური სკანირების გადაწყვეტილებები;</li>
+        <li>ენდოდონტიური მოწყობილობები;</li>
+        <li>ოპტიკური და ვიზუალიზაციის სისტემები;</li>
+        <li>კლინიკისთვის საჭირო სხვადასხვა თანამედროვე ტექნოლოგია.</li>
+      </ul>
+      <p>ჩვენთვის განსაკუთრებით მნიშვნელოვანი იყო უშუალო კომუნიკაცია ექიმებთან - მათი გამოცდილების, მოთხოვნებისა და სამომავლო გეგმების მოსმენა. სწორედ ასეთ შეხვედრებზე იქმნება სწორი თანამშრომლობა და უფრო ეფექტური გადაწყვეტილებები კლინიკებისთვის.</p>
+
+      <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:1rem; margin:2rem 0;">
+        <img src="/images/blog/gdda-dental-outlet-2026/optics-and-devices.jpg" alt="ოპტიკური და სტომატოლოგიური მოწყობილობები" style="width:100%; height:100%; min-height:220px; object-fit:cover; border-radius:20px;" loading="lazy" />
+        <img src="/images/blog/gdda-dental-outlet-2026/loupes-display.jpg" alt="ლუპები და კლინიკური აქსესუარები" style="width:100%; height:100%; min-height:220px; object-fit:cover; border-radius:20px;" loading="lazy" />
+      </div>
+
+      <h2>რატომ იყო პირველი Dental Outlet მნიშვნელოვანი?</h2>
+      <p>სტომატოლოგიური სფერო სწრაფად ვითარდება. ექიმები და კლინიკები ყოველდღიურად უფრო მეტად ინტერესდებიან ტექნოლოგიებით, რომლებიც მათ ეხმარება დაზოგონ დრო, გააუმჯობესონ სამუშაო სიზუსტე და პაციენტებს შესთავაზონ თანამედროვე მომსახურება.</p>
+      <p>GDDA Dental Outlet-ის ფორმატმა აჩვენა, რომ ქართულ სტომატოლოგიურ ბაზარზე არსებობს მოთხოვნა არა მხოლოდ გამოფენებზე, არამედ ისეთ პრაქტიკულ ღონისძიებებზე, სადაც პროფესიონალებს შეუძლიათ:</p>
+      <ul>
+        <li>პროდუქციის ადგილზე ნახვა;</li>
+        <li>სპეციალური პირობებით შეძენა;</li>
+        <li>მიმწოდებლებთან პირდაპირი კონსულტაცია;</li>
+        <li>ახალი ტექნოლოგიების შესახებ ინფორმაციის მიღება;</li>
+        <li>სამომავლო თანამშრომლობის დაგეგმვა.</li>
+      </ul>
+      <p>Medical Line Georgia-სთვის ასეთი ღონისძიებები განსაკუთრებულად მნიშვნელოვანია, რადგან ჩვენი მიზანია არა მხოლოდ აპარატურის მიწოდება, არამედ ექიმებისა და კლინიკებისთვის გრძელვადიანი პარტნიორობის, კონსულტაციისა და მხარდაჭერის შეთავაზება.</p>
+
+      <figure style="margin:2rem 0;">
+        <img src="/images/blog/gdda-dental-outlet-2026/air-prophy-display.jpg" alt="კლინიკური ტექნოლოგიები Medical Line Georgia-ს სტენდზე" style="width:100%; border-radius:24px; display:block;" loading="lazy" />
+      </figure>
+
+      <h2>მადლობა ექიმებსა და პარტნიორებს</h2>
+      <p>გვინდა მადლობა გადავუხადოთ ყველა ექიმს, კლინიკის წარმომადგენელსა და სტუმარს, ვინც GDDA Dental Outlet 2026-ზე Medical Line Georgia-ს სივრცე მოინახულა, დაინტერესდა ჩვენი პროდუქციით და გაგვიზიარა საკუთარი პროფესიული ხედვა.</p>
+      <p>ასევე მადლობას ვუხდით GDDA-ს საქართველოში პირველი სტომატოლოგიური აუთლეტის ორგანიზებისთვის და იმ შესაძლებლობისთვის, რომ სფეროს წარმომადგენლები ახალ, საინტერესო და პრაქტიკულ ფორმატში შევხვედროდით.</p>
+      <p>Medical Line Georgia ამაყობს, რომ იყო პირველი GDDA Dental Outlet-ის ნაწილი და მომავალშიც აქტიურად გააგრძელებს საქართველოში თანამედროვე სტომატოლოგიური ტექნოლოგიების განვითარებისა და ხელმისაწვდომობის მხარდაჭერას.</p>
+
+      <h2>Medical Line Georgia - თანამედროვე ტექნოლოგიები თქვენი კლინიკისთვის</h2>
+      <p>ჩვენ გვჯერა, რომ თანამედროვე აპარატურა ექიმისთვის მხოლოდ მოწყობილობა არ არის - ეს არის მეტი სიზუსტე, მეტი კომფორტი, უფრო ეფექტური სამუშაო პროცესი და პაციენტისთვის უკეთესი გამოცდილება.</p>
+      <p>Medical Line Georgia აგრძელებს მუშაობას იმისთვის, რომ საქართველოს სტომატოლოგიურ ბაზარზე ხელმისაწვდომი გახდეს თანამედროვე, საიმედო და პრაქტიკულად გამოსადეგი ტექნოლოგიები.</p>
+
+      <div style="margin-top:2rem; background:#0f172a; color:white; padding:2rem; border-radius:24px;">
+        <h3 style="font-size:1.35rem; margin:0 0 .75rem; color:white;">დაგვიკავშირდით და შეარჩიეთ თქვენი კლინიკისთვის შესაბამისი გადაწყვეტა.</h3>
+        <p style="margin:.35rem 0;"><strong>ვებგვერდი:</strong> <a href="https://www.medicalline.ge" style="color:#93c5fd;">www.medicalline.ge</a></p>
+        <p style="margin:.35rem 0;"><strong>WhatsApp:</strong> <a href="https://wa.me/995514011116" style="color:#93c5fd;">+995 514 011 116</a></p>
+      </div>
+    `,
+  },
+  {
     id: 26,
     slug: "surfyone-sonic-activator-overview",
     title: "Eighteeth SurfyOne Sonic Activator - სრული მიმოხილვა ქართულად",
