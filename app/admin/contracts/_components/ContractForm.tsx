@@ -9,6 +9,130 @@ import type { ContractFormValues, ContractRecord } from '@/app/lib/contract-type
 import type { ProfileSummary, WarrantyRecord } from '@/app/lib/warranty-types'
 import { colors, Field, ui, requestContractPdfUrl } from './ContractUi'
 
+function todayKa() {
+  return new Date().toLocaleDateString('ka-GE')
+}
+
+function valueOrDash(value: string | number | null | undefined) {
+  const normalized = String(value ?? '').trim()
+  return normalized || '—'
+}
+
+function ContractLivePreview({
+  values,
+  total,
+}: {
+  values: ContractFormValues
+  total: string
+}) {
+  const buyerName = values.customerName || values.clinicName
+  const productLabel = [
+    values.productName,
+    values.brand,
+    values.model,
+  ].filter(Boolean).join(' / ')
+
+  const previewLine = {
+    fontSize: 13,
+    lineHeight: 1.75,
+    color: colors.text,
+    margin: '0 0 10px',
+  } as const
+
+  return (
+    <div style={{ ...ui.panel, background: '#FCFFFD', borderColor: 'rgba(8,80,65,0.18)' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', alignItems: 'flex-start', marginBottom: 16 }}>
+        <div>
+          <p style={{ margin: 0, fontSize: 12, fontWeight: 700, color: colors.green, letterSpacing: '.04em', textTransform: 'uppercase' }}>
+            ცოცხალი ხელშეკრულება
+          </p>
+          <h3 style={{ margin: '6px 0 0', fontSize: 22, color: colors.text }}>
+            გაყიდვა-მიწოდების ხელშეკრულება
+          </h3>
+        </div>
+        <div style={{ textAlign: 'right', fontSize: 12, color: colors.muted }}>
+          <div>თარიღი: <strong>{values.contractDate || todayKa()}</strong></div>
+          <div>ვერსია: <strong>Draft preview</strong></div>
+        </div>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12, marginBottom: 16 }}>
+        <div style={{ padding: 14, borderRadius: 14, border: '1px solid rgba(8,80,65,0.12)', background: '#fff' }}>
+          <p style={{ margin: '0 0 6px', fontSize: 12, color: colors.muted }}>მომწოდებელი</p>
+          <p style={{ margin: 0, fontSize: 14, fontWeight: 700, color: colors.text }}>შპს “მედიქალ ლაინ ჯორჯია”</p>
+          <p style={{ margin: '5px 0 0', fontSize: 12, color: colors.muted }}>ს/კ: 405526831 · ტელ: 514 011 116</p>
+        </div>
+        <div style={{ padding: 14, borderRadius: 14, border: '1px solid rgba(8,80,65,0.12)', background: '#fff' }}>
+          <p style={{ margin: '0 0 6px', fontSize: 12, color: colors.muted }}>მყიდველი / კლინიკა</p>
+          <p style={{ margin: 0, fontSize: 14, fontWeight: 700, color: colors.text }}>{valueOrDash(buyerName)}</p>
+          <p style={{ margin: '5px 0 0', fontSize: 12, color: colors.muted }}>
+            ID/კოდი: {valueOrDash(values.customerIdNumber)} · ტელ: {valueOrDash(values.phone)}
+          </p>
+        </div>
+      </div>
+
+      <p style={previewLine}>
+        წინამდებარე ხელშეკრულება იდება <strong>Medical Line Georgia</strong>-სა და <strong>{valueOrDash(buyerName)}</strong>-ს შორის.
+        მომწოდებელი იღებს ვალდებულებას მიაწოდოს მყიდველს შეთანხმებული სტომატოლოგიური აპარატურა/პროდუქტი, ხოლო მყიდველი იღებს ვალდებულებას მიიღოს პროდუქტი და გადაიხადოს ხელშეკრულებით განსაზღვრული თანხა.
+      </p>
+
+      <div style={{ borderRadius: 14, border: '1px solid rgba(15,23,42,0.1)', overflow: 'hidden', margin: '14px 0' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1.4fr .45fr .65fr .65fr', gap: 0, background: '#0F172A', color: '#fff', fontSize: 12, fontWeight: 700 }}>
+          <div style={{ padding: '10px 12px' }}>პროდუქტი</div>
+          <div style={{ padding: '10px 12px' }}>რაოდ.</div>
+          <div style={{ padding: '10px 12px' }}>ერთ. ფასი</div>
+          <div style={{ padding: '10px 12px' }}>ჯამი</div>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1.4fr .45fr .65fr .65fr', gap: 0, background: '#fff', fontSize: 13, color: colors.text }}>
+          <div style={{ padding: '12px' }}>
+            <strong>{valueOrDash(productLabel)}</strong>
+            {values.serialNumber ? <div style={{ marginTop: 5, fontSize: 12, color: colors.muted }}>სერიული ნომერი: {values.serialNumber}</div> : null}
+          </div>
+          <div style={{ padding: '12px' }}>{valueOrDash(values.quantity)}</div>
+          <div style={{ padding: '12px' }}>{values.unitPrice ? formatCurrency(Number(values.unitPrice), values.currency) : '—'}</div>
+          <div style={{ padding: '12px', fontWeight: 700, color: colors.green }}>{total}</div>
+        </div>
+      </div>
+
+      <p style={previewLine}>
+        გადახდის პირობა: <strong>{valueOrDash(values.paymentTerms)}</strong>.
+        მიწოდების მისამართი: <strong>{valueOrDash(values.deliveryAddress || values.customerAddress)}</strong>.
+        მიწოდების თარიღი: <strong>{valueOrDash(values.deliveryDate)}</strong>.
+      </p>
+
+      <p style={previewLine}>
+        გარანტიის ვადა შეადგენს <strong>{valueOrDash(values.warrantyMonths)} თვეს</strong>.
+        ინსტალაცია {values.installationIncluded ? <strong>შედის</strong> : <strong>არ შედის</strong>} ფასში, თუ მხარეები დამატებით სხვაგვარად არ შეთანხმდებიან.
+      </p>
+
+      <ol style={{ margin: '14px 0 0', paddingLeft: 20, color: colors.text, fontSize: 13, lineHeight: 1.75 }}>
+        <li>მომწოდებელი უზრუნველყოფს პროდუქტის მიწოდებას, გადაცემას და საჭიროების შემთხვევაში საწყის ტექნიკურ ინსტრუქтажს.</li>
+        <li>მყიდველი ვალდებულია უზრუნველყოს ინსტალაციისთვის საჭირო სივრცე, ელექტრო ინფრასტრუქტურა და უსაფრთხო წვდომა.</li>
+        <li>პროდუქტზე საკუთრების უფლება მყიდველზე გადადის სრული ანაზღაურების შემდეგ.</li>
+        <li>ელექტრონული დადასტურება public ბმულით, OTP კოდით ან თანხმობის მონიშვნით ითვლება მხარის ნების გამოხატვად და ინახება audit trail-ში.</li>
+      </ol>
+
+      {values.specialTerms.trim() ? (
+        <div style={{ marginTop: 14, padding: 14, borderRadius: 14, background: '#FFF7ED', border: '1px solid #FED7AA' }}>
+          <p style={{ margin: '0 0 6px', fontSize: 12, fontWeight: 700, color: '#9A3412' }}>სპეციალური პირობები</p>
+          <p style={{ margin: 0, fontSize: 13, lineHeight: 1.7, color: colors.text }}>{values.specialTerms}</p>
+        </div>
+      ) : null}
+
+      <div style={{ marginTop: 18, display: 'grid', gridTemplateColumns: 'repeat(2, minmax(180px, 1fr))', gap: 14 }}>
+        <div>
+          <p style={{ margin: '0 0 24px', fontSize: 12, color: colors.muted }}>მომწოდებელი</p>
+          <div style={{ borderTop: '1px solid #0F172A', paddingTop: 8, fontSize: 12, color: colors.muted }}>Medical Line Georgia</div>
+        </div>
+        <div>
+          <p style={{ margin: '0 0 24px', fontSize: 12, color: colors.muted }}>მყიდველი / დადასტურება</p>
+          <div style={{ borderTop: '1px solid #0F172A', paddingTop: 8, fontSize: 12, color: colors.muted }}>{valueOrDash(buyerName)}</div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function mapRecordToForm(c: ContractRecord): ContractFormValues {
   return {
     contractDate:        c.contract_date || '',
@@ -319,6 +443,8 @@ export function ContractForm({
           </div>
         </div>
       </div>
+
+      <ContractLivePreview values={values} total={formatCurrency(fin.gross, values.currency)} />
 
       {error ? (
         <div style={{ ...ui.panel, borderColor: 'rgba(185,28,28,0.18)', background: '#FEF2F2', color: '#991B1B' }}>{error}</div>
