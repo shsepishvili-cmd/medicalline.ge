@@ -5,17 +5,21 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/app/lib/supabase'
 import { createEmptyContractForm, calcVatAmount, formatCurrency } from '@/app/lib/contract'
+import {
+  buildContractIntro,
+  buildStandardContractSections,
+  contractInputFromForm,
+  getBuyerName,
+  getProductLabel,
+  SELLER_INFO,
+  valueOrDash,
+} from '@/app/lib/contract-template'
 import type { ContractFormValues, ContractRecord } from '@/app/lib/contract-types'
 import type { ProfileSummary, WarrantyRecord } from '@/app/lib/warranty-types'
 import { colors, Field, ui, requestContractPdfUrl } from './ContractUi'
 
 function todayKa() {
   return new Date().toLocaleDateString('ka-GE')
-}
-
-function valueOrDash(value: string | number | null | undefined) {
-  const normalized = String(value ?? '').trim()
-  return normalized || '—'
 }
 
 function ContractLivePreview({
@@ -25,12 +29,10 @@ function ContractLivePreview({
   values: ContractFormValues
   total: string
 }) {
-  const buyerName = values.customerName || values.clinicName
-  const productLabel = [
-    values.productName,
-    values.brand,
-    values.model,
-  ].filter(Boolean).join(' / ')
+  const templateInput = contractInputFromForm(values)
+  const buyerName = getBuyerName(templateInput)
+  const productLabel = getProductLabel(templateInput)
+  const sections = buildStandardContractSections(templateInput)
 
   const previewLine = {
     fontSize: 13,
@@ -59,8 +61,8 @@ function ContractLivePreview({
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12, marginBottom: 16 }}>
         <div style={{ padding: 14, borderRadius: 14, border: '1px solid rgba(8,80,65,0.12)', background: '#fff' }}>
           <p style={{ margin: '0 0 6px', fontSize: 12, color: colors.muted }}>მომწოდებელი</p>
-          <p style={{ margin: 0, fontSize: 14, fontWeight: 700, color: colors.text }}>შპს “მედიქალ ლაინ ჯორჯია”</p>
-          <p style={{ margin: '5px 0 0', fontSize: 12, color: colors.muted }}>ს/კ: 405526831 · ტელ: 514 011 116</p>
+          <p style={{ margin: 0, fontSize: 14, fontWeight: 700, color: colors.text }}>{SELLER_INFO.name}</p>
+          <p style={{ margin: '5px 0 0', fontSize: 12, color: colors.muted }}>ს/კ: {SELLER_INFO.idNumber} · ტელ: {SELLER_INFO.phone}</p>
         </div>
         <div style={{ padding: 14, borderRadius: 14, border: '1px solid rgba(8,80,65,0.12)', background: '#fff' }}>
           <p style={{ margin: '0 0 6px', fontSize: 12, color: colors.muted }}>მყიდველი / კლინიკა</p>
@@ -71,10 +73,7 @@ function ContractLivePreview({
         </div>
       </div>
 
-      <p style={previewLine}>
-        წინამდებარე ხელშეკრულება იდება <strong>Medical Line Georgia</strong>-სა და <strong>{valueOrDash(buyerName)}</strong>-ს შორის.
-        მომწოდებელი იღებს ვალდებულებას მიაწოდოს მყიდველს შეთანხმებული სტომატოლოგიური აპარატურა/პროდუქტი, ხოლო მყიდველი იღებს ვალდებულებას მიიღოს პროდუქტი და გადაიხადოს ხელშეკრულებით განსაზღვრული თანხა.
-      </p>
+      <p style={previewLine}>{buildContractIntro(templateInput)}</p>
 
       <div style={{ borderRadius: 14, border: '1px solid rgba(15,23,42,0.1)', overflow: 'hidden', margin: '14px 0' }}>
         <div style={{ display: 'grid', gridTemplateColumns: '1.4fr .45fr .65fr .65fr', gap: 0, background: '#0F172A', color: '#fff', fontSize: 12, fontWeight: 700 }}>
@@ -94,23 +93,18 @@ function ContractLivePreview({
         </div>
       </div>
 
-      <p style={previewLine}>
-        გადახდის პირობა: <strong>{valueOrDash(values.paymentTerms)}</strong>.
-        მიწოდების მისამართი: <strong>{valueOrDash(values.deliveryAddress || values.customerAddress)}</strong>.
-        მიწოდების თარიღი: <strong>{valueOrDash(values.deliveryDate)}</strong>.
-      </p>
-
-      <p style={previewLine}>
-        გარანტიის ვადა შეადგენს <strong>{valueOrDash(values.warrantyMonths)} თვეს</strong>.
-        ინსტალაცია {values.installationIncluded ? <strong>შედის</strong> : <strong>არ შედის</strong>} ფასში, თუ მხარეები დამატებით სხვაგვარად არ შეთანხმდებიან.
-      </p>
-
-      <ol style={{ margin: '14px 0 0', paddingLeft: 20, color: colors.text, fontSize: 13, lineHeight: 1.75 }}>
-        <li>მომწოდებელი უზრუნველყოფს პროდუქტის მიწოდებას, გადაცემას და საჭიროების შემთხვევაში საწყის ტექნიკურ ინსტრუქтажს.</li>
-        <li>მყიდველი ვალდებულია უზრუნველყოს ინსტალაციისთვის საჭირო სივრცე, ელექტრო ინფრასტრუქტურა და უსაფრთხო წვდომა.</li>
-        <li>პროდუქტზე საკუთრების უფლება მყიდველზე გადადის სრული ანაზღაურების შემდეგ.</li>
-        <li>ელექტრონული დადასტურება public ბმულით, OTP კოდით ან თანხმობის მონიშვნით ითვლება მხარის ნების გამოხატვად და ინახება audit trail-ში.</li>
-      </ol>
+      <div style={{ display: 'grid', gap: 14, marginTop: 16 }}>
+        {sections.map((section) => (
+          <section key={section.title} style={{ paddingTop: 12, borderTop: '1px solid rgba(15,23,42,0.08)' }}>
+            <h4 style={{ margin: '0 0 8px', fontSize: 15, color: colors.text }}>{section.title}</h4>
+            <ol style={{ margin: 0, paddingLeft: 20, color: colors.text, fontSize: 13, lineHeight: 1.75 }}>
+              {section.clauses.map((clause) => (
+                <li key={clause}>{clause}</li>
+              ))}
+            </ol>
+          </section>
+        ))}
+      </div>
 
       {values.specialTerms.trim() ? (
         <div style={{ marginTop: 14, padding: 14, borderRadius: 14, background: '#FFF7ED', border: '1px solid #FED7AA' }}>
@@ -122,7 +116,7 @@ function ContractLivePreview({
       <div style={{ marginTop: 18, display: 'grid', gridTemplateColumns: 'repeat(2, minmax(180px, 1fr))', gap: 14 }}>
         <div>
           <p style={{ margin: '0 0 24px', fontSize: 12, color: colors.muted }}>მომწოდებელი</p>
-          <div style={{ borderTop: '1px solid #0F172A', paddingTop: 8, fontSize: 12, color: colors.muted }}>Medical Line Georgia</div>
+          <div style={{ borderTop: '1px solid #0F172A', paddingTop: 8, fontSize: 12, color: colors.muted }}>{SELLER_INFO.name}</div>
         </div>
         <div>
           <p style={{ margin: '0 0 24px', fontSize: 12, color: colors.muted }}>მყიდველი / დადასტურება</p>

@@ -1,9 +1,16 @@
 import { jsPDF } from 'jspdf'
 import { formatCurrency, calcVatAmount } from './contract'
+import {
+  buildContractIntro,
+  buildStandardContractSections,
+  contractInputFromRecord,
+  getProductLabel,
+  SELLER_INFO,
+} from './contract-template'
 import type { ContractRecord } from './contract-types'
 import { CONTRACT_STATUS_LABELS } from './contract-types'
 import { SYLFAEN_FONT_BASE64 } from './warranty-font-data'
-import { ML_LOGO_BASE64, INVOICE_STAMP_BASE64 } from './warranty-assets-data'
+import { ML_LOGO_BASE64 } from './warranty-assets-data'
 
 function registerFont(pdf: jsPDF) {
   pdf.addFileToVFS('Sylfaen.ttf', SYLFAEN_FONT_BASE64)
@@ -12,13 +19,9 @@ function registerFont(pdf: jsPDF) {
 }
 
 function geo(d: string | null | undefined) {
-  if (!d) return '—'
+  if (!d) return '-'
   return new Date(d).toLocaleDateString('ka-GE')
 }
-
-// ---------------------------------------------------------------------------
-// Contract PDF — formal A4 Georgian legal document
-// ---------------------------------------------------------------------------
 
 export async function generateContractPdfBuffer(contract: ContractRecord): Promise<Buffer> {
   const pdf = new jsPDF('p', 'mm', 'a4')
@@ -28,8 +31,14 @@ export async function generateContractPdfBuffer(contract: ContractRecord): Promi
   const pageH = 297
   const ml = 18
   const mr = 18
+  const top = 18
+  const bottom = 20
   const uw = pageW - ml - mr
-  let y = 0
+  const navy: [number, number, number] = [15, 23, 42]
+  const text: [number, number, number] = [31, 41, 55]
+  const muted: [number, number, number] = [100, 116, 139]
+  const soft: [number, number, number] = [248, 250, 252]
+  let y = top
 
   const fin = calcVatAmount(
     contract.unit_price,
@@ -37,400 +46,268 @@ export async function generateContractPdfBuffer(contract: ContractRecord): Promi
     contract.vat_rate,
     contract.vat_included,
   )
+  const templateInput = contractInputFromRecord(contract)
+  const templateSections = buildStandardContractSections(templateInput)
 
-  // ── 1. Header ─────────────────────────────────────────────────────────────
-  pdf.setFillColor(8, 80, 65)
-  pdf.rect(0, 0, pageW, 36, 'F')
+  function footer() {
+    pdf.setDrawColor(226, 232, 240)
+    pdf.setLineWidth(0.25)
+    pdf.line(ml, pageH - 10, pageW - mr, pageH - 10)
+    pdf.setFont('Sylfaen', 'normal')
+    pdf.setFontSize(7.5)
+    pdf.setTextColor(...muted)
+    pdf.text(`Medical Line Georgia · ${contract.contract_number} · ${geo(contract.contract_date)}`, pageW / 2, pageH - 6, { align: 'center' })
+  }
 
-  try { pdf.addImage(ML_LOGO_BASE64, 'PNG', ml, 4, 28, 28) } catch { /* skip */ }
+  function startPage(continuationTitle?: string) {
+    if (pdf.getNumberOfPages() > 0) {
+      footer()
+      pdf.addPage()
+    }
+    y = top
+
+    try {
+      pdf.addImage(ML_LOGO_BASE64, 'PNG', ml, y - 2, 18, 18)
+    } catch {
+      // no-op
+    }
+
+    pdf.setFont('Sylfaen', 'bold')
+    pdf.setFontSize(12.5)
+    pdf.setTextColor(...navy)
+    pdf.text('Medical Line Georgia', ml + 22, y + 5)
+
+    pdf.setFont('Sylfaen', 'normal')
+    pdf.setFontSize(8.5)
+    pdf.setTextColor(...muted)
+    pdf.text('ნასყიდობის, მიწოდებისა და ინსტალაციის ხელშეკრულება', ml + 22, y + 10)
+    pdf.text(`No. ${contract.contract_number}`, pageW - mr, y + 5, { align: 'right' })
+    pdf.text(geo(contract.contract_date), pageW - mr, y + 10, { align: 'right' })
+
+    y += 22
+
+    if (continuationTitle) {
+      drawSectionTitle(continuationTitle)
+    }
+  }
+
+  function ensureSpace(space: number, continuationTitle?: string) {
+    if (y + space > pageH - bottom - 12) {
+      startPage(continuationTitle)
+    }
+  }
+
+  function drawSectionTitle(title: string) {
+    ensureSpace(14)
+    pdf.setFillColor(...navy)
+    pdf.roundedRect(ml, y, uw, 9, 2, 2, 'F')
+    pdf.setFont('Sylfaen', 'bold')
+    pdf.setFontSize(10.5)
+    pdf.setTextColor(255, 255, 255)
+    pdf.text(title, ml + 4, y + 5.8)
+    y += 13
+  }
+
+  function drawLabelValueRows(rows: Array<[string, string]>) {
+    rows.forEach(([label, value], index) => {
+      const valueLines = pdf.splitTextToSize(value, uw - 62) as string[]
+      const rowH = Math.max(10, valueLines.length * 5.3 + 2)
+      ensureSpace(rowH + 2)
+
+      if (index % 2 === 0) {
+        pdf.setFillColor(...soft)
+        pdf.roundedRect(ml, y - 1, uw, rowH, 1.5, 1.5, 'F')
+      }
+
+      pdf.setFont('Sylfaen', 'bold')
+      pdf.setFontSize(9.3)
+      pdf.setTextColor(...muted)
+      pdf.text(label, ml + 3, y + 5)
+
+      pdf.setFont('Sylfaen', 'normal')
+      pdf.setFontSize(9.8)
+      pdf.setTextColor(...text)
+      pdf.text(valueLines, ml + 58, y + 5)
+
+      y += rowH + 1.5
+    })
+  }
+
+  function drawClauseList(clauses: string[], continuationTitle: string) {
+    pdf.setFont('Sylfaen', 'normal')
+    pdf.setFontSize(10.2)
+    pdf.setTextColor(...text)
+
+    clauses.forEach((clause, index) => {
+      const lines = pdf.splitTextToSize(`${index + 1}. ${clause}`, uw - 4) as string[]
+      const blockH = lines.length * 6 + 2
+      ensureSpace(blockH + 2, continuationTitle)
+      pdf.text(lines, ml + 2, y)
+      y += blockH
+    })
+  }
+
+  startPage()
 
   pdf.setFont('Sylfaen', 'bold')
-  pdf.setFontSize(13)
-  pdf.setTextColor(255, 255, 255)
-  pdf.text('Medical Line Georgia', ml + 32, 15)
+  pdf.setFontSize(18)
+  pdf.setTextColor(...navy)
+  pdf.text('ხელშეკრულება', pageW / 2, y, { align: 'center' })
+  y += 6
   pdf.setFont('Sylfaen', 'normal')
-  pdf.setFontSize(9)
-  pdf.setTextColor(180, 230, 210)
-  pdf.text('შ.პ.ს „მედიქალ ლაინ ჯორჯია"  ·  medicalline.ge  ·  514 011 116', ml + 32, 22)
-  pdf.text('ს/ნ: 405526831  ·  მისამართი: თბილისი, საქართველო', ml + 32, 28)
-
-  pdf.setFont('Sylfaen', 'bold')
-  pdf.setFontSize(8.5)
-  pdf.setTextColor(200, 240, 220)
-  pdf.text('გაყიდვის ხელშეკრულება', pageW - mr, 18, { align: 'right' })
-  pdf.setFont('Sylfaen', 'normal')
-  pdf.setFontSize(8)
-  pdf.setTextColor(160, 215, 195)
-  pdf.text(`# ${contract.contract_number}`, pageW - mr, 25, { align: 'right' })
-
-  y = 44
-
-  // ── 2. Title ───────────────────────────────────────────────────────────────
-  pdf.setFont('Sylfaen', 'bold')
-  pdf.setFontSize(17)
-  pdf.setTextColor(8, 80, 65)
-  pdf.text('გაყიდვის ხელშეკრულება', pageW / 2, y, { align: 'center' })
-  y += 7
-
-  pdf.setDrawColor(8, 80, 65)
-  pdf.setLineWidth(0.5)
-  pdf.line(ml, y, pageW - mr, y)
-  y += 5
-
-  // Contract meta row
-  pdf.setFont('Sylfaen', 'normal')
-  pdf.setFontSize(9)
-  pdf.setTextColor(80, 90, 105)
-  pdf.text(`ხელშეკრულების ნომერი: `, ml, y)
-  pdf.setFont('Sylfaen', 'bold')
-  pdf.setTextColor(18, 24, 38)
-  pdf.text(contract.contract_number, ml + 52, y)
-
-  pdf.setFont('Sylfaen', 'normal')
-  pdf.setTextColor(80, 90, 105)
-  pdf.text('თარიღი:', ml + 110, y)
-  pdf.setFont('Sylfaen', 'bold')
-  pdf.setTextColor(18, 24, 38)
-  pdf.text(geo(contract.contract_date), ml + 125, y)
-
-  y += 5
-
-  pdf.setFont('Sylfaen', 'normal')
-  pdf.setFontSize(9)
-  pdf.setTextColor(80, 90, 105)
-  pdf.text(`სტატუსი: `, ml, y)
-  pdf.setFont('Sylfaen', 'bold')
-  pdf.setTextColor(18, 24, 38)
-  pdf.text(CONTRACT_STATUS_LABELS[contract.status], ml + 22, y)
+  pdf.setFontSize(10)
+  pdf.setTextColor(...muted)
+  pdf.text('საქონლის/მოწყობილობის მიწოდებისა და დადასტურების დოკუმენტი', pageW / 2, y, { align: 'center' })
   y += 8
 
-  pdf.setDrawColor(220, 225, 232)
-  pdf.setLineWidth(0.3)
+  pdf.setDrawColor(203, 213, 225)
+  pdf.setLineWidth(0.35)
   pdf.line(ml, y, pageW - mr, y)
-  y += 6
+  y += 8
 
-  // ── 3. Parties block ───────────────────────────────────────────────────────
-  pdf.setFillColor(8, 80, 65)
-  pdf.roundedRect(ml, y - 1, uw, 9, 2, 2, 'F')
+  drawSectionTitle('I. მხარეები')
+
+  const leftX = ml
+  const boxGap = 8
+  const boxW = (uw - boxGap) / 2
+  const boxH = 36
+
+  pdf.setFillColor(...soft)
+  pdf.roundedRect(leftX, y, boxW, boxH, 2, 2, 'F')
   pdf.setFont('Sylfaen', 'bold')
-  pdf.setFontSize(10)
-  pdf.setTextColor(255, 255, 255)
-  pdf.text('I.  მხარეები', ml + 4, y + 5.5)
-  y += 13
-
-  const halfW = uw / 2 - 4
-
-  // Left: Seller
-  pdf.setFillColor(245, 248, 250)
-  pdf.roundedRect(ml, y - 1, halfW, 34, 2, 2, 'F')
-  pdf.setFont('Sylfaen', 'bold')
-  pdf.setFontSize(9)
-  pdf.setTextColor(8, 80, 65)
-  pdf.text('მომწოდებელი (გამყიდველი):', ml + 3, y + 5)
+  pdf.setFontSize(9.5)
+  pdf.setTextColor(...navy)
+  pdf.text('მომწოდებელი', leftX + 4, y + 6)
   pdf.setFont('Sylfaen', 'normal')
-  pdf.setFontSize(8.5)
-  pdf.setTextColor(18, 24, 38)
-  pdf.text('შ.პ.ს „მედიქალ ლაინ ჯორჯია"', ml + 3, y + 12)
-  pdf.setTextColor(80, 90, 105)
-  pdf.text('ს/კ: 405526831', ml + 3, y + 18)
-  pdf.text('მისამართი: თბილისი, საქართველო', ml + 3, y + 24)
-  pdf.text('ტელ: 514 011 116', ml + 3, y + 30)
+  pdf.setFontSize(9.2)
+  pdf.setTextColor(...text)
+  pdf.text(SELLER_INFO.name, leftX + 4, y + 13)
+  pdf.setTextColor(...muted)
+  pdf.text('ს/კ: ' + SELLER_INFO.idNumber, leftX + 4, y + 19)
+  pdf.text('მისამართი: ' + SELLER_INFO.address, leftX + 4, y + 25)
+  pdf.text('ტელ: ' + SELLER_INFO.phone, leftX + 4, y + 31)
 
-  // Right: Buyer
-  const rx = ml + halfW + 8
-  pdf.setFillColor(245, 248, 250)
-  pdf.roundedRect(rx, y - 1, halfW, 34, 2, 2, 'F')
+  const rightX = leftX + boxW + boxGap
+  pdf.setFillColor(...soft)
+  pdf.roundedRect(rightX, y, boxW, boxH, 2, 2, 'F')
   pdf.setFont('Sylfaen', 'bold')
-  pdf.setFontSize(9)
-  pdf.setTextColor(8, 80, 65)
-  pdf.text('მყიდველი (კლინიკა / პირი):', rx + 3, y + 5)
+  pdf.setFontSize(9.5)
+  pdf.setTextColor(...navy)
+  pdf.text('კლიენტი / შემსყიდველი', rightX + 4, y + 6)
   pdf.setFont('Sylfaen', 'normal')
-  pdf.setFontSize(8.5)
-  pdf.setTextColor(18, 24, 38)
-  pdf.text(contract.customer_name || contract.clinic_name || '—', rx + 3, y + 12)
-  pdf.setTextColor(80, 90, 105)
-  if (contract.customer_id_number) pdf.text(`პ/ნ: ${contract.customer_id_number}`, rx + 3, y + 18)
+  pdf.setFontSize(9.2)
+  pdf.setTextColor(...text)
+  pdf.text(contract.customer_name || contract.clinic_name || '-', rightX + 4, y + 13)
+  pdf.setTextColor(...muted)
+  if (contract.customer_id_number) pdf.text(`პ/ნ: ${contract.customer_id_number}`, rightX + 4, y + 19)
   if (contract.customer_address) {
-    const adrLines: string[] = pdf.splitTextToSize(`მისამართი: ${contract.customer_address}`, halfW - 6)
-    pdf.text(adrLines[0] as string, rx + 3, contract.customer_id_number ? y + 24 : y + 18)
+    const adr = pdf.splitTextToSize(`მისამართი: ${contract.customer_address}`, boxW - 8) as string[]
+    pdf.text(adr.slice(0, 2), rightX + 4, y + 25)
   }
-  if (contract.phone) pdf.text(`ტელ: ${contract.phone}`, rx + 3, y + 30)
+  if (contract.phone) pdf.text(`ტელ: ${contract.phone}`, rightX + 4, y + 31)
 
-  y += 38
+  y += boxH + 8
 
-  // ── 4. Subject ─────────────────────────────────────────────────────────────
-  pdf.setFillColor(8, 80, 65)
-  pdf.roundedRect(ml, y - 1, uw, 9, 2, 2, 'F')
-  pdf.setFont('Sylfaen', 'bold')
-  pdf.setFontSize(10)
-  pdf.setTextColor(255, 255, 255)
-  pdf.text('II.  ხელშეკრულების საგანი', ml + 4, y + 5.5)
-  y += 13
+  drawSectionTitle('II. ხელშეკრულების საგანი')
 
-  const subjectText =
-    `მომწოდებელი ვალდებულია გადასცეს მყიდველს, ხოლო მყიდველი ვალდებულია მიიღოს და გადაიხადოს შემდეგი პროდუქტი/მოწყობილობა:`
-
+  const subject = buildContractIntro(templateInput)
   pdf.setFont('Sylfaen', 'normal')
-  pdf.setFontSize(9)
-  pdf.setTextColor(25, 32, 44)
-  const subjectLines: string[] = pdf.splitTextToSize(subjectText, uw)
+  pdf.setFontSize(10.2)
+  pdf.setTextColor(...text)
+  const subjectLines = pdf.splitTextToSize(subject, uw) as string[]
   pdf.text(subjectLines, ml, y)
-  y += subjectLines.length * 5 + 4
+  y += subjectLines.length * 5.8 + 5
 
-  // Product table
-  const cols = [52, 14, 30, 30, 32, 16]  // widths: name, qty, unit, net, vat, vat%
-  const headers = ['პროდუქტი / მოწყობილობა', 'რაოდ.', 'ერთ. ფასი', 'ნეტო', 'დღგ', 'სულ']
-  const tableX = ml
-
-  // Header row
-  pdf.setFillColor(8, 80, 65)
-  pdf.roundedRect(tableX, y - 1, uw, 8, 1.5, 1.5, 'F')
+  ensureSpace(26)
+  pdf.setFillColor(...navy)
+  pdf.roundedRect(ml, y, uw, 9, 1.5, 1.5, 'F')
   pdf.setFont('Sylfaen', 'bold')
-  pdf.setFontSize(8)
+  pdf.setFontSize(8.7)
   pdf.setTextColor(255, 255, 255)
-  let cx = tableX + 2
-  headers.forEach((h, i) => {
-    pdf.text(h, cx, y + 4.5)
-    cx += cols[i]
-  })
-  y += 10
+  pdf.text('პროდუქტი / მოწყობილობა', ml + 3, y + 5.7)
+  pdf.text('რაოდ.', ml + 77, y + 5.7)
+  pdf.text('ერთ. ფასი', ml + 96, y + 5.7)
+  pdf.text('დღგ', ml + 125, y + 5.7)
+  pdf.text('ჯამი', ml + 151, y + 5.7)
+  y += 11
 
-  // Data row
-  pdf.setFillColor(245, 248, 250)
-  pdf.roundedRect(tableX, y - 1, uw, 12, 1.5, 1.5, 'F')
+  pdf.setFillColor(...soft)
+  pdf.roundedRect(ml, y, uw, 16, 1.5, 1.5, 'F')
   pdf.setFont('Sylfaen', 'bold')
-  pdf.setFontSize(8.5)
-  pdf.setTextColor(18, 24, 38)
-  cx = tableX + 2
-  const productLabel = `${contract.product_name}${contract.brand ? ` · ${contract.brand}` : ''}${contract.model ? ` · ${contract.model}` : ''}`
-  const productLines: string[] = pdf.splitTextToSize(productLabel, cols[0] - 4)
-  pdf.text(productLines[0] as string, cx, y + 5)
-  cx += cols[0]
-
+  pdf.setFontSize(9.4)
+  pdf.setTextColor(...text)
+  const productLabel = getProductLabel(templateInput)
+  const productLines = pdf.splitTextToSize(productLabel, 70) as string[]
+  pdf.text(productLines.slice(0, 2), ml + 3, y + 5.5)
   pdf.setFont('Sylfaen', 'normal')
-  const cells = [
-    String(contract.quantity),
-    formatCurrency(contract.unit_price, contract.currency),
-    formatCurrency(fin.net / contract.quantity, contract.currency),
-    formatCurrency(fin.vat, contract.currency),
-    formatCurrency(fin.gross, contract.currency),
-  ]
-  cells.forEach((cell, i) => {
-    pdf.text(cell, cx, y + 5)
-    cx += cols[i + 1]
-  })
-
-  y += 14
-
-  // If serial number exists, add sub-row
+  pdf.text(String(contract.quantity), ml + 79, y + 5.5)
+  pdf.text(formatCurrency(contract.unit_price, contract.currency), ml + 96, y + 5.5)
+  pdf.text(formatCurrency(fin.vat, contract.currency), ml + 125, y + 5.5)
+  pdf.text(formatCurrency(fin.gross, contract.currency), ml + 151, y + 5.5)
   if (contract.serial_number) {
-    pdf.setFont('Sylfaen', 'normal')
-    pdf.setFontSize(8)
-    pdf.setTextColor(80, 90, 105)
-    pdf.text(`სერიული ნომერი: ${contract.serial_number}`, tableX + 2, y)
-    y += 6
+    pdf.setFontSize(8.6)
+    pdf.setTextColor(...muted)
+    pdf.text(`სერიული ნომერი: ${contract.serial_number}`, ml + 3, y + 12)
   }
+  y += 20
 
-  // Totals block
-  pdf.setFillColor(8, 80, 65)
-  pdf.setFont('Sylfaen', 'bold')
-  pdf.setFontSize(9)
-  pdf.setTextColor(255, 255, 255)
-  pdf.roundedRect(pageW - mr - 90, y, 90, 8, 1.5, 1.5, 'F')
-  pdf.text('სულ გადასახდელი:', pageW - mr - 88, y + 5.5)
-  pdf.text(formatCurrency(fin.gross, contract.currency), pageW - mr - 4, y + 5.5, { align: 'right' })
-  y += 10
-
-  if (contract.vat_rate > 0) {
-    pdf.setFont('Sylfaen', 'normal')
-    pdf.setFontSize(8)
-    pdf.setTextColor(80, 90, 105)
-    const vatNote = contract.vat_included
-      ? `(ჩათვლით დღგ ${contract.vat_rate}% = ${formatCurrency(fin.vat, contract.currency)})`
-      : `(+ დღგ ${contract.vat_rate}% = ${formatCurrency(fin.vat, contract.currency)})`
-    pdf.text(vatNote, pageW - mr, y, { align: 'right' })
-    y += 6
-  }
-  y += 4
-
-  // ── 5. Payment & Delivery ──────────────────────────────────────────────────
-  pdf.setFillColor(8, 80, 65)
-  pdf.roundedRect(ml, y - 1, uw, 9, 2, 2, 'F')
-  pdf.setFont('Sylfaen', 'bold')
-  pdf.setFontSize(10)
-  pdf.setTextColor(255, 255, 255)
-  pdf.text('III.  ფასი და გადახდის პირობები', ml + 4, y + 5.5)
-  y += 13
-
-  const payRows: Array<[string, string]> = [
-    ['გადახდის პირობები', contract.payment_terms || '100% გადახდა ხელშეკრულების ხელმოწერისთანავე'],
+  drawSectionTitle('III. ფასები და მიწოდება')
+  drawLabelValueRows([
+    ['ხელშეკრულების სტატუსი', CONTRACT_STATUS_LABELS[contract.status]],
+    ['გადახდის პირობები', contract.payment_terms || '100% გადახდა ხელშეკრულების დადასტურების შემდეგ'],
     ['მიწოდების თარიღი', geo(contract.delivery_date)],
-    ['მიწოდების მისამართი', contract.delivery_address || contract.customer_address || '—'],
-    ['ინსტალაცია', contract.installation_included ? 'შედის ფასში' : 'არ შედის (ცალკე ხელშეკრულებით)'],
+    ['მიწოდების მისამართი', contract.delivery_address || contract.customer_address || '-'],
+    ['ინსტალაცია', contract.installation_included ? 'შედის ღირებულებაში' : 'არ შედის, საჭიროებს ცალკე შეთანხმებას'],
     ['გარანტია', contract.warranty_months > 0 ? `${contract.warranty_months} თვე` : 'გარანტიის გარეშე'],
-  ]
+    ['სულ გადასახდელი', formatCurrency(fin.gross, contract.currency)],
+  ])
 
-  payRows.forEach(([label, value], i) => {
-    if (i % 2 === 0) {
-      pdf.setFillColor(245, 248, 250)
-      pdf.roundedRect(ml, y - 5.5, uw, 8.5, 1.5, 1.5, 'F')
-    }
-    pdf.setFont('Sylfaen', 'bold')
-    pdf.setFontSize(8.5)
-    pdf.setTextColor(70, 80, 95)
-    pdf.text(label, ml + 3, y)
-    pdf.setFont('Sylfaen', 'normal')
-    pdf.setFontSize(9)
-    pdf.setTextColor(18, 24, 38)
-    const valLines: string[] = pdf.splitTextToSize(value, uw - 58)
-    pdf.text(valLines[0] as string, ml + 56, y)
-    y += 8.5
-  })
-  y += 4
-
-  // ── 6. Obligations ─────────────────────────────────────────────────────────
-  pdf.setFillColor(8, 80, 65)
-  pdf.roundedRect(ml, y - 1, uw, 9, 2, 2, 'F')
-  pdf.setFont('Sylfaen', 'bold')
-  pdf.setFontSize(10)
-  pdf.setTextColor(255, 255, 255)
-  pdf.text('IV.  მხარეთა ვალდებულებები', ml + 4, y + 5.5)
-  y += 13
-
-  const obligations: string[] = [
-    'მომწოდებელი ვალდებულია მიაწოდოს მყიდველს ხელშეკრულებით გათვალისწინებული პროდუქტი სათანადო ხარისხით, შეთანხმებულ ვადაში.',
-    'მყიდველი ვალდებულია გადაიხადოს ხელშეკრულებით განსაზღვრული საფასური შეთანხმებული პირობებისა და ვადების დაცვით.',
-    'მომწოდებელი ვალდებულია პროდუქტზე გაუწიოს მყიდველს გარანტიული მომსახურება ხელშეკრულებით განსაზღვრული ვადის განმავლობაში.',
-    'მყიდველი ვალდებულია პროდუქტი გამოიყენოს ექსპლუატაციის წესების დაცვით. ნებისმიერი უნებართვო ჩარევა ან ცვლილება ათავისუფლებს მომწოდებელს გარანტიული ვალდებულებებისგან.',
-  ]
-
-  pdf.setFont('Sylfaen', 'normal')
-  pdf.setFontSize(8.8)
-  pdf.setTextColor(25, 32, 44)
-
-  obligations.forEach((clause, i) => {
-    const lines: string[] = pdf.splitTextToSize(`${i + 1}.  ${clause}`, uw - 4)
-    const blockH = lines.length * 5 + 3
-    if (y + blockH > pageH - 62) return
-    pdf.text(lines, ml + 2, y)
-    y += blockH
-  })
-  y += 3
-
-  // ── 7. Standard clauses ────────────────────────────────────────────────────
-  pdf.setFillColor(8, 80, 65)
-  pdf.roundedRect(ml, y - 1, uw, 9, 2, 2, 'F')
-  pdf.setFont('Sylfaen', 'bold')
-  pdf.setFontSize(10)
-  pdf.setTextColor(255, 255, 255)
-  pdf.text('V.  პასუხისმგებლობა და სხვა პირობები', ml + 4, y + 5.5)
-  y += 13
-
-  const stdClauses: string[] = [
-    'მხარე, რომელიც არღვევს ხელშეკრულებით ნაკისრ ვალდებულებებს, ვალდებულია აანაზღაუროს მეორე მხარის ამით გამოწვეული ზარალი.',
-    'ფორსმაჟორული გარემოებების (სტიქიური უბედურება, ომი, ხელისუფლების გადაწყვეტილება) დადგომისას მხარე, რომლისთვისაც შეუძლებელი გახდა ვალდებულების შესრულება, ვალდებულია დაუყოვნებლივ აცნობოს მეორე მხარეს.',
-    'ხელშეკრულებასთან დაკავშირებული ნებისმიერი დავა მხარეები ცდილობენ გადაჭრან მოლაპარაკებით. შეუთანხმებლობის შემთხვევაში დავა გადაეცემა საქართველოს სასამართლოს განსახილველად.',
-    'ხელშეკრულება შედგება ქართულ ენაზე, ორ იდენტურ ეგზემპლარად, სავალდებულო იურიდიული ძალით ორივე მხარისათვის.',
-  ]
-
-  pdf.setFont('Sylfaen', 'normal')
-  pdf.setFontSize(8.8)
-  pdf.setTextColor(25, 32, 44)
-
-  stdClauses.forEach((clause, i) => {
-    const lines: string[] = pdf.splitTextToSize(`${i + 1}.  ${clause}`, uw - 4)
-    const blockH = lines.length * 5 + 3
-    if (y + blockH > pageH - 62) return
-    pdf.text(lines, ml + 2, y)
-    y += blockH
+  templateSections.forEach((section) => {
+    y += 3
+    drawSectionTitle(section.title)
+    drawClauseList(section.clauses, section.title)
   })
 
-  // Special terms
   if (contract.special_terms?.trim()) {
     y += 3
-    pdf.setFont('Sylfaen', 'bold')
-    pdf.setFontSize(9)
-    pdf.setTextColor(8, 80, 65)
-    pdf.text('დამატებითი პირობები:', ml, y)
-    y += 6
+    drawSectionTitle('VI. დამატებითი პირობები')
+    const lines = pdf.splitTextToSize(contract.special_terms, uw - 2) as string[]
+    ensureSpace(lines.length * 6 + 4, 'VI. დამატებითი პირობები')
     pdf.setFont('Sylfaen', 'normal')
-    pdf.setFontSize(8.8)
-    pdf.setTextColor(25, 32, 44)
-    const spLines: string[] = pdf.splitTextToSize(contract.special_terms, uw - 4)
-    if (y + spLines.length * 5 < pageH - 62) {
-      pdf.text(spLines, ml + 2, y)
-      y += spLines.length * 5 + 4
-    }
+    pdf.setFontSize(10.2)
+    pdf.setTextColor(...text)
+    pdf.text(lines, ml, y)
+    y += lines.length * 6 + 2
   }
 
-  // ── 8. Signature block ─────────────────────────────────────────────────────
-  const sigY = Math.max(y + 4, pageH - 50)
+  ensureSpace(52)
+  y = Math.max(y + 8, pageH - 70)
+  pdf.setDrawColor(203, 213, 225)
+  pdf.line(ml, y, pageW - mr, y)
+  y += 8
 
-  pdf.setDrawColor(200, 208, 218)
-  pdf.setLineWidth(0.3)
-  pdf.line(ml, sigY, pageW - mr, sigY)
-
-  const sigBlockW = (uw - 10) / 2
-
-  // Left: Seller
+  const signW = (uw - 12) / 2
   pdf.setFont('Sylfaen', 'bold')
-  pdf.setFontSize(8.5)
-  pdf.setTextColor(40, 50, 65)
-  pdf.text('მომწოდებელი', ml, sigY + 7)
-  pdf.setFont('Sylfaen', 'normal')
-  pdf.setFontSize(8)
-  pdf.setTextColor(80, 90, 105)
-  pdf.text('შ.პ.ს „მედიქალ ლაინ ჯორჯია"', ml, sigY + 13)
-  pdf.text('ხელმომწერი: ___________________', ml, sigY + 20)
+  pdf.setFontSize(9.5)
+  pdf.setTextColor(...navy)
+  pdf.text('მომწოდებელი', ml, y)
+  pdf.text('კლიენტი / შემსყიდველი', ml + signW + 12, y)
 
-  try {
-    pdf.addImage(INVOICE_STAMP_BASE64, 'JPEG', ml, sigY + 20, 28, 20)
-  } catch {
-    pdf.setDrawColor(8, 80, 65)
-    pdf.setLineWidth(0.5)
-    pdf.circle(ml + 14, sigY + 30, 9)
-  }
-
-  pdf.setDrawColor(8, 80, 65)
-  pdf.setLineWidth(0.4)
-  pdf.line(ml, sigY + 42, ml + sigBlockW, sigY + 42)
   pdf.setFont('Sylfaen', 'normal')
-  pdf.setFontSize(7.5)
-  pdf.setTextColor(120, 130, 145)
-  pdf.text('ხელმოწერა / ბეჭედი', ml, sigY + 46)
+  pdf.setFontSize(9)
+  pdf.setTextColor(...muted)
+  pdf.text('შ.პ.ს "მედიქალ ლაინ ჯორჯია"', ml, y + 7)
+  pdf.text(contract.customer_name || contract.clinic_name || '-', ml + signW + 12, y + 7)
+  pdf.text('ელექტრონულად გენერირებული დოკუმენტი', ml, y + 14)
 
-  // Right: Buyer
-  const sigRX = ml + sigBlockW + 10
-  pdf.setFont('Sylfaen', 'bold')
-  pdf.setFontSize(8.5)
-  pdf.setTextColor(40, 50, 65)
-  pdf.text('მყიდველი', sigRX, sigY + 7)
-  pdf.setFont('Sylfaen', 'normal')
-  pdf.setFontSize(8)
-  pdf.setTextColor(80, 90, 105)
-  pdf.text(contract.customer_name || contract.clinic_name || '—', sigRX, sigY + 13)
-  if (contract.customer_id_number) {
-    pdf.text(`პ/ნ: ${contract.customer_id_number}`, sigRX, sigY + 19)
-  }
+  pdf.setDrawColor(...navy)
+  pdf.line(ml, y + 27, ml + signW - 8, y + 27)
+  pdf.line(ml + signW + 12, y + 27, pageW - mr, y + 27)
+  pdf.setFontSize(7.8)
+  pdf.text('ხელმოწერა / ბეჭედი', ml, y + 31)
+  pdf.text('ხელმოწერა / დადასტურება', ml + signW + 12, y + 31)
 
-  pdf.setDrawColor(8, 80, 65)
-  pdf.setLineWidth(0.4)
-  pdf.line(sigRX, sigY + 42, sigRX + sigBlockW - 10, sigY + 42)
-  pdf.setFont('Sylfaen', 'normal')
-  pdf.setFontSize(7.5)
-  pdf.setTextColor(120, 130, 145)
-  pdf.text('ხელმოწერა / ბეჭედი', sigRX, sigY + 46)
-
-  // Footer
-  pdf.setFillColor(245, 247, 244)
-  pdf.rect(0, pageH - 6, pageW, 6, 'F')
-  pdf.setFont('Sylfaen', 'normal')
-  pdf.setFontSize(7)
-  pdf.setTextColor(155, 163, 175)
-  pdf.text(
-    `Medical Line Georgia  ·  ${contract.contract_number}  ·  ${geo(contract.contract_date)}`,
-    pageW / 2, pageH - 2, { align: 'center' },
-  )
+  footer()
 
   return Buffer.from(pdf.output('arraybuffer'))
 }
