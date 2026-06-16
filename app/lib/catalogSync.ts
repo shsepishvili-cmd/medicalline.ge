@@ -2,6 +2,7 @@ import { products as part1 } from '../catalog/data-part1'
 import { products as part2 } from '../catalog/data-part2'
 
 export type LocalCatalogAiFeature = { icon: string; title: string; desc: string }
+
 export type LocalCatalogProduct = {
   id: number
   slug: string
@@ -32,7 +33,6 @@ export function mapCategoryToSlug(category: string) {
     'პარტნიორი ბრენდები': 'partner',
     'პარტნიორი': 'partner',
   }
-
   return map[normalized] || 'other'
 }
 
@@ -55,12 +55,10 @@ export function findCatalogProductByAny(product: { slug?: string; name?: string;
   const slugKey = normalizeProductText(product.slug || '')
   const nameKey = normalizeProductText(product.name || '')
   const imgKey = normalizeProductText(product.img || '')
-
   return localCatalogProducts.find((item) => {
     const itemSlug = normalizeProductText(item.slug)
     const itemName = normalizeProductText(item.name)
     const itemImg = normalizeProductText(item.img)
-
     return (
       (slugKey && (itemSlug === slugKey || itemSlug.includes(slugKey) || slugKey.includes(itemSlug))) ||
       (nameKey && (itemName === nameKey || itemName.includes(nameKey) || nameKey.includes(itemName))) ||
@@ -69,20 +67,34 @@ export function findCatalogProductByAny(product: { slug?: string; name?: string;
   })
 }
 
-export function findDatabaseProductMatch<T extends { id?: string; slug?: string; name?: string }>(
+export function findDatabaseProductMatch<T extends { slug?: string; name?: string }>(
   dbProducts: T[],
   product: { slug?: string; name?: string },
 ) {
   const productSlug = normalizeProductText(product.slug || '')
   const productName = normalizeProductText(product.name || '')
-
   return dbProducts.find((dbProduct) => {
     const dbSlug = normalizeProductText(dbProduct.slug || '')
     const dbName = normalizeProductText(dbProduct.name || '')
-
     return (
       (productSlug && (dbSlug === productSlug || dbSlug.includes(productSlug) || productSlug.includes(dbSlug))) ||
       (productName && (dbName === productName || dbName.includes(productName) || productName.includes(dbName)))
     )
+  })
+}
+
+/**
+ * Collapses multiple database product variants into unique slugs.
+ * Groups products by slug and returns one representative per slug.
+ */
+export function collapseDatabaseProducts<T extends { slug?: string; name?: string }>(
+  dbProducts: T[],
+): T[] {
+  const seen = new Set<string>()
+  return dbProducts.filter((p) => {
+    const key = normalizeProductText(p.slug || p.name || '')
+    if (!key || seen.has(key)) return false
+    seen.add(key)
+    return true
   })
 }
