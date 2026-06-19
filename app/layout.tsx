@@ -4,13 +4,18 @@ import Script from 'next/script';
 import GoogleTranslate from './GoogleTranslate';
 import AnalyticsBootstrap from './components/AnalyticsBootstrap';
 import { Suspense } from 'react';
-import {
-  CLARITY_ID,
-  GA_MEASUREMENT_ID,
-  GTM_ID,
-  META_PIXEL_ID,
-} from './lib/analytics';
 import { organizationSchema, siteConfig, websiteSchema } from './lib/seo';
+
+function trackingEnv(name: string, fallback = '') {
+  const value = (process.env[name] || fallback).trim();
+  if (!value || value.includes('function(){') || value.includes('Attempted to call')) return '';
+  return value;
+}
+
+const GTM_ID = trackingEnv('NEXT_PUBLIC_GTM_ID');
+const GA_MEASUREMENT_ID = trackingEnv('NEXT_PUBLIC_GA_MEASUREMENT_ID');
+const CLARITY_ID = trackingEnv('NEXT_PUBLIC_CLARITY_ID');
+const META_PIXEL_ID = trackingEnv('NEXT_PUBLIC_META_PIXEL_ID', '805898554494944');
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteConfig.url),
@@ -66,9 +71,22 @@ export const metadata: Metadata = {
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
+  const gtmIdJson = JSON.stringify(GTM_ID);
+  const gaMeasurementIdJson = JSON.stringify(GA_MEASUREMENT_ID);
+  const clarityIdJson = JSON.stringify(CLARITY_ID);
+  const metaPixelIdJson = JSON.stringify(META_PIXEL_ID);
+
   return (
     <html lang="ka" className="scroll-smooth">
       <head>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify([organizationSchema(), websiteSchema()])
+          }}
+        />
+      </head>
+      <body>
         {GTM_ID ? (
           <Script
             id="gtm-base"
@@ -79,7 +97,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
                 j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
                 'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
-                })(window,document,'script','dataLayer','${GTM_ID}');
+                })(window,document,'script','dataLayer',${gtmIdJson});
               `
             }}
           />
@@ -99,7 +117,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                   function gtag(){dataLayer.push(arguments);}
                   window.gtag = gtag;
                   gtag('js', new Date());
-                  gtag('config', '${GA_MEASUREMENT_ID}', { send_page_view: false });
+                  gtag('config', ${gaMeasurementIdJson}, { send_page_view: false });
                 `
               }}
             />
@@ -115,19 +133,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                     c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
                     t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
                     y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
-                })(window, document, "clarity", "script", "${CLARITY_ID}");
+                })(window, document, "clarity", "script", ${clarityIdJson});
               `
             }}
           />
         ) : null}
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{
-            __html: JSON.stringify([organizationSchema(), websiteSchema()])
-          }}
-        />
-      </head>
-      <body>
+
         {GTM_ID ? (
           <noscript>
             <iframe
@@ -151,7 +162,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 t.src=v;s=b.getElementsByTagName(e)[0];
                 s.parentNode.insertBefore(t,s)}(window, document,'script',
                 'https://connect.facebook.net/en_US/fbevents.js');
-                fbq('init', '${META_PIXEL_ID}');
+                fbq('init', ${metaPixelIdJson});
               `
             }} />
             <noscript>
