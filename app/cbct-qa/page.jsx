@@ -264,6 +264,7 @@ function parseDicomMetadata(dataSet) {
     exposureTime: dataSet.string("x00181150") || "",
     tubeCurrent: dataSet.string("x00181151") || "",
     exposure: dataSet.string("x00181152") || dataSet.string("x00189332") || "",
+    sopClassUid: dataSet.string("x00080016") || "",
     manufacturer: dataSet.string("x00080070") || "",
     manufacturerModelName: dataSet.string("x00081090") || "",
     institutionName: dataSet.string("x00080080") || "",
@@ -285,6 +286,19 @@ function parseDicomMetadata(dataSet) {
     photometricInterpretation: dataSet.string("x00280004") || "",
     pixelRepresentation: numberOrNull(dataSet.uint16("x00280103")) || 0,
   };
+}
+
+function isProjectionDicom(metadata) {
+  const modality = String(metadata.modality || "").toUpperCase();
+  const description = String(metadata.seriesDescription || "").toLowerCase();
+  const sopClassUid = String(metadata.sopClassUid || "");
+
+  return (
+    ["CR", "DX", "MG", "SC"].includes(modality) ||
+    description.includes("ceph") ||
+    sopClassUid === "1.2.840.10008.5.1.4.1.1.1" ||
+    sopClassUid === "1.2.840.10008.5.1.4.1.1.1.1"
+  );
 }
 
 function extractPixelData(dataSet, metadata) {
@@ -1132,6 +1146,13 @@ export default function CbctQaPage() {
       ) {
         nextWarnings.push(
           "This appears to be a CT or iCBCT-style dataset, not a standard dental CBCT DVTap phantom scan. Use for technical testing only unless the correct CBCT phantom preset and protocol are selected.",
+        );
+      }
+      if (isProjectionDicom(metadata)) {
+        setMode(MODES.PREVIEW);
+        setImageType(IMAGE_TYPES.PATIENT);
+        nextWarnings.push(
+          "This file is a 2D projection image (DX / Lateral Ceph), not a CBCT phantom volume. It was loaded in Technical Preview mode; phantom QA scoring is disabled.",
         );
       }
 
