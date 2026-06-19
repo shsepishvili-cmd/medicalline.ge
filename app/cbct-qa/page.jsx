@@ -199,6 +199,86 @@ const DEMO_EXPECTED = {
 const FINSCAN_DISCLAIMER =
   "FinScan F350 Phantom QC is intended for internal service and quality monitoring. It is not a substitute for a validated regulatory acceptance test unless validated with official protocol and local requirements.";
 
+const FINSCAN_F350_PROTOCOLS = {
+  CBCT: {
+    title: "FinScan F350 CBCT Imaging Performance",
+    document: "FQC-F-02-001 A.4 sections 4.1.3.1 / 4.3.3.1",
+    method: "CBCT phantom / QUART DVTtec workflow",
+    criteria: [
+      ["X-ray field vs image receptor", "Excess radiation <= 12 mm in one direction and <= 18 mm in both directions", "RaySafe DXR+ / manual"],
+      ["Air kerma reproducibility", "3 scans, each value within +/-5% of mean", "Dose meter / manual"],
+      ["Voxel geometric accuracy", "Voxel size error within +/-50%", "DICOM pixel spacing + phantom measurement"],
+      ["Spatial resolution", "MTF10% >= 1.0 lp/mm; MTF50% >= 0.5 lp/mm", "QUART DVTtec / manual"],
+      ["Contrast-to-noise ratio", "CNR >= 2", "QUART DVTtec / manual"],
+      ["Acceptance index", "AI >= 100 (mGy*cm2)^-1", "QUART DVTtec / manual"],
+      ["Kerma at rotation center", "<= 50 mGy", "Dose meter / manual"],
+      ["Homogeneity", "> 5", "QUART DVTtec / manual"],
+      ["Focal spot to skin distance", ">= 20 cm", "Manual measurement"],
+      ["Total filtration", ">= 2.8 mm Al", "Quality detector / manual"],
+      ["Length measurement", "Error within +/-5%", "Phantom marker measurement"],
+      ["Angle measurement", "Error within +/-2%", "Phantom marker measurement"],
+      ["Artefacts", "No visible artefacts in air image", "Visual"],
+      ["Reconstruction time", "General <= 45 s; Fast <= 30 s", "Timer / manual"],
+      ["FOV accuracy", "FOV error within +/-10%", "DICOM/phantom measurement"],
+    ],
+    doseRows: [
+      ["General Adult", "12 s", "90 kV", "8 mA", "6.696 mGy", "2360.9 mGy*cm2"],
+      ["General Children", "12 s", "90 kV", "6 mA", "5.107 mGy", "1787.0 mGy*cm2"],
+      ["Fast Adult", "9 s", "90 kV", "8 mA", "5.008 mGy", "1768.5 mGy*cm2"],
+      ["Fast Children", "9 s", "90 kV", "6 mA", "3.815 mGy", "1341.3 mGy*cm2"],
+    ],
+  },
+  PANORAMIC: {
+    title: "FinScan F350 Panoramic Imaging Performance",
+    document: "FQC-F-02-001 A.4 sections 4.1.3.2 / 4.3.3.2",
+    method: "Panoramic dental arch phantom",
+    criteria: [
+      ["Total filtration", ">= 2.8 mm Al", "Quality detector / manual"],
+      ["Focal spot", "0.5", "Tube label / visual"],
+      ["Beam limitation and alignment", "Parallel axis <= 1 mm each side; perpendicular axis must not exceed receptor", "Image/manual"],
+      ["Radiation output reproducibility", "5 scans, each value within +/-20% of mean", "Dose meter / manual"],
+      ["Line pair resolution", "A-E positions all reach >= 2.5 lp/mm", "Visual phantom reading"],
+      ["Low contrast resolution", "A-E positions distinguish 1.0 mm hole", "Visual phantom reading"],
+      ["Image homogeneity", "H <= 5%", "ROI calculation / manual"],
+      ["Panoramic layer", "No unacceptable curve patterns", "Visual"],
+      ["Dose indication", "DAP indicated vs measured deviation within +/-50%", "DAP meter / manual"],
+      ["Reconstruction time", "Arch <= 60 s; TMJ <= 10 s", "Timer / manual"],
+    ],
+    doseRows: [
+      ["Arch Adult", "14 s", "90 kV", "8 mA", "7.834 mGy", "153.4 mGy*cm2"],
+      ["Arch Children", "14 s", "90 kV", "6 mA", "5.970 mGy", "115.4 mGy*cm2"],
+      ["TMJ Adult", "6 s", "90 kV", "8 mA", "3.326 mGy", "66.2 mGy*cm2"],
+      ["TMJ Children", "6 s", "90 kV", "6 mA", "2.542 mGy", "48.4 mGy*cm2"],
+    ],
+  },
+  CEPHALOMETRIC: {
+    title: "FinScan F350 Cephalometric Imaging Performance",
+    document: "FQC-F-02-001 A.4 sections 4.1.3.3 / 4.3.3.3",
+    method: "Cephalometric phantom / 3-in-1 devices only",
+    criteria: [
+      ["Total filtration", ">= 2.8 mm Al", "Quality detector / manual"],
+      ["Focal spot", "0.5", "Tube label / visual"],
+      ["Beam limitation and alignment", "X-ray field equal to or smaller than receptor; image edges clearly visible", "Image/manual"],
+      ["Radiation output reproducibility", "5 scans, each value within +/-20% of mean", "Dose meter / manual"],
+      ["Line pair resolution", ">= 2.5 lp/mm", "Visual phantom reading"],
+      ["Low contrast resolution", "Distinguish 1.0 mm hole", "Visual phantom reading"],
+      ["Length measurement", "24 mm circle measurement error within +/-5%", "Image measurement"],
+      ["Angle measurement", "90 degree angle error within +/-2 degrees", "Image measurement"],
+      ["Dose indication", "DAP indicated vs measured deviation within +/-50%", "DAP meter / manual"],
+      ["Focal spot to skin distance", ">= 15 cm", "Manual measurement"],
+      ["Reconstruction time", "Lateral <= 15 s; Frontal <= 15 s; Carpus <= 10 s", "Timer / manual"],
+    ],
+    doseRows: [
+      ["Lateral Adult", "8 s", "90 kV", "8 mA", "0.441 mGy", "47.4 mGy*cm2"],
+      ["Lateral Children", "8 s", "90 kV", "6 mA", "0.337 mGy", "36.3 mGy*cm2"],
+      ["Frontal Adult", "8 s", "90 kV", "8 mA", "0.441 mGy", "47.4 mGy*cm2"],
+      ["Frontal Children", "8 s", "90 kV", "6 mA", "0.337 mGy", "36.3 mGy*cm2"],
+      ["Carpus Adult", "6 s", "90 kV", "8 mA", "0.338 mGy", "37.4 mGy*cm2"],
+      ["Carpus Children", "6 s", "90 kV", "6 mA", "0.260 mGy", "26.8 mGy*cm2"],
+    ],
+  },
+};
+
 function numberOrNull(value) {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : null;
@@ -299,6 +379,41 @@ function isProjectionDicom(metadata) {
     sopClassUid === "1.2.840.10008.5.1.4.1.1.1" ||
     sopClassUid === "1.2.840.10008.5.1.4.1.1.1.1"
   );
+}
+
+function finScanProtocolKey(image, preset) {
+  const metadata = image?.metadata || {};
+  const modality = String(metadata.modality || "").toUpperCase();
+  const description = String(metadata.seriesDescription || metadata.protocolName || "").toLowerCase();
+
+  if (description.includes("ceph") || description.includes("lateral") || description.includes("frontal") || description.includes("carpus")) {
+    return "CEPHALOMETRIC";
+  }
+  if (description.includes("pano") || description.includes("arch") || description.includes("tmj")) {
+    return "PANORAMIC";
+  }
+  if (modality === "DX" || modality === "CR") {
+    return "CEPHALOMETRIC";
+  }
+  if (preset === PRESETS.FINSCAN_GEOMETRIC || preset === PRESETS.FINSCAN_CALIBRATION || preset === PRESETS.FINSCAN) {
+    return "CBCT";
+  }
+  return "CBCT";
+}
+
+function finScanAutoRows(image) {
+  const metadata = image?.metadata || {};
+  const spacing = parsePixelSpacing(metadata.pixelSpacing);
+
+  return [
+    ["Detected model", valueText(metadata.manufacturerModelName || metadata.manufacturer), metadata.manufacturerModelName || metadata.manufacturer ? "DICOM" : "Missing"],
+    ["DICOM modality", valueText(metadata.modality), metadata.modality ? "DICOM" : "Missing"],
+    ["Series / protocol", valueText(metadata.seriesDescription || metadata.protocolName), metadata.seriesDescription || metadata.protocolName ? "DICOM" : "Missing"],
+    ["Image matrix", metadata.rows && metadata.columns ? `${metadata.columns} x ${metadata.rows}` : "N/A", metadata.rows && metadata.columns ? "DICOM" : "Missing"],
+    ["Pixel spacing", spacing ? `${fixed(spacing.row, 3)} x ${fixed(spacing.col, 3)} mm` : "N/A", spacing ? "DICOM" : "Missing"],
+    ["kV / mA / exposure", [metadata.kvp && `${metadata.kvp} kV`, metadata.tubeCurrent && `${metadata.tubeCurrent} mA`, metadata.exposureTime && `${metadata.exposureTime} ms`].filter(Boolean).join(" / ") || "N/A", metadata.kvp || metadata.tubeCurrent || metadata.exposureTime ? "DICOM" : "Missing"],
+    ["Dose tags", [metadata.ctdiVol && `CTDIvol ${metadata.ctdiVol}`, metadata.doseLengthProduct && `DLP ${metadata.doseLengthProduct}`, metadata.exposure && `Exposure ${metadata.exposure}`].filter(Boolean).join(" / ") || "N/A", metadata.ctdiVol || metadata.doseLengthProduct || metadata.exposure ? "DICOM" : "Manual meter required"],
+  ];
 }
 
 function extractPixelData(dataSet, metadata) {
@@ -1012,6 +1127,9 @@ export default function CbctQaPage() {
       }),
     [acceptanceForm, activeStatus, agencyManualValues, geometryRows, image, measurements, rois],
   );
+  const finScanProtocolKeyValue = useMemo(() => finScanProtocolKey(image, preset), [image, preset]);
+  const finScanProtocol = FINSCAN_F350_PROTOCOLS[finScanProtocolKeyValue];
+  const finScanAutoValues = useMemo(() => finScanAutoRows(image), [image]);
 
   const missingMetadata = useMemo(() => {
     if (!image) return [];
@@ -1953,6 +2071,13 @@ export default function CbctQaPage() {
             </div>
           ) : null}
 
+          <FinScanF350ProtocolPanel
+            protocol={finScanProtocol}
+            protocolKey={finScanProtocolKeyValue}
+            autoRows={finScanAutoValues}
+            image={image}
+          />
+
           <AgencyProtocolPanel
             rows={agencyRows}
             image={image}
@@ -2074,6 +2199,100 @@ function AgencyProtocolPanel({ rows, image, manualValues, setManualValues }) {
           </tbody>
         </table>
       </div>
+    </div>
+  );
+}
+
+function FinScanF350ProtocolPanel({ protocol, protocolKey, autoRows, image }) {
+  return (
+    <div className="rounded-md border border-slate-200 bg-white p-4">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wide text-cyan-700">FinScan F350 protocol reader</p>
+          <h2 className="mt-1 text-lg font-semibold text-slate-950">{protocol.title}</h2>
+          <p className="mt-1 text-sm leading-6 text-slate-600">
+            {protocol.document}. Detected mode: <span className="font-semibold text-slate-900">{protocolKey}</span>.
+          </p>
+        </div>
+        <span className={`rounded-full border px-3 py-1 text-xs font-semibold ${statusClasses(image ? "emerald" : "slate")}`}>
+          {image ? "DICOM loaded" : "Waiting for DICOM"}
+        </span>
+      </div>
+
+      <div className="mt-4 grid gap-4 lg:grid-cols-2">
+        <div className="rounded-md border border-slate-200 bg-slate-50 p-3">
+          <h3 className="text-sm font-semibold text-slate-950">Read from DICOM</h3>
+          <div className="mt-3 overflow-x-auto">
+            <table className="min-w-full divide-y divide-slate-200 text-sm">
+              <tbody className="divide-y divide-slate-200">
+                {autoRows.map(([label, value, source]) => (
+                  <tr key={label}>
+                    <td className="px-2 py-2 font-semibold text-slate-800">{label}</td>
+                    <td className="px-2 py-2 text-slate-700">{value}</td>
+                    <td className="px-2 py-2">
+                      <span className={`rounded-full border px-2 py-1 text-xs font-semibold ${source === "DICOM" ? statusClasses("emerald") : statusClasses("slate")}`}>
+                        {source}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div className="rounded-md border border-slate-200 bg-slate-50 p-3">
+          <h3 className="text-sm font-semibold text-slate-950">Typical dose table</h3>
+          <div className="mt-3 overflow-x-auto">
+            <table className="min-w-full divide-y divide-slate-200 text-sm">
+              <thead className="text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                <tr>
+                  <th className="px-2 py-2">Mode</th>
+                  <th className="px-2 py-2">Time</th>
+                  <th className="px-2 py-2">kV</th>
+                  <th className="px-2 py-2">mA</th>
+                  <th className="px-2 py-2">Kerma</th>
+                  <th className="px-2 py-2">DAP</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-200">
+                {protocol.doseRows.map((row) => (
+                  <tr key={row.join("-")}>
+                    {row.map((cell) => (
+                      <td key={cell} className="px-2 py-2 text-slate-700">{cell}</td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-4 overflow-x-auto">
+        <table className="min-w-full divide-y divide-slate-200 text-sm">
+          <thead className="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+            <tr>
+              <th className="px-3 py-3">Inspection parameter</th>
+              <th className="px-3 py-3">Acceptance criterion</th>
+              <th className="px-3 py-3">How it is read</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-100">
+            {protocol.criteria.map(([parameter, criterion, source]) => (
+              <tr key={parameter}>
+                <td className="px-3 py-3 font-semibold text-slate-900">{parameter}</td>
+                <td className="px-3 py-3 text-slate-700">{criterion}</td>
+                <td className="px-3 py-3 text-slate-600">{source}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <p className="mt-3 text-xs leading-5 text-slate-500">
+        Some parameters require the official phantom software, dose meter, or visual inspection. This panel keeps them visible so the uploaded DICOM can be checked against the correct FinScan F350 procedure.
+      </p>
     </div>
   );
 }
