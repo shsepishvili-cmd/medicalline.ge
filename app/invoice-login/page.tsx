@@ -1,29 +1,40 @@
 'use client'
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
 
 export default function InvoiceLogin() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
-  const router = useRouter()
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setLoading(true)
     setError('')
 
-    const res = await fetch('/api/invoice-auth', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ password }),
-    })
+    const controller = new AbortController()
+    const timeout = window.setTimeout(() => controller.abort(), 8000)
 
-    if (res.ok) {
-      router.push('/invoice.html')
-    } else {
-      const data = await res.json()
+    try {
+      const res = await fetch(new URL('/api/invoice-auth', window.location.origin), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password }),
+        cache: 'no-store',
+        credentials: 'same-origin',
+        signal: controller.signal,
+      })
+
+      if (res.ok) {
+        window.location.assign('/invoice')
+        return
+      }
+
+      const data = await res.json().catch(() => ({}))
       setError(data.error || 'პაროლი არასწორია')
+    } catch {
+      setError('შესვლა ვერ მოხერხდა. გადაამოწმე ინტერნეტი და სცადე თავიდან.')
+    } finally {
+      window.clearTimeout(timeout)
       setLoading(false)
     }
   }
