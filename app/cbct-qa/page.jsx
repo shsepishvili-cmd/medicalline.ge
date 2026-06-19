@@ -1145,6 +1145,14 @@ export default function CbctQaPage() {
     }
   }, []);
 
+  const onFileInputChange = useCallback(
+    (event) => {
+      processFile(event.target.files?.[0]);
+      event.target.value = "";
+    },
+    [processFile],
+  );
+
   const onDrop = useCallback(
     (event) => {
       event.preventDefault();
@@ -1493,20 +1501,20 @@ export default function CbctQaPage() {
               selected by the browser.
             </p>
             <input
+              id="cbct-qa-file-input"
               ref={fileInputRef}
               type="file"
               accept=".dcm,application/dicom,*/*"
-              className="hidden"
-              onChange={(event) => processFile(event.target.files?.[0])}
+              className="sr-only"
+              onChange={onFileInputChange}
             />
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
+            <label
+              htmlFor="cbct-qa-file-input"
               className="mt-4 inline-flex h-10 w-full items-center justify-center gap-2 rounded-md border border-cyan-200 bg-white px-4 text-sm font-semibold text-cyan-800 transition hover:bg-cyan-50"
             >
               <FileScan className="h-4 w-4" />
               Choose file
-            </button>
+            </label>
             <button
               type="button"
               onClick={runDemoPhantomTest}
