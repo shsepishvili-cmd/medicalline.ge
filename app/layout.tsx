@@ -3,6 +3,7 @@ import type { Metadata } from 'next';
 import Script from 'next/script'; 
 import GoogleTranslate from './GoogleTranslate';
 import AnalyticsBootstrap from './components/AnalyticsBootstrap';
+import BotpressScripts from './components/BotpressScripts';
 import { Suspense } from 'react';
 import { organizationSchema, siteConfig, websiteSchema } from './lib/seo';
 
@@ -185,14 +186,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <GoogleTranslate />
 
         {/* 🚀 Chatbot Scripts (Lazy Loaded for Speed) */}
-        <Script 
-          src="https://cdn.botpress.cloud/webchat/v3.5/inject.js" 
-          strategy="lazyOnload" 
-        />
-        <Script 
-          src="https://files.bpcontent.cloud/2026/01/30/20/20260130205533-KAMUYRZQ.js" 
-          strategy="lazyOnload"
-        />
+        <BotpressScripts />
       </body>
     </html>
   );

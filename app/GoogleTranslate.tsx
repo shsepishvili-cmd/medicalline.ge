@@ -1,8 +1,13 @@
 "use client";
 import { useEffect } from 'react';
+import { usePathname } from 'next/navigation';
 
 export default function GoogleTranslate() {
+  const pathname = usePathname();
+  const isInvoiceRoute = pathname === '/invoice' || pathname === '/invoice-login';
+
   useEffect(() => {
+    if (isInvoiceRoute) return;
     if (!document.getElementById('google-translate-script')) {
       const addScript = document.createElement('script');
       addScript.id = 'google-translate-script';
@@ -17,7 +22,9 @@ export default function GoogleTranslate() {
         autoDisplay: false,
       }, 'google_translate_element');
     };
-  }, []);
+  }, [isInvoiceRoute]);
+
+  if (isInvoiceRoute) return null;
 
   const changeLanguage = (langCode: string) => {
     const selectEl = document.querySelector('.goog-te-combo') as HTMLSelectElement;

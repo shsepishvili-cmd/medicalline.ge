@@ -48,8 +48,10 @@ export default function AnalyticsBootstrap() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const trackedScrollMarks = useRef<Set<number>>(new Set());
+  const isInvoiceRoute = pathname === "/invoice" || pathname === "/invoice-login";
 
   useEffect(() => {
+    if (isInvoiceRoute) return;
     const query = searchParams.toString();
     const path = query ? `${pathname}?${query}` : pathname;
 
@@ -63,9 +65,10 @@ export default function AnalyticsBootstrap() {
         blog_slug: pathname.split("/").filter(Boolean)[1],
       });
     }
-  }, [pathname, searchParams]);
+  }, [isInvoiceRoute, pathname, searchParams]);
 
   useEffect(() => {
+    if (isInvoiceRoute) return;
     const onScroll = () => {
       const doc = document.documentElement;
       const maxScroll = doc.scrollHeight - doc.clientHeight;
@@ -89,7 +92,7 @@ export default function AnalyticsBootstrap() {
     onScroll();
 
     return () => window.removeEventListener("scroll", onScroll);
-  }, [pathname]);
+  }, [isInvoiceRoute, pathname]);
 
   return null;
 }
