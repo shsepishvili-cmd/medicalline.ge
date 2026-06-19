@@ -13,6 +13,7 @@ import {
   UploadCloud,
   XCircle,
 } from "lucide-react";
+import { buildDicomValidation, buildStrictDecision } from "./qaDecision.mjs";
 
 const MODES = {
   ACCEPTANCE: "acceptance",
@@ -198,6 +199,21 @@ const DEMO_EXPECTED = {
 };
 const FINSCAN_DISCLAIMER =
   "FinScan F350 Phantom QC is intended for internal service and quality monitoring. It is not a substitute for a validated regulatory acceptance test unless validated with official protocol and local requirements.";
+
+const DICOM_VALIDATION_LABEL_BY_KEY = {
+  kvp: "kVp",
+  tubeCurrent: "Tube current",
+  exposureTime: "Exposure time",
+  exposure: "Exposure mAs",
+  pixelSpacing: "Pixel spacing",
+  sliceThickness: "Slice thickness",
+  fov: "FOV",
+  manufacturerModelName: "Manufacturer/model",
+  manufacturer: "Manufacturer/model",
+  deviceSerialNumber: "Device serial number",
+  studyDate: "Study/acquisition date",
+  acquisitionDate: "Study/acquisition date",
+};
 
 const FINSCAN_F350_PROTOCOLS = {
   CBCT: {
@@ -741,8 +757,9 @@ function maxGeometryError(geometryRows) {
   return Math.max(...values);
 }
 
-function agencyProtocolRows({ image, rois, measurements, acceptanceForm, status, geometryRows, manualValues }) {
+function agencyProtocolRows({ image, rois, measurements, acceptanceForm, status, geometryRows, manualValues, dicomValidation }) {
   const metadata = image?.metadata || {};
+  const validationByLabel = new Map((dicomValidation?.checks || []).map((check) => [check.key, check]));
   const center = rois.find((roi) => roi.name === "Center");
   const left = rois.find((roi) => roi.name === "Left");
   const right = rois.find((roi) => roi.name === "Right");
@@ -760,6 +777,15 @@ function agencyProtocolRows({ image, rois, measurements, acceptanceForm, status,
           ? acceptanceForm.serialNumber
           : "";
     const value = metadata[field.key] || formValue || "";
+    const validation = validationByLabel.get(DICOM_VALIDATION_LABEL_BY_KEY[field.key]);
+    if (validation && validation.status !== "READY" && validation.status !== "OPTIONAL") {
+      return {
+        label: field.label,
+        value: validation.display,
+        source: "DICOM validation",
+        status: validation.status,
+      };
+    }
     return {
       label: field.label,
       value: value || "N/A",
@@ -812,6 +838,8 @@ function createRowsForCsv({
   qcRows,
   status,
   geometryRows,
+  strictDecision,
+  dicomValidation,
 }) {
   const metadataRows = METADATA_FIELDS.map((field) => [field.label, image?.metadata?.[field.key] || "N/A"]);
   const agencyRows = agencyProtocolRows({
@@ -822,6 +850,7 @@ function createRowsForCsv({
     status,
     geometryRows,
     manualValues: agencyManualValues,
+    dicomValidation,
   });
   const roiRows = rois.map((roi) => [
     roi.label,
@@ -857,7 +886,25 @@ function createRowsForCsv({
             : "Patient DICOM / Technical preview only",
     ],
     ["File", fileName],
+    ["Report generation timestamp", new Date().toISOString()],
+    ["Final decision", strictDecision?.label || status?.label || "INCOMPLETE"],
     ["Phantom preset", PHANTOM_PRESETS.quartDvtap.label],
+    [],
+    ["Final decision details"],
+    ["Category", "Issue"],
+    ...(strictDecision?.failures || []).map((item) => ["FAIL", item]),
+    ...(strictDecision?.incomplete || []).map((item) => ["INCOMPLETE", item]),
+    ...(strictDecision?.failures?.length || strictDecision?.incomplete?.length ? [] : [["PASS", "All required automated and manual checks completed."]]),
+    [],
+    ["Data consistency validation"],
+    ["Severity", "Message"],
+    ...((strictDecision?.consistencyIssues || []).length
+      ? strictDecision.consistencyIssues.map((issue) => [issue.severity, issue.message])
+      : [["PASS", "No blocking consistency conflicts detected."]]),
+    [],
+    ["DICOM validation"],
+    ["Field", "Status", "Value", "Reason"],
+    ...(strictDecision?.dicomChecks || []).map((check) => [check.key, check.status, check.display, check.reason || ""]),
     [],
     ["DICOM metadata"],
     ["Field", "Value"],
@@ -1057,6 +1104,7 @@ export default function CbctQaPage() {
   const measurementBundle = useMemo(() => buildMeasurements(rois), [rois]);
   const measurements = measurementBundle.values;
   const measurementWarnings = measurementBundle.warnings || [];
+  const dicomValidation = useMemo(() => buildDicomValidation(image?.metadata || {}), [image]);
   const pixelSpacing = useMemo(() => parsePixelSpacing(image?.metadata?.pixelSpacing), [image]);
   const geometryRows = useMemo(() => {
     return geometryPairs.map((pair) => {
@@ -1108,12 +1156,22 @@ export default function CbctQaPage() {
     : { label: "Not applicable for patient DICOM", tone: "slate" };
   const qcRows = useMemo(() => buildQcRows(measurements, baseline), [baseline, measurements]);
   const qc = imageType === IMAGE_TYPES.PHANTOM ? qcStatus(qcRows) : { label: "Not applicable for patient DICOM", tone: "slate" };
+  const strictDecision = useMemo(
+    () =>
+      buildStrictDecision({
+        imageType,
+        mode,
+        preset,
+        metadata: image?.metadata || {},
+        measurements,
+        geometryRows,
+        acceptanceForm,
+        manualValues: agencyManualValues,
+      }),
+    [acceptanceForm, agencyManualValues, geometryRows, image, imageType, measurements, mode, preset],
+  );
   const activeStatus =
-    mode === MODES.ACCEPTANCE
-      ? acceptance
-      : mode === MODES.QC
-        ? qc
-        : { label: "Not applicable for patient DICOM", tone: "slate" };
+    image ? strictDecision : mode === MODES.QC ? qc : acceptance;
   const agencyRows = useMemo(
     () =>
       agencyProtocolRows({
@@ -1124,12 +1182,28 @@ export default function CbctQaPage() {
         status: activeStatus,
         geometryRows,
         manualValues: agencyManualValues,
+        dicomValidation,
       }),
-    [acceptanceForm, activeStatus, agencyManualValues, geometryRows, image, measurements, rois],
+    [acceptanceForm, activeStatus, agencyManualValues, dicomValidation, geometryRows, image, measurements, rois],
   );
   const finScanProtocolKeyValue = useMemo(() => finScanProtocolKey(image, preset), [image, preset]);
   const finScanProtocol = FINSCAN_F350_PROTOCOLS[finScanProtocolKeyValue];
   const finScanAutoValues = useMemo(() => finScanAutoRows(image), [image]);
+  const dicomCheckByLabel = useMemo(
+    () => new Map((dicomValidation?.checks || []).map((check) => [check.key, check])),
+    [dicomValidation],
+  );
+  const metadataDisplayRows = useMemo(
+    () =>
+      METADATA_FIELDS.map((field) => {
+        const check = dicomCheckByLabel.get(DICOM_VALIDATION_LABEL_BY_KEY[field.key]);
+        if (check && check.status !== "READY" && check.status !== "OPTIONAL") {
+          return { ...field, display: check.display, status: check.status };
+        }
+        return { ...field, display: image?.metadata?.[field.key] || "N/A", status: image?.metadata?.[field.key] ? "READY" : "MISSING" };
+      }),
+    [dicomCheckByLabel, image],
+  );
 
   const missingMetadata = useMemo(() => {
     if (!image) return [];
@@ -1252,11 +1326,14 @@ export default function CbctQaPage() {
       }
       const pixelData = extractPixelData(dataSet, metadata);
       const nextWarnings = [];
+      const validation = buildDicomValidation(metadata);
 
       if (!metadata.rows || !metadata.columns) nextWarnings.push("Rows or Columns metadata is missing.");
       if (!metadata.bitsAllocated || !metadata.bitsStored) nextWarnings.push("Bit depth metadata is incomplete.");
       if (!metadata.pixelSpacing) nextWarnings.push("Pixel Spacing is missing.");
       if (metadata.pixelSpacing && !metadata.sliceThickness) nextWarnings.push("Voxel size incomplete - slice thickness missing.");
+      validation.invalid.forEach((check) => nextWarnings.push(check.reason));
+      validation.missing.forEach((check) => nextWarnings.push(check.reason));
       if (
         String(metadata.manufacturer || "").toLowerCase().includes("varian") ||
         String(metadata.seriesDescription || "").toLowerCase().includes("pelvis") ||
@@ -1319,6 +1396,8 @@ export default function CbctQaPage() {
       qcRows,
       status: activeStatus,
       geometryRows,
+      strictDecision,
+      dicomValidation,
     });
 
     const csv = rows.map((row) => row.map(csvEscape).join(",")).join("\n");
@@ -1337,7 +1416,7 @@ export default function CbctQaPage() {
     link.click();
     link.remove();
     URL.revokeObjectURL(url);
-  }, [acceptanceForm, activeStatus, agencyManualValues, baseline, fileName, finscanSubmode, geometryRows, image, imageType, measurements, mode, preset, qcRows, rois]);
+  }, [acceptanceForm, activeStatus, agencyManualValues, baseline, dicomValidation, fileName, finscanSubmode, geometryRows, image, imageType, measurements, mode, preset, qcRows, rois, strictDecision]);
 
   const downloadPdf = useCallback(() => {
     if (!image) return;
@@ -1357,6 +1436,8 @@ export default function CbctQaPage() {
       qcRows,
       status: activeStatus,
       geometryRows,
+      strictDecision,
+      dicomValidation,
     });
 
     const doc = new jsPDF({ unit: "pt", format: "a4" });
@@ -1375,16 +1456,22 @@ export default function CbctQaPage() {
     };
 
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(14);
-    doc.text("CBCT QA Analyzer Report", marginX, y);
+    doc.setFontSize(16);
+    doc.text("CBCT Internal QA Analyzer Report", marginX, y);
     y += 20;
 
     doc.setFont("helvetica", "normal");
     doc.setFontSize(10);
+    doc.text("Pre-Acceptance Screening / Internal QA Use Only", marginX, y);
+    y += 16;
+    doc.setFont("helvetica", "bold");
+    doc.text(`Final status: ${strictDecision.label}`, marginX, y);
+    y += 16;
+    doc.setFont("helvetica", "normal");
     doc.text(`Generated: ${new Date().toLocaleString()}`, marginX, y);
     y += 16;
-    doc.text(DISCLAIMER, marginX, y, { maxWidth });
-    y += 28;
+    doc.text("This report is not certified acceptance testing software and does not replace validated phantom software, external dosimetry, or medical physicist evaluation.", marginX, y, { maxWidth });
+    y += 34;
 
     rows.forEach((row) => {
       const filtered = row.filter((cell) => valueText(cell) !== "N/A" || row.length <= 2);
@@ -1411,7 +1498,7 @@ export default function CbctQaPage() {
           ? "quality-control"
           : "technical-preview";
     doc.save(`cbct-qa-${modeName}-${fileName || "report"}.pdf`.replace(/[^\w.-]+/g, "-"));
-  }, [acceptanceForm, activeStatus, agencyManualValues, baseline, fileName, finscanSubmode, geometryRows, image, imageType, measurements, mode, preset, qcRows, rois]);
+  }, [acceptanceForm, activeStatus, agencyManualValues, baseline, dicomValidation, fileName, finscanSubmode, geometryRows, image, imageType, measurements, mode, preset, qcRows, rois, strictDecision]);
 
   const updateRoiCenter = useCallback(
     (name, axis, rawValue) => {
@@ -1697,11 +1784,11 @@ export default function CbctQaPage() {
             <h2 className="text-lg font-semibold text-slate-950">DICOM Metadata</h2>
             {image ? (
               <dl className="mt-4 space-y-3">
-                {METADATA_FIELDS.map((field) => (
+                {metadataDisplayRows.map((field) => (
                   <div key={field.key} className="flex items-start justify-between gap-4 border-b border-slate-100 pb-2">
                     <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">{field.label}</dt>
-                    <dd className="max-w-40 text-right text-sm font-semibold text-slate-800">
-                      {image.metadata[field.key] || "N/A"}
+                    <dd className={`max-w-40 text-right text-sm font-semibold ${field.status === "INVALID" ? "text-rose-700" : "text-slate-800"}`}>
+                      {field.display}
                     </dd>
                   </div>
                 ))}
@@ -1716,6 +1803,10 @@ export default function CbctQaPage() {
         </aside>
 
         <div className="space-y-6">
+          {image ? (
+            <FinalDecisionPanel decision={strictDecision} />
+          ) : null}
+
           {error ? (
             <div className="rounded-md border border-rose-200 bg-rose-50 p-4 text-sm font-medium text-rose-800">
               {error}
@@ -2090,7 +2181,7 @@ export default function CbctQaPage() {
               acceptanceForm={acceptanceForm}
               updateAcceptanceField={updateAcceptanceField}
               measurements={measurements}
-              status={acceptance}
+              status={activeStatus}
               rois={rois}
               isDemoImage={isDemoImage}
               imageType={imageType}
@@ -2199,6 +2290,44 @@ function AgencyProtocolPanel({ rows, image, manualValues, setManualValues }) {
           </tbody>
         </table>
       </div>
+    </div>
+  );
+}
+
+function FinalDecisionPanel({ decision }) {
+  const tone = decision.tone || "amber";
+  return (
+    <div className={`rounded-md border p-4 ${statusClasses(tone)}`}>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wide">Final decision</p>
+          <h2 className="mt-1 text-2xl font-semibold">{decision.label}</h2>
+        </div>
+        <span className="rounded-full border border-current px-3 py-1 text-xs font-semibold">
+          Internal QA / pre-acceptance only
+        </span>
+      </div>
+      <p className="mt-3 text-sm leading-6">
+        PASS is blocked whenever a critical value fails, DICOM data is invalid, manual review is pending,
+        MTF/dose validation is unavailable, or final physicist conclusion is not explicitly positive.
+      </p>
+      {decision.failures?.length ? (
+        <div className="mt-4">
+          <h3 className="text-sm font-semibold">Fail causes</h3>
+          <ul className="mt-2 list-inside list-disc space-y-1 text-sm">
+            {decision.failures.map((item) => <li key={item}>{item}</li>)}
+          </ul>
+        </div>
+      ) : null}
+      {decision.incomplete?.length ? (
+        <div className="mt-4">
+          <h3 className="text-sm font-semibold">Incomplete / manual review causes</h3>
+          <ul className="mt-2 list-inside list-disc space-y-1 text-sm">
+            {decision.incomplete.slice(0, 12).map((item) => <li key={item}>{item}</li>)}
+            {decision.incomplete.length > 12 ? <li>{decision.incomplete.length - 12} more items in report output.</li> : null}
+          </ul>
+        </div>
+      ) : null}
     </div>
   );
 }
