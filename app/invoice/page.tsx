@@ -100,6 +100,10 @@ function statusBadge(status: InvoiceStatus) {
   )
 }
 
+function createLocalId(offset = 0) {
+  return Date.now() + offset
+}
+
 export default function InvoicePage() {
   const [clients, setClients] = useState<InvoiceClient[]>([])
   const [products, setProducts] = useState<InvoiceProduct[]>([])
@@ -347,6 +351,7 @@ export default function InvoicePage() {
     if (form.clientId) return Number(form.clientId)
     if (!form.clientName.trim()) return null
     const payload = {
+      id: createLocalId(),
       name: form.clientName.trim(),
       company: form.clientCompany.trim() || null,
       id_num: form.clientIdNum.trim() || null,
@@ -365,7 +370,8 @@ export default function InvoicePage() {
     const existingNames = new Set(products.map((product) => product.name.trim().toLowerCase()))
     const toInsert = items
       .filter((item) => item.name.trim() && !existingNames.has(item.name.trim().toLowerCase()))
-      .map((item) => ({
+      .map((item, index) => ({
+        id: createLocalId(index + 1),
         name: item.name.trim(),
         category: 'ინვოისიდან დამატებული',
         price: Number(item.unitPrice || 0),
@@ -419,7 +425,6 @@ export default function InvoicePage() {
         discount: Number(form.discount || 0),
         note: form.note.trim() || null,
         bank: form.bank.trim() || null,
-        payment_splits: form.paymentSplits,
         items: cleanItems,
         subtotal: currentTotals.subtotal,
         discount_amount: currentTotals.discountAmount,
@@ -442,7 +447,7 @@ export default function InvoicePage() {
       } else {
         const result = await supabase
           .from('inv_invoices')
-          .insert(payload)
+          .insert({ id: createLocalId(), ...payload })
           .select('*')
           .single()
         data = result.data as InvoiceRecord | null
