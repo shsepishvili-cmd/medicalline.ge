@@ -355,7 +355,7 @@ export const products = [
     id: 65,
     slug: "mona-5l-pro",
     name: "Mona 5L Pro ავტოკლავი",
-    img: "/images/autoclave_main.jpg",
+    img: "/images/mona-5l-pro.webp",
     cat: "ჰიგიენა",
     description: "კომპაქტური მაღალი წნევის ორთქლის სტერილიზატორი სწრაფი სტერილიზაციისთვის.",
     specs: [
