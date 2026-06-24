@@ -276,14 +276,14 @@ export const products = [
     description: "Aurora Series ენდოფაილები არის NiTi როტაციული ფაილების სისტემა არხის ფორმირებისა და დამუშავებისთვის. სერია მოიცავს Super Flexi, R-Shaper და Sup-Taper ფაილებს.",
     specs: [
       "Super Flexi Files მოქნილი არხებისთვის",
-      "R-Shaper ფაილები shaping workflow-სთვის",
-      "Sup-Taper Files პროგრესული ტეიპერით არხის ფორმირებისთვის",
-      "Heat activated NiTi და nano coating",
+      "R-Shaper ფაილები ფორმირების სამუშაო თანმიმდევრობისთვის",
+      "Sup-Taper ფაილები პროგრესული კონუსურობით არხის ფორმირებისთვის",
+      "თერმულად აქტივირებული NiTi და ნანო საფარი",
       "25მმ სიგრძე; 6 ცალი შეფუთვაში"
     ],
     aiFeatures: [
-      { icon: 'zap', title: 'Flexible NiTi', desc: 'თერმულად დამუშავებული NiTi ეხმარება მოხრილ არხებში უსაფრთხო მუშაობას.' },
-      { icon: 'shield', title: 'System Workflow', desc: 'Super Flexi, R-Shaper და Sup-Taper ფაილები ფარავს glide path-ს, shaping-ს და taper finishing-ს.' }
+      { icon: 'zap', title: 'მოქნილი NiTi', desc: 'თერმულად დამუშავებული NiTi ეხმარება მოხრილ არხებში უსაფრთხო მუშაობას.' },
+      { icon: 'shield', title: 'სისტემური თანმიმდევრობა', desc: 'Super Flexi, R-Shaper და Sup-Taper ფაილები ფარავს გზის შექმნას, არხის ფორმირებას და საბოლოო კონუსურობის დასრულებას.' }
     ]
   },
 
