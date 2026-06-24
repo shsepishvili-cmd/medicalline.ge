@@ -6,6 +6,7 @@ import { notFound } from 'next/navigation';
 import { products as part1 } from '../data-part1';
 import { products as part2 } from '../data-part2';
 import AiButtons from './AiButtons';
+import OfferAdminButton from './OfferAdminButton';
 import ProductViewTracker from '@/app/components/ProductViewTracker';
 import TrackedAnchor from '@/app/components/TrackedAnchor';
 import { absoluteImageUrl, buildPageMetadata, siteConfig } from '@/app/lib/seo';
@@ -136,8 +137,10 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
               </div>
             </div>
 
+            <OfferAdminButton slug={product.slug} />
+
             <TrackedAnchor
-              href={`https://wa.me/995514011116?text=${encodeURIComponent(`Hello, I am interested in ${product.name}`)}`}
+              href={`https://wa.me/995514011116?text=${encodeURIComponent(`გამარჯობა, მაინტერესებს ${product.name}. გთხოვთ მომაწოდოთ ფასი და დეტალები.`)}`}
               target="_blank"
               rel="noopener noreferrer"
               leadChannel="whatsapp"
@@ -149,6 +152,21 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
               className="w-full py-6 bg-[#0F172A] text-white rounded-[1.5rem] font-black text-xs flex items-center justify-center gap-4 uppercase tracking-widest shadow-xl"
             >
               <MessageCircle size={20} /> WhatsApp Price
+            </TrackedAnchor>
+
+            <TrackedAnchor
+              href="https://m.me/medicalline.ge"
+              target="_blank"
+              rel="noopener noreferrer"
+              leadChannel="messenger"
+              trackingParams={{
+                product_name: product.name,
+                product_category: product.cat,
+                cta_location: 'product_page',
+              }}
+              className="w-full mt-3 py-6 bg-[#0084FF] text-white rounded-[1.5rem] font-black text-xs flex items-center justify-center gap-4 uppercase tracking-widest shadow-xl"
+            >
+              <MessageCircle size={20} /> Messenger
             </TrackedAnchor>
           </div>
         </div>

@@ -28,6 +28,8 @@ export function createEmptyContractForm(): ContractFormValues {
     customerAddress: '',
     phone: '',
     email: '',
+    templateType: 'general',
+    contractBody: '',
     productName: '',
     brand: '',
     model: '',
@@ -50,4 +52,12 @@ export function createEmptyContractForm(): ContractFormValues {
 
 export function deriveContractStatus(status: ContractStatus): ContractStatus {
   return status
+}
+
+export function buildPublicContractUrl(baseUrl: string, publicToken: string) {
+  return `${baseUrl.replace(/\/$/, '')}/contact-hub/accept/${publicToken}`
+}
+
+export function normalizePhone(value: string) {
+  return value.replace(/\D/g, '')
 }

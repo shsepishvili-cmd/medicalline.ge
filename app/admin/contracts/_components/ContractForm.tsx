@@ -7,6 +7,7 @@ import { supabase } from '@/app/lib/supabase'
 import { createEmptyContractForm, calcVatAmount, formatCurrency } from '@/app/lib/contract'
 import {
   buildContractIntro,
+  buildEditableContractText,
   buildStandardContractSections,
   contractInputFromForm,
   getBuyerName,
@@ -14,7 +15,12 @@ import {
   SELLER_INFO,
   valueOrDash,
 } from '@/app/lib/contract-template'
-import type { ContractFormValues, ContractRecord } from '@/app/lib/contract-types'
+import {
+  CONTRACT_TEMPLATE_LABELS,
+  CONTRACT_TEMPLATES,
+  type ContractFormValues,
+  type ContractRecord,
+} from '@/app/lib/contract-types'
 import type { ProfileSummary, WarrantyRecord } from '@/app/lib/warranty-types'
 import { colors, Field, ui, requestContractPdfUrl } from './ContractUi'
 
@@ -137,6 +143,8 @@ function mapRecordToForm(c: ContractRecord): ContractFormValues {
     customerAddress:     c.customer_address || '',
     phone:               c.phone || '',
     email:               c.email || '',
+    templateType:        c.contract_template || 'general',
+    contractBody:        c.contract_body || '',
     productName:         c.product_name || '',
     brand:               c.brand || '',
     model:               c.model || '',
@@ -218,6 +226,39 @@ export function ContractForm({
     ),
     [values.unitPrice, values.quantity, values.vatRate, values.vatIncluded],
   )
+  const generatedContractBody = useMemo(
+    () => buildEditableContractText(contractInputFromForm(values)),
+    [
+      values.contractDate,
+      values.clinicName,
+      values.customerName,
+      values.customerIdNumber,
+      values.customerAddress,
+      values.phone,
+      values.templateType,
+      values.productName,
+      values.brand,
+      values.model,
+      values.serialNumber,
+      values.quantity,
+      values.unitPrice,
+      values.currency,
+      values.vatRate,
+      values.vatIncluded,
+      values.paymentTerms,
+      values.deliveryDate,
+      values.deliveryAddress,
+      values.installationIncluded,
+      values.warrantyMonths,
+      values.specialTerms,
+    ],
+  )
+
+  useEffect(() => {
+    if (!values.contractBody.trim() && values.productName.trim()) {
+      setValues((prev) => ({ ...prev, contractBody: generatedContractBody }))
+    }
+  }, [generatedContractBody, values.contractBody, values.productName])
 
   async function save({ generatePdf }: { generatePdf: boolean }) {
     if (!values.productName.trim() || !values.brand.trim() || !values.unitPrice) {
@@ -237,6 +278,8 @@ export function ContractForm({
         customer_address:      values.customerAddress.trim() || null,
         phone:                 values.phone.trim() || null,
         email:                 values.email.trim() || null,
+        contract_template:     values.templateType,
+        contract_body:         values.contractBody.trim() || generatedContractBody,
         product_name:          values.productName.trim(),
         brand:                 values.brand.trim(),
         model:                 values.model.trim() || null,
@@ -329,6 +372,13 @@ export function ContractForm({
       <div style={{ ...ui.panel }}>
         <p style={{ margin: '0 0 12px', fontSize: 14, fontWeight: 700, color: colors.text }}>პროდუქტი *</p>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 14 }}>
+          <Field label="ხელშეკრულების შაბლონი">
+            <select value={values.templateType} onChange={(e) => set('templateType', e.target.value as ContractFormValues['templateType'])} style={ui.input}>
+              {CONTRACT_TEMPLATES.map((template) => (
+                <option key={template} value={template}>{CONTRACT_TEMPLATE_LABELS[template]}</option>
+              ))}
+            </select>
+          </Field>
           <Field label="პროდუქტის სახელი *">
             <input value={values.productName} onChange={(e) => set('productName', e.target.value)} style={ui.input} />
           </Field>
@@ -414,6 +464,29 @@ export function ContractForm({
         </div>
       </div>
 
+      <div style={{ ...ui.panel }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', alignItems: 'center', marginBottom: 12 }}>
+          <div>
+            <p style={{ margin: 0, fontSize: 14, fontWeight: 700, color: colors.text }}>ხელშეკრულების სრული ტექსტი</p>
+            <p style={{ margin: '4px 0 0', fontSize: 12, color: colors.muted }}>
+              შაბლონიდან გენერირებული ტექსტი შეგიძლია აქვე ჩაასწორო. PDF-ში ზუსტად ეს ტექსტი ჩაიდება.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => set('contractBody', generatedContractBody)}
+            style={{ ...ui.secondaryButton, padding: '10px 14px' }}
+          >
+            შაბლონიდან განახლება
+          </button>
+        </div>
+        <textarea
+          value={values.contractBody}
+          onChange={(e) => set('contractBody', e.target.value)}
+          style={{ ...ui.textarea, minHeight: 420, lineHeight: 1.65, fontFamily: 'inherit' }}
+        />
+      </div>
+
       {/* ── Section: Extra terms + status ── */}
       <div style={{ ...ui.panel }}>
         <p style={{ margin: '0 0 12px', fontSize: 14, fontWeight: 700, color: colors.text }}>დამატებითი პირობები</p>
@@ -437,8 +510,6 @@ export function ContractForm({
           </div>
         </div>
       </div>
-
-      <ContractLivePreview values={values} total={formatCurrency(fin.gross, values.currency)} />
 
       {error ? (
         <div style={{ ...ui.panel, borderColor: 'rgba(185,28,28,0.18)', background: '#FEF2F2', color: '#991B1B' }}>{error}</div>

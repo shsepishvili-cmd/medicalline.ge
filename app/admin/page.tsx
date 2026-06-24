@@ -479,11 +479,12 @@ export default function AdminPage() {
           { id: 'analytics', label: '📈 Analytics' },
           { id: 'users', label: '👥 მომხმარებლები' },
           { id: 'prices', label: '💰 ფასები' },
+          { id: 'offers', label: '🔗 შეთავაზებები' },
           { id: 'requests', label: `📨 მოთხოვნები${newReqs > 0 ? ` (${newReqs})` : ''}` },
           { id: 'service', label: `🔧 Service${newServiceTickets > 0 ? ` (${newServiceTickets})` : ''}` },
           { id: 'engineering', label: `⚙️ Engineering${engineeringDivision.length > 0 ? ` (${engineeringDivision.length})` : ''}` },
-        ] as { id: Tab; label: string }[]).map(item => (
-          <button key={item.id} onClick={() => setTab(item.id)}
+        ] as { id: Tab | 'offers'; label: string }[]).map(item => (
+          <button key={item.id} onClick={() => item.id === 'offers' ? window.location.href = '/admin/offers' : setTab(item.id)}
             style={{ display: 'block', width: '100%', textAlign: 'left', padding: '10px 16px', background: tab === item.id ? 'rgba(255,255,255,0.12)' : 'transparent', color: tab === item.id ? '#fff' : '#9FE1CB', border: 'none', borderLeft: tab === item.id ? '3px solid #5DCAA5' : '3px solid transparent', cursor: 'pointer', fontSize: 13 }}>
             {item.label}
           </button>
@@ -533,8 +534,10 @@ export default function AdminPage() {
                     <button onClick={() => setTab('users')} style={{ fontSize: 12, padding: '6px 10px', background: '#FAEEDA', color: '#633806', border: 'none', borderRadius: 8, cursor: 'pointer' }}>Users</button>
                     <button onClick={() => setTab('requests')} style={{ fontSize: 12, padding: '6px 10px', background: '#E6F1FB', color: '#0C447C', border: 'none', borderRadius: 8, cursor: 'pointer' }}>Requests</button>
                     <button onClick={() => setTab('engineering')} style={{ fontSize: 12, padding: '6px 10px', background: '#E1F5EE', color: '#085041', border: 'none', borderRadius: 8, cursor: 'pointer' }}>Engineering</button>
+                    <button onClick={() => window.location.href = '/admin/offers'} style={{ fontSize: 12, padding: '6px 10px', background: '#ECFDF5', color: '#047857', border: '1px solid rgba(4,120,87,0.12)', borderRadius: 8, cursor: 'pointer' }}>შეთავაზებები</button>
                     <button onClick={() => window.location.href = '/admin/warranty'} style={{ fontSize: 12, padding: '6px 10px', background: '#EDF7F3', color: '#085041', border: '1px solid rgba(8,80,65,0.12)', borderRadius: 8, cursor: 'pointer' }}>გარანტიები</button>
                     <button onClick={() => window.location.href = '/admin/contracts'} style={{ fontSize: 12, padding: '6px 10px', background: '#EEF2FF', color: '#3730A3', border: '1px solid rgba(55,48,163,0.12)', borderRadius: 8, cursor: 'pointer' }}>ხელშეკრულებები</button>
+                    <button onClick={() => window.location.href = '/admin/erp'} style={{ fontSize: 12, padding: '6px 10px', background: '#EAF3FB', color: '#1F5F99', border: '1px solid rgba(31,95,153,0.12)', borderRadius: 8, cursor: 'pointer' }}>ERP</button>
                     <button onClick={() => window.location.href = '/invoice'} style={{ fontSize: 12, padding: '6px 10px', background: '#EFF6FF', color: '#1D4ED8', border: '1px solid rgba(29,78,216,0.12)', borderRadius: 8, cursor: 'pointer' }}>ინვოისები</button>
                     <button onClick={() => window.location.href = '/admin/academy'} style={{ fontSize: 12, padding: '6px 10px', background: '#FFF7ED', color: '#9A3412', border: '1px solid rgba(154,52,18,0.12)', borderRadius: 8, cursor: 'pointer' }}>აკადემია</button>
                   </div>

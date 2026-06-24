@@ -1,88 +1,45 @@
-'use client'
+import Link from 'next/link'
+import { ArrowLeft, MessageCircle, ShieldCheck } from 'lucide-react'
 
-import { useMemo, useState } from 'react'
-
-const inputStyle: React.CSSProperties = {
-  width: '100%', border: '1px solid #dbe3ee', borderRadius: 12, padding: '12px 14px',
-  fontSize: 15, outline: 'none', background: '#fff', boxSizing: 'border-box',
+export const metadata = {
+  title: 'შეთავაზება | Medical Line',
+  description: 'Medical Line-ის ინდივიდუალური შეთავაზებების გვერდი.',
 }
 
-export default function OfferPage() {
-  const [password, setPassword] = useState('')
-  const [clientName, setClientName] = useState('')
-  const [phone, setPhone] = useState('')
-  const [title, setTitle] = useState('შეთავაზება Medical Line Georgia-სგან')
-  const [amount, setAmount] = useState('')
-  const [currency, setCurrency] = useState('GEL')
-  const [details, setDetails] = useState('')
-  const [link, setLink] = useState('')
-  const [busy, setBusy] = useState(false)
-  const [status, setStatus] = useState('')
-
-  const smsText = useMemo(() => {
-    const greeting = clientName.trim() ? `გამარჯობა, ${clientName.trim()}!` : 'გამარჯობა!'
-    const amountLine = amount.trim() ? `\nღირებულება: ${amount.trim()} ${currency}` : ''
-    const detailsLine = details.trim() ? `\n${details.trim()}` : ''
-    const linkLine = link.trim() ? `\n${link.trim()}` : ''
-    return `${greeting}\n${title.trim() || 'შეთავაზება Medical Line Georgia-სგან'}${amountLine}${detailsLine}${linkLine}\nMedical Line Georgia | 514 01 11 16`
-  }, [clientName, title, amount, currency, details, link])
-
-  async function sendSms() {
-    setStatus('')
-    if (!phone.trim()) return setStatus('მიუთითე კლიენტის ტელეფონის ნომერი.')
-    if (!password.trim()) return setStatus('მიუთითე Offers-ის პაროლი.')
-    setBusy(true)
-    try {
-      const response = await fetch('/api/offer/send-sms', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-offer-secret': password.trim() },
-        body: JSON.stringify({ phone, text: smsText }),
-      })
-      const data = await response.json().catch(() => ({}))
-      if (!response.ok) throw new Error(data?.error || 'SMS ვერ გაიგზავნა.')
-      setStatus(`SMS გაიგზავნა${data?.balance !== null && data?.balance !== undefined ? ` · დარჩენილი ბალანსი: ${data.balance}` : ''}`)
-    } catch (error) {
-      setStatus(error instanceof Error ? error.message : 'SMS ვერ გაიგზავნა.')
-    } finally {
-      setBusy(false)
-    }
-  }
-
+export default function OfferIndexPage() {
   return (
-    <main style={{ minHeight: '100vh', background: '#f5f8fc', padding: '28px 16px', fontFamily: 'Arial, sans-serif', color: '#172033' }}>
-      <section style={{ maxWidth: 880, margin: '0 auto' }}>
-        <div style={{ marginBottom: 20 }}>
-          <p style={{ margin: 0, color: '#1769e0', fontSize: 12, fontWeight: 800, letterSpacing: 1.2 }}>MEDICAL LINE GEORGIA</p>
-          <h1 style={{ margin: '7px 0 4px', fontSize: 30 }}>Offers</h1>
-          <p style={{ margin: 0, color: '#667085', lineHeight: 1.5 }}>შეთავაზების ტექსტის შექმნა და SMS-ით გაგზავნა</p>
-        </div>
+    <main className="min-h-screen bg-[#f7faf8] px-5 py-10 text-slate-900">
+      <section className="mx-auto flex min-h-[calc(100vh-80px)] max-w-3xl flex-col justify-center">
+        <Link href="/" className="mb-8 inline-flex items-center gap-2 text-sm font-bold text-slate-500 hover:text-slate-900">
+          <ArrowLeft size={16} /> მთავარზე დაბრუნება
+        </Link>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: 16 }}>
-          <section style={{ background: '#fff', borderRadius: 18, padding: 20, boxShadow: '0 8px 30px rgba(20,45,90,.08)' }}>
-            <h2 style={{ marginTop: 0, fontSize: 18 }}>კლიენტი და შეთავაზება</h2>
-            <div style={{ display: 'grid', gap: 12 }}>
-              <label>Offers-ის პაროლი<input type="password" value={password} onChange={(e) => setPassword(e.target.value)} style={inputStyle} /></label>
-              <label>კლიენტის სახელი<input value={clientName} onChange={(e) => setClientName(e.target.value)} placeholder="მაგ: ნინო" style={inputStyle} /></label>
-              <label>ტელეფონი<input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="5XX XX XX XX" style={inputStyle} /></label>
-              <label>სათაური<input value={title} onChange={(e) => setTitle(e.target.value)} style={inputStyle} /></label>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 110px', gap: 10 }}>
-                <label>ფასი<input value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="მაგ: 2,500" style={inputStyle} /></label>
-                <label>ვალუტა<select value={currency} onChange={(e) => setCurrency(e.target.value)} style={inputStyle}><option>GEL</option><option>USD</option><option>EUR</option></select></label>
-              </div>
-              <label>დეტალები<textarea value={details} onChange={(e) => setDetails(e.target.value)} placeholder="პროდუქტი, განვადება, მოქმედების ვადა..." rows={4} style={{ ...inputStyle, resize: 'vertical' }} /></label>
-              <label>ბმული (სურვილისამებრ)<input value={link} onChange={(e) => setLink(e.target.value)} placeholder="https://..." style={inputStyle} /></label>
-            </div>
-          </section>
+        <div className="rounded-2xl border border-slate-100 bg-white p-8 shadow-sm md:p-10">
+          <div className="mb-5 inline-flex h-12 w-12 items-center justify-center rounded-full bg-[#e2f4ed] text-[#085041]">
+            <ShieldCheck size={24} />
+          </div>
 
-          <section style={{ background: '#102a56', color: '#fff', borderRadius: 18, padding: 20, boxShadow: '0 8px 30px rgba(20,45,90,.15)' }}>
-            <p style={{ marginTop: 0, opacity: .72, fontSize: 12, fontWeight: 800, letterSpacing: 1 }}>SMS PREVIEW</p>
-            <pre style={{ whiteSpace: 'pre-wrap', fontFamily: 'inherit', fontSize: 15, lineHeight: 1.6, margin: '10px 0 20px' }}>{smsText}</pre>
-            <p style={{ color: '#bcd2f6', fontSize: 12, marginBottom: 16 }}>{smsText.length} / 459 სიმბოლო</p>
-            <button onClick={sendSms} disabled={busy} style={{ width: '100%', border: 0, borderRadius: 12, padding: '14px', background: busy ? '#8aa9d7' : '#fff', color: '#102a56', fontWeight: 800, cursor: busy ? 'wait' : 'pointer', fontSize: 15 }}>
-              {busy ? 'იგზავნება...' : 'SMS გაგზავნა'}
-            </button>
-            {status ? <p style={{ marginBottom: 0, marginTop: 14, color: status.startsWith('SMS გაიგზავნა') ? '#a8f0c7' : '#ffb4b4', lineHeight: 1.4 }}>{status}</p> : null}
-          </section>
+          <p className="text-xs font-black uppercase tracking-[0.22em] text-[#085041]">Medical Line Offer</p>
+          <h1 className="mt-3 text-3xl font-black leading-tight md:text-5xl">ინდივიდუალური შეთავაზება</h1>
+          <p className="mt-5 max-w-2xl text-base leading-8 text-slate-600">
+            შეთავაზების სანახავად გამოიყენეთ თქვენთვის გამოგზავნილი პერსონალური ბმული. თუ ბმული დაკარგეთ,
+            მოგვწერეთ WhatsApp-ზე და გუნდი ხელახლა გამოგიგზავნით.
+          </p>
+
+          <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+            <a
+              href="https://wa.me/995514011116?text=%E1%83%92%E1%83%90%E1%83%9B%E1%83%90%E1%83%A0%E1%83%AF%E1%83%9D%E1%83%91%E1%83%90%2C%20%E1%83%A8%E1%83%94%E1%83%9B%E1%83%9D%E1%83%97%E1%83%90%E1%83%95%E1%83%90%E1%83%96%E1%83%94%E1%83%91%E1%83%98%E1%83%A1%20%E1%83%91%E1%83%9B%E1%83%A3%E1%83%9A%E1%83%98%20%E1%83%93%E1%83%90%E1%83%9B%E1%83%94%E1%83%99%E1%83%90%E1%83%A0%E1%83%92%E1%83%90"
+              className="inline-flex items-center justify-center gap-3 rounded-lg bg-[#085041] px-5 py-4 text-sm font-black text-white"
+            >
+              <MessageCircle size={18} /> WhatsApp-ზე მიწერა
+            </a>
+            <Link
+              href="/catalog"
+              className="inline-flex items-center justify-center rounded-lg border border-slate-200 bg-white px-5 py-4 text-sm font-black text-slate-900"
+            >
+              კატალოგის ნახვა
+            </Link>
+          </div>
         </div>
       </section>
     </main>

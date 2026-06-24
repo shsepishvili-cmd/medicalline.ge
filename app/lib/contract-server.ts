@@ -1,4 +1,6 @@
 import { jsPDF } from 'jspdf'
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
 import { formatCurrency, calcVatAmount } from './contract'
 import {
   buildContractIntro,
@@ -23,22 +25,33 @@ function geo(d: string | null | undefined) {
   return new Date(d).toLocaleDateString('ka-GE')
 }
 
+function getContractLogoDataUrl() {
+  try {
+    const logo = readFileSync(join(process.cwd(), 'public', 'logo.png')).toString('base64')
+    return `data:image/png;base64,${logo}`
+  } catch {
+    return ML_LOGO_BASE64
+  }
+}
+
 export async function generateContractPdfBuffer(contract: ContractRecord): Promise<Buffer> {
   const pdf = new jsPDF('p', 'mm', 'a4')
   registerFont(pdf)
 
   const pageW = 210
   const pageH = 297
-  const ml = 18
-  const mr = 18
-  const top = 18
-  const bottom = 20
+  const ml = 16
+  const mr = 16
+  const top = 14
+  const bottom = 16
   const uw = pageW - ml - mr
   const navy: [number, number, number] = [15, 23, 42]
   const text: [number, number, number] = [31, 41, 55]
   const muted: [number, number, number] = [100, 116, 139]
   const soft: [number, number, number] = [248, 250, 252]
+  const contractLogo = getContractLogoDataUrl()
   let y = top
+  let pageStarted = false
 
   const fin = calcVatAmount(
     contract.unit_price,
@@ -60,14 +73,15 @@ export async function generateContractPdfBuffer(contract: ContractRecord): Promi
   }
 
   function startPage(continuationTitle?: string) {
-    if (pdf.getNumberOfPages() > 0) {
+    if (pageStarted) {
       footer()
       pdf.addPage()
     }
+    pageStarted = true
     y = top
 
     try {
-      pdf.addImage(ML_LOGO_BASE64, 'PNG', ml, y - 2, 18, 18)
+      pdf.addImage(contractLogo, 'PNG', ml, y - 3, 22, 14)
     } catch {
       // no-op
     }
@@ -75,20 +89,16 @@ export async function generateContractPdfBuffer(contract: ContractRecord): Promi
     pdf.setFont('Sylfaen', 'bold')
     pdf.setFontSize(12.5)
     pdf.setTextColor(...navy)
-    pdf.text('Medical Line Georgia', ml + 22, y + 5)
+    pdf.text('Medical Line Georgia', ml + 26, y + 5)
 
     pdf.setFont('Sylfaen', 'normal')
     pdf.setFontSize(8.5)
     pdf.setTextColor(...muted)
-    pdf.text('ნასყიდობის, მიწოდებისა და ინსტალაციის ხელშეკრულება', ml + 22, y + 10)
+    pdf.text('ნასყიდობის, მიწოდებისა და ინსტალაციის ხელშეკრულება', ml + 26, y + 10)
     pdf.text(`No. ${contract.contract_number}`, pageW - mr, y + 5, { align: 'right' })
     pdf.text(geo(contract.contract_date), pageW - mr, y + 10, { align: 'right' })
 
-    y += 22
-
-    if (continuationTitle) {
-      drawSectionTitle(continuationTitle)
-    }
+    y += 18
   }
 
   function ensureSpace(space: number, continuationTitle?: string) {
@@ -147,24 +157,87 @@ export async function generateContractPdfBuffer(contract: ContractRecord): Promi
     })
   }
 
+  function drawPlainContractText(body: string) {
+    pdf.setFont('Sylfaen', 'normal')
+    pdf.setFontSize(8.9)
+    pdf.setTextColor(...text)
+
+    body.split(/\n/).forEach((paragraph, index) => {
+      const cleanParagraph = paragraph.trim()
+      if (!cleanParagraph) {
+        y += 2
+        return
+      }
+      const isHeadingLine = index < 5
+      pdf.setFont('Sylfaen', isHeadingLine ? 'bold' : 'normal')
+      pdf.setFontSize(isHeadingLine ? 9.7 : 8.9)
+      const lines = pdf.splitTextToSize(cleanParagraph, uw - 2) as string[]
+      const blockH = lines.length * 4.55 + 0.8
+      ensureSpace(blockH + 1)
+      pdf.text(lines, isHeadingLine ? pageW / 2 : ml + 1, y, isHeadingLine ? { align: 'center' } : undefined)
+      y += blockH
+    })
+  }
+
+  function drawAcceptanceCertificate() {
+    const acceptedAt = contract.signed_at || contract.accepted_at || contract.otp_verified_at
+    const isAccepted = Boolean(contract.agreed_to_terms && acceptedAt)
+    if (!isAccepted) return
+
+    y += 4
+    drawSectionTitle('ელექტრონული დადასტურების სერტიფიკატი')
+
+    const rows: Array<[string, string]> = [
+      ['დადასტურების მეთოდი', 'SMS/OTP კოდით ელექტრონული დადასტურება'],
+      ['დადასტურების დრო', acceptedAt ? new Date(acceptedAt).toLocaleString('ka-GE') : '-'],
+      ['ხელშეკრულების ნომერი', contract.contract_number],
+      ['დოკუმენტის ვერსია', String(contract.document_version || 1)],
+      ['დადასტურებული ტელეფონი', contract.accepted_phone || contract.phone || '-'],
+      ['დადასტურებული ელფოსტა', contract.accepted_email || contract.email || '-'],
+      ['საჯარო დადასტურების კოდი', contract.public_token || '-'],
+      ['სტატუსი', CONTRACT_STATUS_LABELS[contract.status]],
+    ]
+    if (contract.acceptance_note) {
+      rows.push(['დადასტურების შენიშვნა', contract.acceptance_note])
+    }
+
+    drawLabelValueRows(rows)
+
+    const note = 'სისტემაში დაფიქსირებულია მყიდველის თანხმობა ხელშეკრულების პირობებზე, ერთჯერადი SMS/OTP კოდის წარმატებით შეყვანა და დოკუმენტის შესაბამისი ვერსიის დადასტურება. IP მისამართი და მოწყობილობის/ბრაუზერის მონაცემები ინახება ხელშეკრულების აუდიტის ჟურნალში.'
+    const lines = pdf.splitTextToSize(note, uw - 4) as string[]
+    ensureSpace(lines.length * 5.8 + 8, 'ელექტრონული დადასტურების სერტიფიკატი')
+    pdf.setFont('Sylfaen', 'normal')
+    pdf.setFontSize(9.2)
+    pdf.setTextColor(...muted)
+    pdf.text(lines, ml + 2, y + 2)
+    y += lines.length * 5.8 + 5
+  }
+
+  const editableBody = contract.contract_body?.trim()
+
   startPage()
 
-  pdf.setFont('Sylfaen', 'bold')
-  pdf.setFontSize(18)
-  pdf.setTextColor(...navy)
-  pdf.text('ხელშეკრულება', pageW / 2, y, { align: 'center' })
-  y += 6
-  pdf.setFont('Sylfaen', 'normal')
-  pdf.setFontSize(10)
-  pdf.setTextColor(...muted)
-  pdf.text('საქონლის/მოწყობილობის მიწოდებისა და დადასტურების დოკუმენტი', pageW / 2, y, { align: 'center' })
-  y += 8
+  if (!editableBody) {
+    pdf.setFont('Sylfaen', 'bold')
+    pdf.setFontSize(18)
+    pdf.setTextColor(...navy)
+    pdf.text('ხელშეკრულება', pageW / 2, y, { align: 'center' })
+    y += 6
+    pdf.setFont('Sylfaen', 'normal')
+    pdf.setFontSize(10)
+    pdf.setTextColor(...muted)
+    pdf.text('საქონლის/მოწყობილობის მიწოდებისა და დადასტურების დოკუმენტი', pageW / 2, y, { align: 'center' })
+    y += 8
+  }
 
   pdf.setDrawColor(203, 213, 225)
   pdf.setLineWidth(0.35)
   pdf.line(ml, y, pageW - mr, y)
   y += 8
 
+  if (editableBody) {
+    drawPlainContractText(editableBody)
+  } else {
   drawSectionTitle('I. მხარეები')
 
   const leftX = ml
@@ -208,7 +281,7 @@ export async function generateContractPdfBuffer(contract: ContractRecord): Promi
 
   y += boxH + 8
 
-  drawSectionTitle('II. ხელშეკრულების საგანი')
+    drawSectionTitle('II. ხელშეკრულების საგანი')
 
   const subject = buildContractIntro(templateInput)
   pdf.setFont('Sylfaen', 'normal')
@@ -279,6 +352,9 @@ export async function generateContractPdfBuffer(contract: ContractRecord): Promi
     pdf.text(lines, ml, y)
     y += lines.length * 6 + 2
   }
+  }
+
+  drawAcceptanceCertificate()
 
   ensureSpace(52)
   y = Math.max(y + 8, pageH - 70)

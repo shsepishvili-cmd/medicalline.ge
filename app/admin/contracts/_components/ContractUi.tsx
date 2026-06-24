@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { supabase } from '@/app/lib/supabase'
 import { CONTRACT_STATUS_LABELS, CONTRACT_STATUS_TONES } from '@/app/lib/contract-types'
-import { isInternalWarrantyRole } from '@/app/lib/warranty'
+import { isActiveProfileStatus, isInternalWarrantyRole } from '@/app/lib/warranty'
 import type { ContractStatus } from '@/app/lib/contract-types'
 import type { ProfileSummary } from '@/app/lib/warranty-types'
 
@@ -54,7 +54,7 @@ export function useContractAdminGate(): AuthState {
 
       if (!mounted) return
 
-      if (error || !profile || profile.status !== 'active' || !isInternalWarrantyRole(profile.role)) {
+      if (error || !profile || !isActiveProfileStatus(profile.status) || !isInternalWarrantyRole(profile.role)) {
         setState({ loading: false, error: 'ხელშეკრულებების მოდულზე წვდომა ამ ანგარიშს არ აქვს.', profile: null, accessToken: null })
         return
       }
@@ -63,7 +63,14 @@ export function useContractAdminGate(): AuthState {
     }
 
     load()
-    return () => { mounted = false }
+    const { data: authListener } = supabase.auth.onAuthStateChange(() => {
+      if (mounted) setState((current) => ({ ...current, loading: true }))
+      void load()
+    })
+    return () => {
+      mounted = false
+      authListener.subscription.unsubscribe()
+    }
   }, [])
 
   return state
