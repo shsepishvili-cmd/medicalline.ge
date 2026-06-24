@@ -72,6 +72,45 @@ export const blogArticles = [
         <li><strong>ენდოდონტისტებისთვის</strong> - canal centering, minimal deviation და minimally invasive shaping-ის საჭიროების გამო.</li>
       </ul>
 
+      <h2>Catalog specifications: რა ჩანს brochure-იდან?</h2>
+      <p>ოფიციალურ კატალოგში Aurora-ს positioning არის <strong>"Aurora - Smooth, Effortless Flow"</strong>. პროდუქტი აღწერილია როგორც modern endodontics-ისთვის შექმნილი სისტემა, რომელიც აერთიანებს flexibility-ს, cutting performance-ს და case-oriented sequence design-ს.</p>
+
+      <figure style="margin:2rem 0;">
+        <img src="/images/blog/aurora-endo-files/aurora-catalog-1.png" alt="Aurora Endo Files catalog cover" style="width:100%; border-radius:22px; display:block;" loading="lazy" />
+      </figure>
+
+      <h3>ძირითადი ტექნოლოგიური მახასიათებლები</h3>
+      <ul>
+        <li><strong>Patented variable cross-section design</strong> - apical region-ში მეტი flexibility, middle/coronal regions-ში კი ძლიერი cutting და debris removal.</li>
+        <li><strong>Special gold heat treatment</strong> - pre-bendable და უფრო მოქნილი ფაილი უკეთესი navigation-ისთვის.</li>
+        <li><strong>Non-cutting safety tip design</strong> - ledging-ის და canal perforation-ის რისკის შემცირება.</li>
+        <li><strong>Efficient shaping sequence</strong> - smooth progression და cutting efficiency.</li>
+      </ul>
+
+      <figure style="margin:2rem 0;">
+        <img src="/images/blog/aurora-endo-files/aurora-catalog-2.png" alt="Aurora basic set and clinical features" style="width:100%; border-radius:22px; display:block;" loading="lazy" />
+      </figure>
+
+      <h3>Basic Set</h3>
+      <p>Basic Set განკუთვნილია regular clinical cases-ისთვის და აღწერილია როგორც <strong>stronger cutting on a flexible foundation</strong>. ნაკრებში შედის: Open file 1706, Path file 1504, 2104, 2505 და 3004. ფაილები თითო blister-ში მოდის 5 ცალად; Open file 1706-ის სიგრძე არის 16mm ან 19mm, ხოლო დანარჩენებისთვის ხელმისაწვდომია 21mm, 25mm ან 31mm.</p>
+
+      <h3>Advanced Set</h3>
+      <p>Advanced Set განკუთვნილია challenging/complex canals-ისთვის და აქცენტს აკეთებს მაქსიმალურ flexibility-სა და safety-ზე. ნაკრებში შედის: Open file 1706, Path file 1204, Path file 1703, 2204 და 2505. brochure-ში გამოკვეთილია dual-path design, optimized sequence progression და 2505 shaping file, რომელიც გამოიყენება wider shaping-ისთვის.</p>
+
+      <figure style="margin:2rem 0;">
+        <img src="/images/blog/aurora-endo-files/aurora-catalog-3.png" alt="Aurora advanced and supplementary sets" style="width:100%; border-radius:22px; display:block;" loading="lazy" />
+      </figure>
+
+      <h3>Supplementary Sets</h3>
+      <p>Supplementary Set A მოიცავს 2506, 3004 და 3504 ფაილებს. Supplementary Set B მოიცავს 4004, 5003 და 6002 ფაილებს. ეს დამატებითი ნაკრები ეხმარება ექიმს უფრო ფართო clinical range-ის დაფარვაში, განსაკუთრებით მაშინ, როცა არხის ზომა, taper ან anatomy სტანდარტული sequence-ის მიღმა გადის.</p>
+
+      <h3>Product references</h3>
+      <p>კატალოგში მოცემულია ზომების სერია: 1706, 1204, 1504, 1703, 2104, 2204, 2505, 2506, 3004, 3504, 4004, 5003 და 6002. taper-ები მერყეობს 02%-დან 06%-მდე. რეკომენდებული speed არის <strong>500rpm</strong>. torque მითითებულია როგორც 2N·cm ძირითადი დიაპაზონისთვის, ხოლო გარკვეული path files-ისთვის - 1.5N·cm.</p>
+
+      <figure style="margin:2rem 0;">
+        <img src="/images/blog/aurora-endo-files/aurora-catalog-4.png" alt="Aurora product references sizes taper torque speed" style="width:100%; border-radius:22px; display:block;" loading="lazy" />
+      </figure>
+
       <h2>შეჯამება</h2>
       <p>Aurora Endo Files-ის კლინიკური უპირატესობები ერთ სამუშაო ფილოსოფიაში იყრის თავს: ფაილი უნდა იყოს საკმარისად მოქნილი, უსაფრთხო და პროგნოზირებადი, რომ ექიმმა არხის ფორმირება გააკეთოს ნაკლები სტრესით და მეტი კონტროლით. სწორედ ამიტომ Aurora საინტერესო არჩევანია კლინიკებისთვის, რომლებიც ყოველდღიურ ენდოდონტიაში ეძებენ ერთ სისტემას ფართო clinical coverage-ით.</p>
     `
