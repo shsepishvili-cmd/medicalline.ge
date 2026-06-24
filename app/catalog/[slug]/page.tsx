@@ -59,6 +59,8 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
   const product = await getProduct(slug);
   if (!product) notFound();
 
+  const productBrand = product.slug === 'le-ray-w' ? 'LifeDent' : 'Eighteeth';
+
   const productSchema = {
     '@context': 'https://schema.org',
     '@type': 'Product',
@@ -68,7 +70,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
     image: [absoluteImageUrl(product.img)],
     brand: {
       '@type': 'Brand',
-      name: 'Eighteeth',
+      name: productBrand,
     },
     sku: String(product.id),
     url: `${siteConfig.url}/catalog/${product.slug}`,
@@ -108,7 +110,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
 
           <div className="flex flex-col pt-4">
             <div className="mb-8">
-              <span className="text-blue-600 font-black uppercase tracking-widest text-[10px] block mb-4">EIGHTEETH | {product.cat}</span>
+              <span className="text-blue-600 font-black uppercase tracking-widest text-[10px] block mb-4">{productBrand.toUpperCase()} | {product.cat}</span>
               <h1 className="text-4xl md:text-6xl font-black text-[#1E293B] mb-4 uppercase italic tracking-tighter">{product.name}</h1>
               <p className="text-[#64748B] text-lg font-medium italic mb-10">"{product.description}"</p>
             </div>
