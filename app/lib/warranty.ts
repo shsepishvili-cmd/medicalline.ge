@@ -116,6 +116,19 @@ export function sanitizeFileName(fileName: string) {
   return fileName.replace(/[^a-zA-Z0-9._-]+/g, '-')
 }
 
+export function normalizeProfileRole(role?: string | null) {
+  return String(role || '').trim().toLowerCase()
+}
+
+export function normalizeProfileStatus(status?: string | null) {
+  return String(status || '').trim().toLowerCase()
+}
+
+export function isActiveProfileStatus(status?: string | null) {
+  return normalizeProfileStatus(status) === 'active'
+}
+
 export function isInternalWarrantyRole(role?: string | null) {
-  return role === 'admin' || role === 'engineer' || role === 'dealer'
+  const normalizedRole = normalizeProfileRole(role)
+  return normalizedRole === 'admin' || normalizedRole === 'engineer' || normalizedRole === 'dealer'
 }
