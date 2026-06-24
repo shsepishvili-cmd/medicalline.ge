@@ -4,117 +4,114 @@ export const blogArticles = [
     slug: "aurora-endo-files-clinical-advantages",
     title: "Aurora ენდოფაილები: კლინიკური უპირატესობები არხის უსაფრთხო ფორმირებისთვის",
     excerpt:
-      "Eighteeth Aurora ენდოფაილების მთავარი კლინიკური უპირატესობები: მოტეხილობისადმი გამძლეობა, უსაფრთხო guiding tip, პროგრესული taper, pre-bendability, gutta-percha adaptation და მინიმალურად ინვაზიური shaping.",
+      "Eighteeth Aurora ენდოფაილების მთავარი კლინიკური უპირატესობები: მოტეხილობისადმი გამძლეობა, უსაფრთხო მიმმართველი წვერი, პროგრესული კონუსურობა, წინასწარ მოხრის შესაძლებლობა, გუტაპერჩასთან ადაპტაცია და მინიმალურად ინვაზიური ფორმირება.",
     date: "24 ივნისი, 2026",
-    image: "/images/aurora-endofiles.jpg",
-    ogImage: "/images/aurora-endofiles.jpg",
+    image: "/images/blog/aurora-endo-files/aurora-catalog-1.png",
+    ogImage: "/images/blog/aurora-endo-files/aurora-catalog-1.png",
     imageFit: "contain-full",
     category: "ენდოდონტია",
-    tags: ["Aurora", "Eighteeth", "ენდოფაილები", "NiTi ფაილები", "root canal files"],
-    readTime: "7 წთ",
+    tags: ["Aurora", "Eighteeth", "ენდოფაილები", "NiTi ფაილები", "არხის ფაილები"],
+    readTime: "8 წთ",
     baseViews: 240,
     content: `
       <p style="font-size:1.12rem; font-weight:700; color:#0f3156; background:#eef7ff; border-left:4px solid #0ea5e9; padding:1rem 1.2rem; border-radius:0 14px 14px 0; margin-bottom:2rem;">
-        Aurora Endo Files შექმნილია იმ პრობლემებისთვის, რომლებსაც ექიმები ყოველდღიურად აწყდებიან არხის ფორმირებისას: ფაილის მოტეხილობა, ledge-ის შექმნა, ზედმეტი cutting, მოხრილი არხის ნავიგაცია და gutta-percha-ს ადაპტაცია.
+        Aurora Endo Files შექმნილია იმ პრობლემებისთვის, რომლებსაც ექიმები ყოველდღიურად აწყდებიან არხის ფორმირებისას: ფაილის მოტეხილობა, საფეხურის შექმნა, ზედმეტი გაფართოება, მოხრილი არხის ნავიგაცია და გუტაპერჩის ადაპტაცია.
       </p>
 
-      <p><strong>Aurora</strong> არის Eighteeth/Sifary-ის ენდოდონტიური ფაილების სისტემა, რომლის მთავარი იდეაა ერთ სეტში მოაქციოს სხვადასხვა დონის ექიმისთვის საჭირო სამუშაო მახასიათებლები. presentation-ში პროდუქტი აღწერილია როგორც სისტემა, რომელიც ეხმარება როგორც დამწყებ, ისე გამოცდილ ენდოდონტისტს უფრო პროგნოზირებადად მართოს არხის ფორმირება.</p>
+      <p><strong>Aurora</strong> არის Eighteeth/Sifary-ის ენდოდონტიური ფაილების სისტემა, რომლის მთავარი იდეაა ერთ ნაკრებში მოაქციოს სხვადასხვა დონის ექიმისთვის საჭირო სამუშაო მახასიათებლები. პროდუქტი აღწერილია როგორც სისტემა, რომელიც ეხმარება როგორც დამწყებ, ისე გამოცდილ ენდოდონტისტს არხის ფორმირება უფრო პროგნოზირებადად მართოს.</p>
 
       <figure style="margin:2rem 0;">
-        <img src="/images/aurora-endofiles.jpg" alt="Aurora Endo Files" style="width:100%; border-radius:24px; display:block; background:#f8fafc;" loading="lazy" />
-        <figcaption style="font-size:.9rem; color:#64748b; margin-top:.75rem;">Aurora Series rotary files - Nano-Ti coating technology.</figcaption>
+        <img src="/images/blog/aurora-endo-files/aurora-catalog-1.png" alt="Aurora ენდოფაილების კატალოგის ყდა" style="width:100%; border-radius:24px; display:block; background:#f8fafc;" loading="lazy" />
+        <figcaption style="font-size:.9rem; color:#64748b; margin-top:.75rem;">Aurora ენდოფაილები - გლუვი და მარტივი მოძრაობა არხში.</figcaption>
       </figure>
 
       <h2>რა პრობლემებს პასუხობს Aurora?</h2>
-      <p>სლაიდებში Aurora-ს clinical advantages სამ ძირითად ჯგუფად არის დალაგებული. დამწყები ექიმებისთვის აქცენტი კეთდება ფაილის separation-ის, ledge-ის და over-preparation-ის რისკის შემცირებაზე. გამოცდილი ექიმებისთვის მნიშვნელოვანია curved canal navigation, gutta-percha matching და limited mouth opening cases. expert level-ზე კი მთავარ როლს იღებს მინიმალურად ინვაზიური shaping, canal deviation-ის კონტროლი და calcified canals-ის მართვა.</p>
+      <p>სასწავლო მასალაში Aurora-ს კლინიკური უპირატესობები სამ ძირითად ჯგუფად არის დალაგებული. დამწყები ექიმებისთვის აქცენტი კეთდება ფაილის მოტეხილობის, საფეხურის შექმნის და ზედმეტი გაფართოების რისკის შემცირებაზე. გამოცდილი ექიმებისთვის მნიშვნელოვანია მოხრილ არხში ნავიგაცია, გუტაპერჩასთან შესაბამისობა და შეზღუდული პირის გაღების შემთხვევები. ექსპერტულ დონეზე კი მთავარ როლს იღებს მინიმალურად ინვაზიური ფორმირება, არხის გადახრის კონტროლი და კალციფიცირებული არხების მართვა.</p>
 
       <h2>1. მოტეხილობისადმი გამძლეობა</h2>
-      <p>Aurora-ს ერთ-ერთი მთავარი მესიჯია <strong>superior cyclic fatigue resistance</strong> და მაღალი torsional strength. პრაქტიკაში ეს ნიშნავს, რომ ფაილი უკეთ უძლებს repeated bending-ს მოხრილ არხში და ამცირებს მოტეხილობის რისკს, განსაკუთრებით მაშინ, როცა არხის ანატომია წინასწარ სრულად პროგნოზირებადი არ არის.</p>
+      <p>Aurora-ს ერთ-ერთი მთავარი უპირატესობაა მაღალი გამძლეობა ციკლური დაღლის მიმართ და გაზრდილი ბრუნვითი სიმტკიცე. პრაქტიკაში ეს ნიშნავს, რომ ფაილი უკეთ უძლებს განმეორებით მოხრას მოხრილ არხში და ამცირებს მოტეხილობის რისკს, განსაკუთრებით მაშინ, როცა არხის ანატომია წინასწარ სრულად პროგნოზირებადი არ არის.</p>
 
-      <h2>2. უსაფრთხო rounded guiding tip</h2>
-      <p>Aurora-ს safe tip დიზაინი შექმნილია იმისთვის, რომ ფაილმა არხში უკეთ დაიცვას საწყისი ტრაექტორია. rounded guiding tip ამცირებს ledge formation-ის რისკს routine, narrow და curved canals-ში. ეს განსაკუთრებით მნიშვნელოვანია მაშინ, როცა ექიმს სჭირდება არხის ნატურალური ფორმის შენარჩუნება და ზედმეტი აგრესიული cutting-ის თავიდან აცილება.</p>
+      <h2>2. უსაფრთხო, არამჭრელი მიმმართველი წვერი</h2>
+      <p>Aurora-ს უსაფრთხო წვერის დიზაინი შექმნილია იმისთვის, რომ ფაილმა არხში უკეთ დაიცვას საწყისი ტრაექტორია. მომრგვალებული მიმმართველი წვერი ამცირებს საფეხურის ფორმირების რისკს ჩვეულებრივ, ვიწრო და მოხრილ არხებში. ეს განსაკუთრებით მნიშვნელოვანია მაშინ, როცა ექიმს სჭირდება არხის ბუნებრივი ფორმის შენარჩუნება და ზედმეტი აგრესიული ჭრის თავიდან აცილება.</p>
 
-      <h2>3. პროგრესული taper და კონტროლირებადი cutting</h2>
-      <p>presentation-ში აღწერილია progressive taper thread design: წვერთან cutting structure უფრო dense-ია, shaft-ისკენ კი pitch თანდათან იზრდება. ასეთი ლოგიკა ხელს უწყობს controllable aspiration-ს და ამცირებს over-preparation-ის რისკს. ფაილებს შორის smoother transition ასევე ეხმარება იმაში, რომ cutting load ერთ კონკრეტულ ფაილზე უეცრად არ გაიზარდოს.</p>
+      <h2>3. პროგრესული კონუსურობა და კონტროლირებადი ჭრა</h2>
+      <p>მასალაში აღწერილია პროგრესული კონუსურობის მქონე ხრახნული დიზაინი: წვერთან სტრუქტურა უფრო მკვრივია, ხოლო ღეროსკენ ბიჯი თანდათან იზრდება. ასეთი ლოგიკა ხელს უწყობს კონტროლირებად ჭრას და ამცირებს ზედმეტი გაფართოების რისკს. ფაილებს შორის გლუვი გადასვლა ასევე ეხმარება იმას, რომ ჭრის დატვირთვა ერთ კონკრეტულ ფაილზე უეცრად არ გაიზარდოს.</p>
 
       <figure style="margin:2rem 0;">
-        <img src="/images/blog/aurora-endo-files/aurora-progressive-taper.png" alt="Aurora progressive taper design" style="width:100%; border-radius:22px; display:block;" loading="lazy" />
+        <img src="/images/blog/aurora-endo-files/aurora-progressive-taper.png" alt="Aurora-ს პროგრესული კონუსურობის დიზაინი" style="width:100%; border-radius:22px; display:block;" loading="lazy" />
       </figure>
 
-      <h2>4. Pre-bendability რთული წვდომისთვის</h2>
-      <p>Aurora-ს ერთ-ერთი პრაქტიკული უპირატესობაა კარგი pre-bendability. ეს განსაკუთრებით მოსახერხებელია limited mouth opening cases-ში, posterior teeth-ზე მუშაობისას ან ისეთ სიტუაციებში, სადაც straight-line access იდეალური არ არის. pre-bendable ფაილი ექიმს ეხმარება არხში შესვლის კუთხის უკეთ კონტროლში, ზედმეტი ძალის გამოყენების გარეშე.</p>
+      <h2>4. წინასწარ მოხრის შესაძლებლობა რთული წვდომისთვის</h2>
+      <p>Aurora-ს ერთ-ერთი პრაქტიკული უპირატესობაა კარგი წინასწარ მოხრის შესაძლებლობა. ეს განსაკუთრებით მოსახერხებელია პირის შეზღუდული გაღების შემთხვევებში, გვერდით კბილებზე მუშაობისას ან ისეთ სიტუაციებში, სადაც პირდაპირი წვდომა იდეალური არ არის. წინასწარ მოსახრელი ფაილი ექიმს ეხმარება არხში შესვლის კუთხის უკეთ კონტროლში, ზედმეტი ძალის გამოყენების გარეშე.</p>
 
       <figure style="margin:2rem 0;">
-        <img src="/images/blog/aurora-endo-files/aurora-prebendability.png" alt="Aurora pre-bendability comparison" style="width:100%; border-radius:22px; display:block;" loading="lazy" />
+        <img src="/images/blog/aurora-endo-files/aurora-prebendability.png" alt="Aurora-ს წინასწარ მოხრის შესაძლებლობა" style="width:100%; border-radius:22px; display:block;" loading="lazy" />
       </figure>
 
-      <h2>5. Gutta-percha adaptation</h2>
-      <p>presentation-ში ცალკე ხაზგასმულია, რომ Aurora-ს 0.5 taper file design თავსებადია 0.4 taper gutta-percha points-თან. ასეთი თავსებადობა ზრდის gutta-percha adaptation-ის შანსს და ექიმს აძლევს უფრო ფართო არჩევანს სხვადასხვა ბრენდის gutta-percha points-თან მუშაობისას.</p>
+      <h2>5. გუტაპერჩასთან ადაპტაცია</h2>
+      <p>მასალაში ცალკე ხაზგასმულია, რომ Aurora-ს 0.5 კონუსურობის ფაილის დიზაინი თავსებადია 0.4 კონუსურობის გუტაპერჩის წვერებთან. ასეთი თავსებადობა ზრდის გუტაპერჩის ადაპტაციის შანსს და ექიმს აძლევს უფრო ფართო არჩევანს სხვადასხვა ბრენდის გუტაპერჩის წვერებთან მუშაობისას.</p>
 
-      <h2>6. მინიმალურად ინვაზიური coronal shaping</h2>
-      <p>larger files-ის გამოყენების იდეა აქ არ არის "მეტი მოჭრა". პირიქით, Aurora-ს კონცეფცია ამ ნაწილში არის coronal upper-middle sections-ში უფრო კონტროლირებადი და მინიმალურად ინვაზიური preparation, რათა PCD region-ში excessive cutting შემცირდეს და კბილის fracture resistance უკეთ შენარჩუნდეს.</p>
+      <h2>6. მინიმალურად ინვაზიური კორონალური ფორმირება</h2>
+      <p>უფრო დიდი ფაილების გამოყენების იდეა აქ არ არის "მეტი მოჭრა". პირიქით, Aurora-ს კონცეფცია ამ ნაწილში არის კორონალურ და შუა მესამედში უფრო კონტროლირებადი და მინიმალურად ინვაზიური მომზადება, რათა ზედმეტი ჭრა შემცირდეს და კბილის მოტეხილობისადმი გამძლეობა უკეთ შენარჩუნდეს.</p>
 
       <figure style="margin:2rem 0;">
-        <img src="/images/blog/aurora-endo-files/aurora-minimally-invasive.png" alt="Aurora minimally invasive preparation" style="width:100%; border-radius:22px; display:block;" loading="lazy" />
+        <img src="/images/blog/aurora-endo-files/aurora-minimally-invasive.png" alt="Aurora-ს მინიმალურად ინვაზიური ფორმირება" style="width:100%; border-radius:22px; display:block;" loading="lazy" />
       </figure>
 
-      <h2>7. უნიკალური heat treatment და canal deviation-ის კონტროლი</h2>
-      <p>Aurora-ს heat treatment presentation-ში აღწერილია როგორც phase-transformation temperature &gt;40°C. იდეა ისაა, რომ oral environment-ში ფაილი სრულად არ გადავიდეს hard austenite ფაზაში და შეინარჩუნოს მეტი flexibility. შედეგად ფაილი უკეთ ერგება root canal-ის საწყის ფორმას და მცირდება deviation, lateral perforation და ledge-ის რისკი.</p>
+      <h2>7. უნიკალური თერმული დამუშავება და არხის გადახრის კონტროლი</h2>
+      <p>Aurora-ს თერმული დამუშავება მასალაში აღწერილია როგორც ფაზური გარდაქმნის ტემპერატურა 40°C-ზე მაღლა. იდეა ისაა, რომ პირის ღრუს გარემოში ფაილი სრულად არ გადავიდეს მყარ აუსტენიტურ ფაზაში და შეინარჩუნოს მეტი მოქნილობა. შედეგად ფაილი უკეთ ერგება root canal-ის საწყის ფორმას და მცირდება გადახრის, გვერდითი პერფორაციის და საფეხურის შექმნის რისკი.</p>
 
       <figure style="margin:2rem 0;">
-        <img src="/images/blog/aurora-endo-files/aurora-heat-treatment.jpeg" alt="Aurora heat treatment and flexibility" style="width:100%; border-radius:22px; display:block;" loading="lazy" />
+        <img src="/images/blog/aurora-endo-files/aurora-heat-treatment.jpeg" alt="Aurora-ს თერმული დამუშავება და მოქნილობა" style="width:100%; border-radius:22px; display:block;" loading="lazy" />
       </figure>
 
       <h2>ვისთვის არის განსაკუთრებით საინტერესო?</h2>
       <ul>
-        <li><strong>დამწყები ექიმებისთვის</strong> - ფაილის separation-ის, ledge-ის და over-preparation-ის რისკების შემცირების გამო.</li>
-        <li><strong>გამოცდილი ექიმებისთვის</strong> - curved canals, limited mouth opening cases და gutta-percha matching-ის მართვის გამო.</li>
-        <li><strong>ენდოდონტისტებისთვის</strong> - canal centering, minimal deviation და minimally invasive shaping-ის საჭიროების გამო.</li>
+        <li><strong>დამწყები ექიმებისთვის</strong> - ფაილის მოტეხილობის, საფეხურის და ზედმეტი გაფართოების რისკების შემცირების გამო.</li>
+        <li><strong>გამოცდილი ექიმებისთვის</strong> - მოხრილი არხების, შეზღუდული პირის გაღების და გუტაპერჩასთან შესაბამისობის მართვის გამო.</li>
+        <li><strong>ენდოდონტისტებისთვის</strong> - არხის ცენტრირების, მინიმალური გადახრის და მინიმალურად ინვაზიური ფორმირების საჭიროების გამო.</li>
       </ul>
 
-      <h2>Catalog specifications: რა ჩანს brochure-იდან?</h2>
-      <p>ოფიციალურ კატალოგში Aurora-ს positioning არის <strong>"Aurora - Smooth, Effortless Flow"</strong>. პროდუქტი აღწერილია როგორც modern endodontics-ისთვის შექმნილი სისტემა, რომელიც აერთიანებს flexibility-ს, cutting performance-ს და case-oriented sequence design-ს.</p>
+      <h2>კატალოგის მონაცემები: რა ჩანს კატალოგიდან?</h2>
+      <p>ოფიციალურ კატალოგში Aurora-ს მთავარი მესიჯია <strong>"გლუვი და მარტივი მოძრაობა"</strong>. პროდუქტი აღწერილია როგორც თანამედროვე ენდოდონტიისთვის შექმნილი სისტემა, რომელიც აერთიანებს მოქნილობას, ჭრის ეფექტურობას და შემთხვევაზე მორგებულ სამუშაო თანმიმდევრობას.</p>
 
       <figure style="margin:2rem 0;">
-        <img src="/images/blog/aurora-endo-files/aurora-catalog-1.png" alt="Aurora Endo Files catalog cover" style="width:100%; border-radius:22px; display:block;" loading="lazy" />
+        <img src="/images/blog/aurora-endo-files/aurora-catalog-2.png" alt="Aurora-ს ძირითადი ნაკრები და კლინიკური მახასიათებლები" style="width:100%; border-radius:22px; display:block;" loading="lazy" />
       </figure>
 
       <h3>ძირითადი ტექნოლოგიური მახასიათებლები</h3>
       <ul>
-        <li><strong>Patented variable cross-section design</strong> - apical region-ში მეტი flexibility, middle/coronal regions-ში კი ძლიერი cutting და debris removal.</li>
-        <li><strong>Special gold heat treatment</strong> - pre-bendable და უფრო მოქნილი ფაილი უკეთესი navigation-ისთვის.</li>
-        <li><strong>Non-cutting safety tip design</strong> - ledging-ის და canal perforation-ის რისკის შემცირება.</li>
-        <li><strong>Efficient shaping sequence</strong> - smooth progression და cutting efficiency.</li>
+        <li><strong>პატენტირებული ცვლადი განივი კვეთის დიზაინი</strong> - აპიკალურ ნაწილში მეტი მოქნილობა, შუა და კორონალურ ნაწილებში კი ძლიერი ჭრა და ნარჩენების გამოტანა.</li>
+        <li><strong>სპეციალური ოქროს თერმული დამუშავება</strong> - ფაილი წინასწარ მოსახრელია და უფრო მოქნილი უკეთესი ნავიგაციისთვის.</li>
+        <li><strong>არამჭრელი უსაფრთხო წვერი</strong> - ამცირებს საფეხურის და არხის პერფორაციის რისკს.</li>
+        <li><strong>ეფექტური ფორმირების თანმიმდევრობა</strong> - უზრუნველყოფს გლუვ პროგრესიას და მაღალი ჭრის ეფექტურობას.</li>
       </ul>
 
+      <h3>ძირითადი ნაკრები</h3>
+      <p>ძირითადი ნაკრები განკუთვნილია რეგულარული კლინიკური შემთხვევებისთვის და აღწერილია როგორც ძლიერი ჭრა მოქნილ საფუძველზე. ნაკრებში შედის: გასახსნელი ფაილი 1706, გზის ფაილი 1504, 2104, 2505 და 3004. ფაილები თითო ბლისტერში მოდის 5 ცალად; გასახსნელი ფაილი 1706-ის სიგრძე არის 16მმ ან 19მმ, ხოლო დანარჩენებისთვის ხელმისაწვდომია 21მმ, 25მმ ან 31მმ.</p>
+
+      <h3>გართულებული შემთხვევების ნაკრები</h3>
+      <p>გართულებული შემთხვევების ნაკრები განკუთვნილია რთული არხებისთვის და აქცენტს აკეთებს მაქსიმალურ მოქნილობასა და უსაფრთხოებაზე. ნაკრებში შედის: გასახსნელი ფაილი 1706, გზის ფაილი 1204, გზის ფაილი 1703, 2204 და 2505. კატალოგში გამოკვეთილია ორმაგი გზის დიზაინი, ოპტიმიზებული თანმიმდევრობა და 2505 ფორმირების ფაილი, რომელიც გამოიყენება უფრო ფართო ფორმირებისთვის.</p>
+
       <figure style="margin:2rem 0;">
-        <img src="/images/blog/aurora-endo-files/aurora-catalog-2.png" alt="Aurora basic set and clinical features" style="width:100%; border-radius:22px; display:block;" loading="lazy" />
+        <img src="/images/blog/aurora-endo-files/aurora-catalog-3.png" alt="Aurora-ს გართულებული შემთხვევების და დამატებითი ნაკრები" style="width:100%; border-radius:22px; display:block;" loading="lazy" />
       </figure>
 
-      <h3>Basic Set</h3>
-      <p>Basic Set განკუთვნილია regular clinical cases-ისთვის და აღწერილია როგორც <strong>stronger cutting on a flexible foundation</strong>. ნაკრებში შედის: Open file 1706, Path file 1504, 2104, 2505 და 3004. ფაილები თითო blister-ში მოდის 5 ცალად; Open file 1706-ის სიგრძე არის 16mm ან 19mm, ხოლო დანარჩენებისთვის ხელმისაწვდომია 21mm, 25mm ან 31mm.</p>
+      <h3>დამატებითი ნაკრები</h3>
+      <p>დამატებითი ნაკრები A მოიცავს 2506, 3004 და 3504 ფაილებს. დამატებითი ნაკრები B მოიცავს 4004, 5003 და 6002 ფაილებს. ეს დამატებითი ნაკრები ეხმარება ექიმს უფრო ფართო კლინიკური დიაპაზონის დაფარვაში, განსაკუთრებით მაშინ, როცა არხის ზომა, კონუსურობა ან ანატომია სტანდარტული თანმიმდევრობის მიღმა გადის.</p>
 
-      <h3>Advanced Set</h3>
-      <p>Advanced Set განკუთვნილია challenging/complex canals-ისთვის და აქცენტს აკეთებს მაქსიმალურ flexibility-სა და safety-ზე. ნაკრებში შედის: Open file 1706, Path file 1204, Path file 1703, 2204 და 2505. brochure-ში გამოკვეთილია dual-path design, optimized sequence progression და 2505 shaping file, რომელიც გამოიყენება wider shaping-ისთვის.</p>
-
-      <figure style="margin:2rem 0;">
-        <img src="/images/blog/aurora-endo-files/aurora-catalog-3.png" alt="Aurora advanced and supplementary sets" style="width:100%; border-radius:22px; display:block;" loading="lazy" />
-      </figure>
-
-      <h3>Supplementary Sets</h3>
-      <p>Supplementary Set A მოიცავს 2506, 3004 და 3504 ფაილებს. Supplementary Set B მოიცავს 4004, 5003 და 6002 ფაილებს. ეს დამატებითი ნაკრები ეხმარება ექიმს უფრო ფართო clinical range-ის დაფარვაში, განსაკუთრებით მაშინ, როცა არხის ზომა, taper ან anatomy სტანდარტული sequence-ის მიღმა გადის.</p>
-
-      <h3>Product references</h3>
-      <p>კატალოგში მოცემულია ზომების სერია: 1706, 1204, 1504, 1703, 2104, 2204, 2505, 2506, 3004, 3504, 4004, 5003 და 6002. taper-ები მერყეობს 02%-დან 06%-მდე. რეკომენდებული speed არის <strong>500rpm</strong>. torque მითითებულია როგორც 2N·cm ძირითადი დიაპაზონისთვის, ხოლო გარკვეული path files-ისთვის - 1.5N·cm.</p>
+      <h3>პროდუქტის ტექნიკური ცნობარი</h3>
+      <p>კატალოგში მოცემულია ზომების სერია: 1706, 1204, 1504, 1703, 2104, 2204, 2505, 2506, 3004, 3504, 4004, 5003 და 6002. კონუსურობა მერყეობს 02%-დან 06%-მდე. რეკომენდებული სიჩქარე არის <strong>500 ბრუნი/წთ</strong>. ბრუნვის მომენტი მითითებულია როგორც 2N·cm ძირითადი დიაპაზონისთვის, ხოლო გარკვეული გზის ფაილებისთვის - 1.5N·cm.</p>
 
       <figure style="margin:2rem 0;">
-        <img src="/images/blog/aurora-endo-files/aurora-catalog-4.png" alt="Aurora product references sizes taper torque speed" style="width:100%; border-radius:22px; display:block;" loading="lazy" />
+        <img src="/images/blog/aurora-endo-files/aurora-catalog-4.png" alt="Aurora-ს ზომები, კონუსურობა, ბრუნვის მომენტი და სიჩქარე" style="width:100%; border-radius:22px; display:block;" loading="lazy" />
       </figure>
 
       <h2>შეჯამება</h2>
-      <p>Aurora Endo Files-ის კლინიკური უპირატესობები ერთ სამუშაო ფილოსოფიაში იყრის თავს: ფაილი უნდა იყოს საკმარისად მოქნილი, უსაფრთხო და პროგნოზირებადი, რომ ექიმმა არხის ფორმირება გააკეთოს ნაკლები სტრესით და მეტი კონტროლით. სწორედ ამიტომ Aurora საინტერესო არჩევანია კლინიკებისთვის, რომლებიც ყოველდღიურ ენდოდონტიაში ეძებენ ერთ სისტემას ფართო clinical coverage-ით.</p>
+      <p>Aurora Endo Files-ის კლინიკური უპირატესობები ერთ სამუშაო ფილოსოფიაში იყრის თავს: ფაილი უნდა იყოს საკმარისად მოქნილი, უსაფრთხო და პროგნოზირებადი, რომ ექიმმა არხის ფორმირება გააკეთოს ნაკლები სტრესით და მეტი კონტროლით. სწორედ ამიტომ Aurora საინტერესო არჩევანია კლინიკებისთვის, რომლებიც ყოველდღიურ ენდოდონტიაში ეძებენ ერთ სისტემას ფართო კლინიკური დაფარვით.</p>
     `
   },
+
   {
     id: 27,
     slug: "medical-line-georgia-gdda-dental-outlet-2026",

@@ -271,7 +271,7 @@ export const products = [
     id: 69,
     slug: "aurora-endofiles",
     name: "Aurora ენდოფაილები",
-    img: "/images/aurora-endofiles.jpg",
+    img: "/images/blog/aurora-endo-files/aurora-catalog-1.png",
     cat: "ენდოდონტია",
     description: "Aurora Series ენდოფაილები არის NiTi როტაციული ფაილების სისტემა არხის ფორმირებისა და დამუშავებისთვის. სერია მოიცავს Super Flexi, R-Shaper და Sup-Taper ფაილებს.",
     specs: [
