@@ -1,5 +1,82 @@
 export const blogArticles = [
   {
+    id: 28,
+    slug: "aurora-endo-files-clinical-advantages",
+    title: "Aurora ენდოფაილები: კლინიკური უპირატესობები არხის უსაფრთხო ფორმირებისთვის",
+    excerpt:
+      "Eighteeth Aurora ენდოფაილების მთავარი კლინიკური უპირატესობები: მოტეხილობისადმი გამძლეობა, უსაფრთხო guiding tip, პროგრესული taper, pre-bendability, gutta-percha adaptation და მინიმალურად ინვაზიური shaping.",
+    date: "24 ივნისი, 2026",
+    image: "/images/aurora-endofiles.jpg",
+    ogImage: "/images/aurora-endofiles.jpg",
+    imageFit: "contain-full",
+    category: "ენდოდონტია",
+    tags: ["Aurora", "Eighteeth", "ენდოფაილები", "NiTi ფაილები", "root canal files"],
+    readTime: "7 წთ",
+    baseViews: 240,
+    content: `
+      <p style="font-size:1.12rem; font-weight:700; color:#0f3156; background:#eef7ff; border-left:4px solid #0ea5e9; padding:1rem 1.2rem; border-radius:0 14px 14px 0; margin-bottom:2rem;">
+        Aurora Endo Files შექმნილია იმ პრობლემებისთვის, რომლებსაც ექიმები ყოველდღიურად აწყდებიან არხის ფორმირებისას: ფაილის მოტეხილობა, ledge-ის შექმნა, ზედმეტი cutting, მოხრილი არხის ნავიგაცია და gutta-percha-ს ადაპტაცია.
+      </p>
+
+      <p><strong>Aurora</strong> არის Eighteeth/Sifary-ის ენდოდონტიური ფაილების სისტემა, რომლის მთავარი იდეაა ერთ სეტში მოაქციოს სხვადასხვა დონის ექიმისთვის საჭირო სამუშაო მახასიათებლები. presentation-ში პროდუქტი აღწერილია როგორც სისტემა, რომელიც ეხმარება როგორც დამწყებ, ისე გამოცდილ ენდოდონტისტს უფრო პროგნოზირებადად მართოს არხის ფორმირება.</p>
+
+      <figure style="margin:2rem 0;">
+        <img src="/images/aurora-endofiles.jpg" alt="Aurora Endo Files" style="width:100%; border-radius:24px; display:block; background:#f8fafc;" loading="lazy" />
+        <figcaption style="font-size:.9rem; color:#64748b; margin-top:.75rem;">Aurora Series rotary files - Nano-Ti coating technology.</figcaption>
+      </figure>
+
+      <h2>რა პრობლემებს პასუხობს Aurora?</h2>
+      <p>სლაიდებში Aurora-ს clinical advantages სამ ძირითად ჯგუფად არის დალაგებული. დამწყები ექიმებისთვის აქცენტი კეთდება ფაილის separation-ის, ledge-ის და over-preparation-ის რისკის შემცირებაზე. გამოცდილი ექიმებისთვის მნიშვნელოვანია curved canal navigation, gutta-percha matching და limited mouth opening cases. expert level-ზე კი მთავარ როლს იღებს მინიმალურად ინვაზიური shaping, canal deviation-ის კონტროლი და calcified canals-ის მართვა.</p>
+
+      <h2>1. მოტეხილობისადმი გამძლეობა</h2>
+      <p>Aurora-ს ერთ-ერთი მთავარი მესიჯია <strong>superior cyclic fatigue resistance</strong> და მაღალი torsional strength. პრაქტიკაში ეს ნიშნავს, რომ ფაილი უკეთ უძლებს repeated bending-ს მოხრილ არხში და ამცირებს მოტეხილობის რისკს, განსაკუთრებით მაშინ, როცა არხის ანატომია წინასწარ სრულად პროგნოზირებადი არ არის.</p>
+
+      <h2>2. უსაფრთხო rounded guiding tip</h2>
+      <p>Aurora-ს safe tip დიზაინი შექმნილია იმისთვის, რომ ფაილმა არხში უკეთ დაიცვას საწყისი ტრაექტორია. rounded guiding tip ამცირებს ledge formation-ის რისკს routine, narrow და curved canals-ში. ეს განსაკუთრებით მნიშვნელოვანია მაშინ, როცა ექიმს სჭირდება არხის ნატურალური ფორმის შენარჩუნება და ზედმეტი აგრესიული cutting-ის თავიდან აცილება.</p>
+
+      <h2>3. პროგრესული taper და კონტროლირებადი cutting</h2>
+      <p>presentation-ში აღწერილია progressive taper thread design: წვერთან cutting structure უფრო dense-ია, shaft-ისკენ კი pitch თანდათან იზრდება. ასეთი ლოგიკა ხელს უწყობს controllable aspiration-ს და ამცირებს over-preparation-ის რისკს. ფაილებს შორის smoother transition ასევე ეხმარება იმაში, რომ cutting load ერთ კონკრეტულ ფაილზე უეცრად არ გაიზარდოს.</p>
+
+      <figure style="margin:2rem 0;">
+        <img src="/images/blog/aurora-endo-files/aurora-progressive-taper.png" alt="Aurora progressive taper design" style="width:100%; border-radius:22px; display:block;" loading="lazy" />
+      </figure>
+
+      <h2>4. Pre-bendability რთული წვდომისთვის</h2>
+      <p>Aurora-ს ერთ-ერთი პრაქტიკული უპირატესობაა კარგი pre-bendability. ეს განსაკუთრებით მოსახერხებელია limited mouth opening cases-ში, posterior teeth-ზე მუშაობისას ან ისეთ სიტუაციებში, სადაც straight-line access იდეალური არ არის. pre-bendable ფაილი ექიმს ეხმარება არხში შესვლის კუთხის უკეთ კონტროლში, ზედმეტი ძალის გამოყენების გარეშე.</p>
+
+      <figure style="margin:2rem 0;">
+        <img src="/images/blog/aurora-endo-files/aurora-prebendability.png" alt="Aurora pre-bendability comparison" style="width:100%; border-radius:22px; display:block;" loading="lazy" />
+      </figure>
+
+      <h2>5. Gutta-percha adaptation</h2>
+      <p>presentation-ში ცალკე ხაზგასმულია, რომ Aurora-ს 0.5 taper file design თავსებადია 0.4 taper gutta-percha points-თან. ასეთი თავსებადობა ზრდის gutta-percha adaptation-ის შანსს და ექიმს აძლევს უფრო ფართო არჩევანს სხვადასხვა ბრენდის gutta-percha points-თან მუშაობისას.</p>
+
+      <h2>6. მინიმალურად ინვაზიური coronal shaping</h2>
+      <p>larger files-ის გამოყენების იდეა აქ არ არის "მეტი მოჭრა". პირიქით, Aurora-ს კონცეფცია ამ ნაწილში არის coronal upper-middle sections-ში უფრო კონტროლირებადი და მინიმალურად ინვაზიური preparation, რათა PCD region-ში excessive cutting შემცირდეს და კბილის fracture resistance უკეთ შენარჩუნდეს.</p>
+
+      <figure style="margin:2rem 0;">
+        <img src="/images/blog/aurora-endo-files/aurora-minimally-invasive.png" alt="Aurora minimally invasive preparation" style="width:100%; border-radius:22px; display:block;" loading="lazy" />
+      </figure>
+
+      <h2>7. უნიკალური heat treatment და canal deviation-ის კონტროლი</h2>
+      <p>Aurora-ს heat treatment presentation-ში აღწერილია როგორც phase-transformation temperature &gt;40°C. იდეა ისაა, რომ oral environment-ში ფაილი სრულად არ გადავიდეს hard austenite ფაზაში და შეინარჩუნოს მეტი flexibility. შედეგად ფაილი უკეთ ერგება root canal-ის საწყის ფორმას და მცირდება deviation, lateral perforation და ledge-ის რისკი.</p>
+
+      <figure style="margin:2rem 0;">
+        <img src="/images/blog/aurora-endo-files/aurora-heat-treatment.jpeg" alt="Aurora heat treatment and flexibility" style="width:100%; border-radius:22px; display:block;" loading="lazy" />
+      </figure>
+
+      <h2>ვისთვის არის განსაკუთრებით საინტერესო?</h2>
+      <ul>
+        <li><strong>დამწყები ექიმებისთვის</strong> - ფაილის separation-ის, ledge-ის და over-preparation-ის რისკების შემცირების გამო.</li>
+        <li><strong>გამოცდილი ექიმებისთვის</strong> - curved canals, limited mouth opening cases და gutta-percha matching-ის მართვის გამო.</li>
+        <li><strong>ენდოდონტისტებისთვის</strong> - canal centering, minimal deviation და minimally invasive shaping-ის საჭიროების გამო.</li>
+      </ul>
+
+      <h2>შეჯამება</h2>
+      <p>Aurora Endo Files-ის კლინიკური უპირატესობები ერთ სამუშაო ფილოსოფიაში იყრის თავს: ფაილი უნდა იყოს საკმარისად მოქნილი, უსაფრთხო და პროგნოზირებადი, რომ ექიმმა არხის ფორმირება გააკეთოს ნაკლები სტრესით და მეტი კონტროლით. სწორედ ამიტომ Aurora საინტერესო არჩევანია კლინიკებისთვის, რომლებიც ყოველდღიურ ენდოდონტიაში ეძებენ ერთ სისტემას ფართო clinical coverage-ით.</p>
+    `
+  },
+  {
     id: 27,
     slug: "medical-line-georgia-gdda-dental-outlet-2026",
     title: "Medical Line Georgia საქართველოში პირველ GDDA Dental Outlet 2026-ზე",
