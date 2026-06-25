@@ -6,8 +6,8 @@ export const blogArticles = [
     excerpt:
       "Eighteeth Helios 680 არის მსუბუქი სადენიანი ინტრაორალური 3D სკანერი სრული რკალის მაღალი სიზუსტით, 18 მმ სკანირების სიღრმით, აქტიური ანტიფოგ სისტემით და ღია STL, OBJ, PLY ფორმატებით.",
     date: "25 ივნისი, 2026",
-    image: "/images/blog/helios-680/helios-680-hero.jpeg",
-    ogImage: "/images/blog/helios-680/helios-680-hero.jpeg",
+    image: "/images/helios680.png",
+    ogImage: "/images/helios680.png",
     imageFit: "contain-full",
     category: "ციფრული სტომატოლოგია",
     tags: ["Helios 680", "Eighteeth", "ინტრაორალური სკანერი", "ციფრული ანაბეჭდი", "CAD/CAM"],
