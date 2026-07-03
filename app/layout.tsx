@@ -6,6 +6,7 @@ import AnalyticsBootstrap from './components/AnalyticsBootstrap';
 import BotpressScripts from './components/BotpressScripts';
 import { Suspense } from 'react';
 import { organizationSchema, siteConfig, websiteSchema } from './lib/seo';
+import MerchantFooter from './components/MerchantFooter';
 
 function trackingEnv(name: string, fallback = '') {
   const value = (process.env[name] || fallback).trim();
@@ -181,6 +182,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <Suspense fallback={null}><AnalyticsBootstrap /></Suspense>
 
         {children}
+        <MerchantFooter />
         
         {/* 🚀 Google Translate Component */}
         <GoogleTranslate />

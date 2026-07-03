@@ -49,3 +49,38 @@ body {
 .blog-content th { background: #1e293b; color: white; padding: 0.75rem 1rem; text-align: left; font-weight: 700; }
 .blog-content td { padding: 0.75rem 1rem; border-bottom: 1px solid #e2e8f0; color: #475569; }
 .blog-content tr:nth-child(even) td { background: #f8fafc; }
+
+.merchant-footer { background: #07162f; color: #dbeafe; border-top: 1px solid #1e3a5f; }
+.merchant-footer-inner { width: min(1180px, calc(100% - 32px)); margin: 0 auto; padding: 34px 0 24px; }
+.merchant-footer-company { display: flex; flex-wrap: wrap; gap: 7px 22px; font-size: 14px; line-height: 1.55; }
+.merchant-footer-company strong { width: 100%; color: #fff; font-size: 17px; }
+.merchant-footer a { color: inherit; text-decoration: none; }
+.merchant-footer a:hover { color: #60a5fa; }
+.merchant-footer-links { display: flex; flex-wrap: wrap; gap: 10px 14px; margin: 24px 0 18px; padding-top: 20px; border-top: 1px solid #1e3a5f; font-size: 13px; font-weight: 700; }
+.merchant-footer-link-item { display: inline-flex; align-items: center; gap: 14px; }
+.merchant-footer-separator { color: #49617f; font-weight: 400; }
+.merchant-footer-copy { margin: 0; color: #93a4bd; font-size: 12px; }
+.legal-page { min-height: 100vh; background: #f8fafc; color: #172033; padding: 48px 16px 72px; }
+.legal-page-inner { width: min(900px, 100%); margin: 0 auto; }
+.legal-home-link { display: inline-block; margin-bottom: 24px; color: #1d4ed8; font-weight: 700; text-decoration: none; }
+.legal-page-header { padding: 34px; border-radius: 24px; color: #fff; background: linear-gradient(135deg, #0d285a, #1d4ed8); }
+.legal-page-header p { margin: 0 0 10px; color: #bfdbfe; font-weight: 800; letter-spacing: .04em; }
+.legal-page-header h1 { margin: 0 0 13px; font-size: clamp(27px, 5vw, 44px); line-height: 1.15; }
+.legal-page-header span { color: #dbeafe; font-size: 13px; }
+.legal-content { margin: 24px 0; padding: 34px; border: 1px solid #e2e8f0; border-radius: 22px; background: #fff; box-shadow: 0 12px 36px rgba(15, 23, 42, .06); }
+.legal-content h2 { margin: 32px 0 10px; color: #102a56; font-size: 21px; }
+.legal-content h2:first-child { margin-top: 0; }
+.legal-content p, .legal-content li { color: #475569; line-height: 1.8; }
+.legal-content ul, .legal-content ol { padding-left: 24px; }
+.legal-content li { margin-bottom: 10px; }
+.legal-contact-card { display: flex; flex-direction: column; gap: 7px; padding: 22px; border-radius: 18px; background: #eaf2ff; color: #1e3a5f; }
+.legal-contact-card a { color: #1d4ed8; font-weight: 700; }
+@media (max-width: 640px) {
+  .merchant-footer-inner { padding-top: 26px; }
+  .merchant-footer-company { display: grid; gap: 5px; }
+  .merchant-footer-links { display: grid; gap: 12px; }
+  .merchant-footer-link-item { gap: 0; }
+  .merchant-footer-separator { display: none; }
+  .legal-page { padding-top: 28px; }
+  .legal-page-header, .legal-content { padding: 23px 20px; border-radius: 18px; }
+}
