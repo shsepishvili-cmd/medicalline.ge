@@ -1,12 +1,12 @@
 import React from 'react';
 import type { Metadata } from 'next';
-import Image from 'next/image';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { products as part1 } from '../data-part1';
 import { products as part2 } from '../data-part2';
 import AiButtons from './AiButtons';
 import OfferAdminButton from './OfferAdminButton';
+import ProductGallery from './ProductGallery';
 import ProductViewTracker from '@/app/components/ProductViewTracker';
 import TrackedAnchor from '@/app/components/TrackedAnchor';
 import { absoluteImageUrl, buildPageMetadata, siteConfig } from '@/app/lib/seo';
@@ -60,6 +60,9 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
   if (!product) notFound();
 
   const productBrand = product.slug === 'le-ray-w' ? 'LifeDent' : 'Eighteeth';
+  const productImages = 'images' in product && Array.isArray(product.images)
+    ? product.images
+    : [product.img];
 
   const productSchema = {
     '@context': 'https://schema.org',
@@ -67,7 +70,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
     name: product.name,
     description: product.description,
     category: product.cat,
-    image: [absoluteImageUrl(product.img)],
+    image: productImages.map(absoluteImageUrl),
     brand: {
       '@type': 'Brand',
       name: productBrand,
@@ -102,11 +105,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
-          <div className="relative aspect-square bg-[#F8FAFC] rounded-[4rem] flex items-center justify-center p-12 overflow-hidden border border-slate-50">
-            <div className="relative w-full h-full">
-              <Image src={product.img} alt={product.name} fill className="object-contain" priority />
-            </div>
-          </div>
+          <ProductGallery images={productImages} productName={product.name} />
 
           <div className="flex flex-col pt-4">
             <div className="mb-8">
