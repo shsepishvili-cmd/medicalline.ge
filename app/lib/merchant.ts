@@ -5,8 +5,8 @@ export const merchant = {
   address: 'თბილისი, დ. ჯაბიძის ქ. #8',
   phone: '+995 514 011 116',
   phoneHref: 'tel:+995514011116',
-  email: 'info@medicalline.ge',
-  emailHref: 'mailto:info@medicalline.ge',
+  email: 'ltdmedicalline@gmail.com',
+  emailHref: 'mailto:ltdmedicalline@gmail.com',
   hours: 'ორშაბათი–პარასკევი, 10:00–18:00',
   website: 'https://medicalline.ge',
 } as const

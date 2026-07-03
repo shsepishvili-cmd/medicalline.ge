@@ -59,6 +59,6 @@ export default function TermsAndConditionsPage() {
     <p>წესები რეგულირდება საქართველოს კანონმდებლობით. უთანხმოების შემთხვევაში მხარეები პირველ რიგში შეეცდებიან საკითხის მოლაპარაკებით გადაწყვეტას. მომხმარებელს შეუძლია კანონით დადგენილი წესით მიმართოს საქართველოს კონკურენციისა და მომხმარებლის დაცვის სააგენტოს ან სასამართლოს.</p>
 
     <h2>13. საკონტაქტო ინფორმაცია</h2>
-    <p><strong>შპს Medical Line Georgia / მედიქალ ლაინ ჯორჯია</strong><br />ვებგვერდი: <a href="https://medicalline.ge">https://medicalline.ge</a><br />ელფოსტა: <a href="mailto:info@medicalline.ge">info@medicalline.ge</a></p>
+    <p><strong>შპს Medical Line Georgia / მედიქალ ლაინ ჯორჯია</strong><br />ვებგვერდი: <a href="https://medicalline.ge">https://medicalline.ge</a><br />ელფოსტა: <a href="mailto:ltdmedicalline@gmail.com">ltdmedicalline@gmail.com</a></p>
   </LegalPage>
 }

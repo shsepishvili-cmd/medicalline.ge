@@ -116,7 +116,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ tok
     installmentLength: Number(offer.installment_months || 12),
     clientFullName: fullNameParts.length >= 2 ? fullNameParts.join(' ') : (offer.client_name || 'Medical Line Client'),
     mobile,
-    email: 'info@medicalline.ge',
+    email: 'ltdmedicalline@gmail.com',
     factAddress: 'Georgia',
   }
 
