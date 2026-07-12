@@ -34,12 +34,23 @@ export function validateNumericDicom(value, options = {}) {
   const parsed = finiteNumber(raw);
 
   if (parsed === null) {
+    if (!raw) {
+      return {
+        key: label,
+        status: "MISSING",
+        required,
+        value: null,
+        display: "Missing",
+        reason: `${label} is missing.`,
+      };
+    }
     return {
       key: label,
-      status: required || raw ? "INVALID" : "MISSING",
+      status: "INVALID",
+      required,
       value: null,
       display: INVALID_DICOM_TEXT,
-      reason: raw ? `${label} has an invalid DICOM value (${raw}).` : `${label} is missing.`,
+      reason: `${label} has an invalid DICOM value (${raw}).`,
     };
   }
 
@@ -47,6 +58,7 @@ export function validateNumericDicom(value, options = {}) {
     return {
       key: label,
       status: "INVALID",
+      required,
       value: parsed,
       display: INVALID_DICOM_TEXT,
       reason: `${label} value ${raw} is outside the expected range.`,
@@ -56,6 +68,7 @@ export function validateNumericDicom(value, options = {}) {
   return {
     key: label,
     status: "READY",
+    required,
     value: parsed,
     display: `${raw}${unit ? ` ${unit}` : ""}`,
     reason: "",
@@ -68,6 +81,7 @@ export function validateTextDicom(value, label, options = {}) {
     return {
       key: label,
       status: options.required ? "MISSING" : "OPTIONAL",
+      required: Boolean(options.required),
       value: "",
       display: options.required ? "Missing" : "N/A",
       reason: options.required ? `${label} is missing.` : "",
@@ -77,29 +91,38 @@ export function validateTextDicom(value, label, options = {}) {
     return {
       key: label,
       status: "INVALID",
+      required: Boolean(options.required),
       value: raw,
       display: INVALID_DICOM_TEXT,
       reason: `${label} is not a usable value.`,
     };
   }
-  return { key: label, status: "READY", value: raw, display: raw, reason: "" };
+  return { key: label, status: "READY", required: Boolean(options.required), value: raw, display: raw, reason: "" };
 }
 
-export function validateDateDicom(value, label) {
+export function validateDateDicom(value, label, options = {}) {
+  const required = Boolean(options.required);
   const raw = cleanText(value);
   if (!raw) {
-    return { key: label, status: "MISSING", value: "", display: "Missing", reason: `${label} is missing.` };
+    return { key: label, status: "MISSING", required, value: "", display: "Missing", reason: `${label} is missing.` };
   }
   if (!/^\d{8}$/.test(raw)) {
-    return { key: label, status: "INVALID", value: raw, display: INVALID_DICOM_TEXT, reason: `${label} is not a valid DICOM DA value.` };
+    return { key: label, status: "INVALID", required, value: raw, display: INVALID_DICOM_TEXT, reason: `${label} is not a valid DICOM DA value.` };
   }
   const year = Number(raw.slice(0, 4));
   const month = Number(raw.slice(4, 6));
   const day = Number(raw.slice(6, 8));
   if (year < 1990 || year > 2100 || month < 1 || month > 12 || day < 1 || day > 31) {
-    return { key: label, status: "INVALID", value: raw, display: INVALID_DICOM_TEXT, reason: `${label} is outside the expected date range.` };
+    return { key: label, status: "INVALID", required, value: raw, display: INVALID_DICOM_TEXT, reason: `${label} is outside the expected date range.` };
   }
-  return { key: label, status: "READY", value: raw, display: `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`, reason: "" };
+  return {
+    key: label,
+    status: "READY",
+    required,
+    value: raw,
+    display: `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`,
+    reason: "",
+  };
 }
 
 export function validatePixelSpacing(value) {
@@ -109,14 +132,16 @@ export function validatePixelSpacing(value) {
     return {
       key: "Pixel spacing",
       status: raw ? "INVALID" : "MISSING",
+      required: true,
       value: null,
-      display: INVALID_DICOM_TEXT,
+      display: raw ? INVALID_DICOM_TEXT : "Missing",
       reason: raw ? `Pixel spacing has an invalid value (${raw}).` : "Pixel spacing is missing.",
     };
   }
   return {
     key: "Pixel spacing",
     status: "READY",
+    required: true,
     value: { row: parts[0], col: parts[1], avg: (parts[0] + parts[1]) / 2 },
     display: `${parts[0].toFixed(3)} x ${parts[1].toFixed(3)} mm`,
     reason: "",
@@ -126,14 +151,14 @@ export function validatePixelSpacing(value) {
 export function validateFov(value) {
   const raw = cleanText(value);
   if (!raw) {
-    return { key: "FOV", status: "MISSING", value: null, display: "Missing", reason: "FOV is missing." };
+    return { key: "FOV", status: "MISSING", required: true, value: null, display: "Missing", reason: "FOV is missing." };
   }
   const matches = raw.match(/\d+(?:[.,]\d+)?/g) || [];
   const values = matches.map(finiteNumber).filter((item) => item !== null);
   if (!values.length || values.some((item) => item <= 0 || item > 300)) {
-    return { key: "FOV", status: "INVALID", value: null, display: INVALID_DICOM_TEXT, reason: `FOV has an invalid value (${raw}).` };
+    return { key: "FOV", status: "INVALID", required: true, value: null, display: INVALID_DICOM_TEXT, reason: `FOV has an invalid value (${raw}).` };
   }
-  return { key: "FOV", status: "READY", value: values, display: raw, reason: "" };
+  return { key: "FOV", status: "READY", required: true, value: values, display: raw, reason: "" };
 }
 
 export function buildDicomValidation(metadata = {}) {
@@ -238,11 +263,27 @@ export function buildStrictDecision(input = {}) {
   const failures = [];
   const incomplete = [];
   const warnings = [];
-  const dicom = buildDicomValidation(metadata);
+  const testDateDigits = cleanText(acceptanceForm.testDate).replace(/-/g, "");
+  const effectiveMetadata = {
+    ...metadata,
+    kvp: cleanText(metadata.kvp) || cleanText(acceptanceForm.kv),
+    tubeCurrent: cleanText(metadata.tubeCurrent) || cleanText(acceptanceForm.ma),
+    exposureTime: cleanText(metadata.exposureTime) || cleanText(acceptanceForm.exposureTime),
+    manufacturerModelName:
+      cleanText(metadata.manufacturerModelName || metadata.manufacturer) || cleanText(acceptanceForm.deviceModel),
+    deviceSerialNumber: cleanText(metadata.deviceSerialNumber) || cleanText(acceptanceForm.serialNumber),
+    studyDate: cleanText(metadata.studyDate || metadata.acquisitionDate) || (/^\d{8}$/.test(testDateDigits) ? testDateDigits : ""),
+  };
+  const dicom = buildDicomValidation(effectiveMetadata);
   const consistency = buildConsistencyChecks({ imageType, mode, preset, metadata, acceptanceForm });
 
+  // Actively wrong values (garbled/out-of-range) always block PASS. A tag that is simply absent
+  // only blocks PASS when it is genuinely required for the acceptance workflow - optional tags
+  // (exposure mAs, slice thickness, study date, ...) are informational and do not block.
   dicom.invalid.forEach((check) => incomplete.push(check.reason));
-  dicom.missing.forEach((check) => incomplete.push(check.reason));
+  dicom.missing.forEach((check) => {
+    if (check.required) incomplete.push(check.reason);
+  });
   consistency.issues.forEach((issue) => incomplete.push(issue.message));
 
   if (imageType !== "phantom" || mode === "preview") {
