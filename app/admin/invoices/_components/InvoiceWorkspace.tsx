@@ -256,7 +256,7 @@ export default function InvoiceWorkspace({ historyOnly = false }: { historyOnly?
 
   return <main className={styles.page}><div className={styles.wrap}>
     <header className={styles.hero}><div><p>ადმინი / ფინანსები</p><h1>{historyOnly ? 'ინვოისები' : 'AI ინვოისის გენერატორი'}</h1><span>{historyOnly ? 'ინვოისების დაცული ისტორია და PDF ვერსიები' : 'ტექსტიდან ან დოკუმენტიდან — კონტროლირებად მონახაზამდე'}</span></div>
-      <nav><Link href="/admin">ადმინი</Link><Link href="/admin/invoices">ისტორია</Link><Link href="/admin/invoices/ai-generator" className={styles.primaryLink}><Sparkles size={16}/>ახალი მონახაზი</Link></nav>
+      <nav><Link href="/admin">ადმინი</Link><Link href="/admin/invoices">ისტორია</Link><Link href="/admin/invoices/suppliers">მომწოდებლები / ერთიანი ბაზა</Link><Link href="/admin/invoices/ai-generator" className={styles.primaryLink}><Sparkles size={16}/>ახალი მონახაზი</Link></nav>
     </header>
     {error && <div className={styles.error}><AlertTriangle size={18}/>{error}</div>}
     {notice && <div className={styles.notice}>{notice}</div>}
