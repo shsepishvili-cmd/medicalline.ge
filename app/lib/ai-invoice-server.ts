@@ -184,9 +184,37 @@ export async function enrichInvoiceDraft(draft: InvoiceDraft, client: SupabaseCl
   for (const item of draft.items) {
     const term = safeSearchTerm(item.product_query)
     if (!term) continue
+    const { data: erpProducts } = await client
+      .from('erp_products')
+      .select('id, code, name, unit, default_price')
+      .eq('is_active', true)
+      .or(`name.ilike.%${term}%,code.ilike.%${term}%`)
+      .limit(5)
+    if (erpProducts?.length === 1) {
+      const product = erpProducts[0]
+      const standardPrice = Number(product.default_price || 0)
+      item.product_id = product.id
+      item.product_name = product.name
+      item.product_code = product.code || item.product_code
+      item.unit = product.unit || item.unit
+      item.standard_price = standardPrice || null
+      if (!item.unit_price && standardPrice) item.unit_price = standardPrice
+      if (standardPrice && item.unit_price && Math.abs(standardPrice - item.unit_price) >= 0.01) {
+        item.match_warning = `მითითებული ფასი ${item.unit_price} განსხვავდება ERP-ის ფასისგან ${standardPrice}.`
+        warnings.push(`${product.name}: ${item.match_warning}`)
+      }
+      continue
+    }
+    if ((erpProducts?.length || 0) > 1) {
+      item.match_warning = 'ERP ბაზაში რამდენიმე მსგავსი პროდუქტი მოიძებნა; აირჩიეთ სწორი სიიდან.'
+      questions.push(`აირჩიეთ „${item.product_query}“-ის შესაბამისი პროდუქტი.`)
+      continue
+    }
+
     const { data: products } = await client
       .from('products')
       .select('id, slug, name, prices(price_gel)')
+      .eq('is_active', true)
       .ilike('name', `%${term}%`)
       .limit(5)
     if (products?.length === 1) {

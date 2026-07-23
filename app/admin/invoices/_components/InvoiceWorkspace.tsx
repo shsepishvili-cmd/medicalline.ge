@@ -14,6 +14,16 @@ type SavedInvoice = {
   grand_total: number; clean_pdf_path?: string | null; scanned_pdf_path?: string | null
 }
 
+type ProductOption = {
+  id: string
+  source: 'erp' | 'catalog'
+  code: string
+  name: string
+  unit: string
+  price: number
+  vat_rate: number
+}
+
 const sample = `გთხოვ, გამიკეთე ინვოისი სს ვიანზე.
 E-Connect PRO — 1 ცალი, 1050 ლარი.
 EFLEX BLUE — 50 ანაწყობი, თითო 45 ლარი.
@@ -40,6 +50,7 @@ export default function InvoiceWorkspace({ historyOnly = false }: { historyOnly?
   const [sourcePath, setSourcePath] = useState('')
   const [search, setSearch] = useState('')
   const [status, setStatus] = useState('')
+  const [products, setProducts] = useState<ProductOption[]>([])
 
   useEffect(() => {
     let mounted = true
@@ -78,6 +89,24 @@ export default function InvoiceWorkspace({ historyOnly = false }: { historyOnly?
     if (gate.accessToken) void loadInvoices().catch((cause) => setError(cause instanceof Error ? cause.message : 'ინვოისები ვერ ჩაიტვირთა.'))
   }, [gate.accessToken, loadInvoices])
 
+  useEffect(() => {
+    if (!gate.accessToken || historyOnly) return
+    const controller = new AbortController()
+    void fetch('/api/admin/invoices/products', {
+      headers: headers(gate.accessToken, false),
+      cache: 'no-store',
+      signal: controller.signal,
+    }).then(async (response) => {
+      const payload = await response.json()
+      if (!response.ok) throw new Error(payload?.error || 'პროდუქციის ბაზა ვერ ჩაიტვირთა.')
+      setProducts(payload.products || [])
+    }).catch((cause) => {
+      if (cause instanceof DOMException && cause.name === 'AbortError') return
+      setError(cause instanceof Error ? cause.message : 'პროდუქციის ბაზა ვერ ჩაიტვირთა.')
+    })
+    return () => controller.abort()
+  }, [gate.accessToken, historyOnly])
+
   const totals = useMemo(() => {
     if (!draft || draft.vat_mode === 'unknown') return null
     return calculateInvoice(draft.items, draft.vat_mode)
@@ -115,6 +144,73 @@ export default function InvoiceWorkspace({ historyOnly = false }: { historyOnly?
   }
   function patchItem(index: number, patch: Partial<InvoiceDraftItem>) {
     setDraft((current) => current ? { ...current, items: current.items.map((item, i) => i === index ? { ...item, ...patch } : item) } : current)
+  }
+
+  function startManualDraft() {
+    const today = new Date().toISOString().slice(0, 10)
+    setSourcePath('')
+    setDraft({
+      customer_query: 'ხელით შეყვანილი კლიენტი',
+      customer_name: '',
+      customer_tax_id: '',
+      customer_address: '',
+      customer_email: '',
+      customer_phone: '',
+      invoice_date: today,
+      delivery_date: null,
+      due_date: null,
+      currency: 'GEL',
+      vat_mode: 'without_vat',
+      items: [{
+        product_query: 'ხელით შეყვანილი პროდუქტი',
+        product_name: '',
+        description: '',
+        product_code: null,
+        unit: 'ცალი',
+        quantity: 1,
+        unit_price: 0,
+        discount: 0,
+        line_total: 0,
+      }],
+      notes: '',
+      payment_terms: '',
+      requested_scanned_version: false,
+      stamp_applied: false,
+      signature_applied: false,
+      warnings: [],
+      questions: [],
+    })
+    setNotice('ხელით შესავსები ინვოისის მონახაზი მზადაა.')
+    setError('')
+  }
+
+  function selectProduct(index: number, typedValue: string) {
+    const normalized = typedValue.trim().toLocaleLowerCase('ka-GE')
+    const selected = products.find((product) =>
+      product.id === typedValue ||
+      product.name.toLocaleLowerCase('ka-GE') === normalized ||
+      product.code.toLocaleLowerCase('ka-GE') === normalized ||
+      `${product.code} — ${product.name}`.toLocaleLowerCase('ka-GE') === normalized
+    )
+    if (!selected) {
+      patchItem(index, {
+        product_id: null,
+        product_name: typedValue,
+        product_query: typedValue || 'ხელით შეყვანილი პროდუქტი',
+        match_warning: typedValue ? 'ხელით შეყვანილი პოზიცია — პროდუქციის ბაზას არ არის მიბმული.' : null,
+      })
+      return
+    }
+    patchItem(index, {
+      product_id: selected.id,
+      product_name: selected.name,
+      product_query: selected.name,
+      product_code: selected.code || null,
+      unit: selected.unit || 'ცალი',
+      unit_price: selected.price || 0,
+      standard_price: selected.price || null,
+      match_warning: null,
+    })
   }
 
   async function createInvoice() {
@@ -171,6 +267,7 @@ export default function InvoiceWorkspace({ historyOnly = false }: { historyOnly?
         <textarea value={prompt} onChange={(e) => setPrompt(e.target.value)} rows={12} maxLength={20000}/>
         <div className={styles.composerActions}>
           <label className={styles.uploadButton}><Upload size={16}/>{busy === 'upload' ? 'იტვირთება...' : 'PDF, JPG, PNG ან XLSX'}<input type="file" accept=".pdf,.jpg,.jpeg,.png,.xlsx" disabled={Boolean(busy)} onChange={(e) => { const file=e.target.files?.[0]; if(file) void uploadFile(file); e.currentTarget.value='' }}/></label>
+          <button type="button" className={styles.manualButton} onClick={startManualDraft} disabled={Boolean(busy)}><Plus size={17}/>ხელით შევსება</button>
           <button onClick={parsePrompt} disabled={Boolean(busy) || prompt.trim().length < 10}>{busy === 'parse' ? <Loader2 className={styles.spin} size={17}/> : <Sparkles size={17}/>}ინვოისის მონახაზის შექმნა</button>
         </div>
         {sourcePath && <small>წყარო დაცულად აიტვირთა: {sourcePath.split('/').pop()}</small>}
@@ -192,9 +289,11 @@ export default function InvoiceWorkspace({ historyOnly = false }: { historyOnly?
             <label className={styles.span2}>მისამართი<input value={draft.customer_address} onChange={(e)=>patchDraft({customer_address:e.target.value})}/></label>
           </div>
           <div className={styles.itemsHeader}><h3>პროდუქტები</h3><button onClick={()=>patchDraft({items:[...draft.items,{product_query:'',product_name:'',description:'',product_code:null,unit:'ცალი',quantity:1,unit_price:0,discount:0,line_total:0}]})}><Plus size={15}/>პოზიცია</button></div>
-          <div className={styles.items}>{draft.items.map((item,index)=><div className={styles.item} key={index}>
+          <datalist id="invoice-product-options">{products.map((product)=><option key={`${product.source}-${product.id}`} value={`${product.code} — ${product.name}`}>{product.name} · {money(product.price,'GEL')} · {product.source === 'erp' ? 'ERP' : 'კატალოგი'}</option>)}</datalist>
+          <div className={styles.catalogStatus}>{products.length ? `${products.length} პროდუქტი დაკავშირებულია ბაზიდან` : 'პროდუქციის ბაზა იტვირთება...'}</div>
+          <div className={styles.items}>{draft.items.map((item,index)=><div className={styles.item} key={`${item.product_id || 'manual'}-${index}`}>
             <b>{index+1}</b>
-            <label>პროდუქტი<input value={item.product_name} onChange={(e)=>patchItem(index,{product_name:e.target.value,product_query:e.target.value})}/></label>
+            <label>პროდუქტი (ბაზიდან ან ხელით)<input list="invoice-product-options" value={item.product_name} placeholder="ჩაწერეთ კოდი ან დასახელება" onChange={(e)=>selectProduct(index,e.target.value)} onBlur={(e)=>selectProduct(index,e.target.value)}/></label>
             <label>კოდი<input value={item.product_code||''} onChange={(e)=>patchItem(index,{product_code:e.target.value||null})}/></label>
             <label>ერთეული<input value={item.unit} onChange={(e)=>patchItem(index,{unit:e.target.value})}/></label>
             <label>რაოდენობა<input type="number" min=".001" step=".001" value={item.quantity} onChange={(e)=>patchItem(index,{quantity:Number(e.target.value)})}/></label>
