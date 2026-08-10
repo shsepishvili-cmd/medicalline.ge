@@ -46,6 +46,84 @@ const EMPTY_ROIS = [
   { id: "uniformity_right", type: "UNIFORMITY_RIGHT", plane: "axial", sliceIndex: 0, x: 152, y: 96, width: 32, height: 32, confirmed: false },
 ];
 
+function clamp(value, min, max) {
+  return Math.max(min, Math.min(max, value));
+}
+
+function centeredRect(cx, cy, width, height, image) {
+  const safeWidth = Math.max(4, Math.min(Math.round(width), image.columns));
+  const safeHeight = Math.max(4, Math.min(Math.round(height), image.rows));
+  return {
+    x: clamp(Math.round(cx - safeWidth / 2), 0, Math.max(0, image.columns - safeWidth)),
+    y: clamp(Math.round(cy - safeHeight / 2), 0, Math.max(0, image.rows - safeHeight)),
+    width: safeWidth,
+    height: safeHeight,
+  };
+}
+
+function findHorizontalEdgeY(image) {
+  if (!image?.values || image.rows < 16 || image.columns < 16) return Math.round((image?.rows || 0) / 2);
+  const marginX = Math.max(2, Math.round(image.columns * 0.2));
+  const startY = Math.max(2, Math.round(image.rows * 0.15));
+  const endY = Math.min(image.rows - 2, Math.round(image.rows * 0.85));
+  let bestY = Math.round(image.rows / 2);
+  let bestScore = -Infinity;
+  for (let y = startY; y < endY; y += 1) {
+    let score = 0;
+    let count = 0;
+    for (let x = marginX; x < image.columns - marginX; x += 1) {
+      score += Math.abs(image.values[y * image.columns + x] - image.values[(y - 1) * image.columns + x]);
+      count += 1;
+    }
+    const average = count ? score / count : 0;
+    if (average > bestScore) {
+      bestScore = average;
+      bestY = y;
+    }
+  }
+  return bestY;
+}
+
+function buildAutomaticRois(image, spacing) {
+  if (!image?.columns || !image?.rows) return EMPTY_ROIS;
+  const sx = spacing?.x || 0.2;
+  const sy = spacing?.y || 0.2;
+  const roiPx = clamp(Math.round(10 / Math.max(sx, sy)), 12, Math.round(Math.min(image.columns, image.rows) * 0.18));
+  const offsetX = Math.max(roiPx, Math.round(image.columns * 0.28));
+  const offsetY = Math.max(roiPx, Math.round(image.rows * 0.28));
+  const centerX = image.columns / 2;
+  const centerY = image.rows / 2;
+  const edgeY = findHorizontalEdgeY(image);
+  const edgeWidth = clamp(Math.round(image.columns * 0.5), 24, image.columns - 4);
+  const edgeHeight = clamp(Math.round(18 / sy), 16, Math.round(image.rows * 0.3));
+  const cnriHeight = clamp(Math.round(10 / sy), 12, Math.round(image.rows * 0.2));
+  const mark = (item) => ({ ...item, confirmed: true, source: "AUTO" });
+  return [
+    mark({ id: "mtf_xy_edge", type: "MTF_XY_EDGE", plane: "axial", sliceIndex: 0, ...centeredRect(centerX, edgeY, edgeWidth, edgeHeight, image) }),
+    mark({ id: "cnri_edge", type: "CNRI_EDGE", plane: "axial", sliceIndex: 0, ...centeredRect(centerX, edgeY, edgeWidth, cnriHeight, image) }),
+    mark({ id: "uniformity_center", type: "UNIFORMITY_CENTER", plane: "axial", sliceIndex: 0, ...centeredRect(centerX, centerY, roiPx, roiPx, image) }),
+    mark({ id: "uniformity_top", type: "UNIFORMITY_TOP", plane: "axial", sliceIndex: 0, ...centeredRect(centerX, centerY - offsetY, roiPx, roiPx, image) }),
+    mark({ id: "uniformity_bottom", type: "UNIFORMITY_BOTTOM", plane: "axial", sliceIndex: 0, ...centeredRect(centerX, centerY + offsetY, roiPx, roiPx, image) }),
+    mark({ id: "uniformity_left", type: "UNIFORMITY_LEFT", plane: "axial", sliceIndex: 0, ...centeredRect(centerX - offsetX, centerY, roiPx, roiPx, image) }),
+    mark({ id: "uniformity_right", type: "UNIFORMITY_RIGHT", plane: "axial", sliceIndex: 0, ...centeredRect(centerX + offsetX, centerY, roiPx, roiPx, image) }),
+  ];
+}
+
+function buildAutomaticGeometry(image, spacing) {
+  const sx = spacing?.x || 0.2;
+  const referenceDistanceMm = 50;
+  const dx = clamp(Math.round(referenceDistanceMm / sx), 8, Math.max(8, image.columns - 10));
+  const cx = Math.round(image.columns / 2);
+  const y = Math.round(image.rows / 2);
+  return {
+    ax: clamp(cx - Math.round(dx / 2), 0, image.columns - 1),
+    ay: y,
+    bx: clamp(cx + Math.round(dx / 2), 0, image.columns - 1),
+    by: y,
+    referenceDistanceMm,
+  };
+}
+
 function value(dataSet, tag) {
   return dataSet.string(tag) || "";
 }
@@ -199,6 +277,7 @@ export default function FinScanQaPage() {
   );
   const doseResult = useMemo(() => calculateKap(dose), [dose]);
   const allRequiredRoisConfirmed = rois.every((roi) => roi.confirmed);
+  const autoRoiCount = rois.filter((roi) => roi.source === "AUTO").length;
   const finalResult = useMemo(
     () => evaluateQaResult({
       testType,
@@ -239,6 +318,11 @@ export default function FinScanQaPage() {
       }
       setInstances(parsed);
       setImage(representative);
+      if (representative) {
+        const representativeSpacing = pixelSpacing(parsed[0]?.metadata || {});
+        setRois(buildAutomaticRois(representative, representativeSpacing));
+        setGeometry(buildAutomaticGeometry(representative, representativeSpacing));
+      }
       setAudit(await buildSeriesAudit(parsed));
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "DICOM import failed.");
@@ -248,7 +332,13 @@ export default function FinScanQaPage() {
   }
 
   function updateRoi(id, patch) {
-    setRois((current) => current.map((roi) => (roi.id === id ? { ...roi, ...patch } : roi)));
+    setRois((current) => current.map((roi) => (roi.id === id ? { ...roi, source: patch.source ?? "MANUAL", ...patch } : roi)));
+  }
+
+  function recalculateAutomaticRois() {
+    if (!image) return;
+    setRois(buildAutomaticRois(image, spacing));
+    setGeometry(buildAutomaticGeometry(image, spacing));
   }
 
   function generateReport() {
@@ -428,15 +518,22 @@ export default function FinScanQaPage() {
         </section>
 
         <section className="rounded-md border border-slate-200 bg-white p-4">
-          <h2 className="font-bold">Manual + verified ROI workflow</h2>
-          <p className="mt-1 text-sm text-slate-600">Before calculation, verify ROI position and press CONFIRM ROI. Phantom calculations are disabled until required ROIs are confirmed.</p>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h2 className="font-bold">Automatic ROI calculation + editable verification</h2>
+              <p className="mt-1 text-sm text-slate-600">After import, the software proposes and calculates ROIs automatically. Edit coordinates if needed; edited ROIs require confirmation again.</p>
+            </div>
+            <button type="button" onClick={recalculateAutomaticRois} disabled={!image} className="rounded-md border border-cyan-700 px-3 py-2 text-sm font-bold text-cyan-800 disabled:border-slate-200 disabled:text-slate-400">Auto recalculate</button>
+          </div>
+          <p className="mt-2 text-xs font-semibold text-slate-500">Auto ROIs active: {autoRoiCount}/{rois.length}</p>
           <div className="mt-3 overflow-x-auto">
             <table className="min-w-full text-sm">
-              <thead><tr className="border-b text-left"><th className="p-2">ROI</th><th className="p-2">Plane</th><th className="p-2">Slice</th><th className="p-2">x</th><th className="p-2">y</th><th className="p-2">w</th><th className="p-2">h</th><th className="p-2">Verify</th></tr></thead>
+              <thead><tr className="border-b text-left"><th className="p-2">ROI</th><th className="p-2">Source</th><th className="p-2">Plane</th><th className="p-2">Slice</th><th className="p-2">x</th><th className="p-2">y</th><th className="p-2">w</th><th className="p-2">h</th><th className="p-2">Verify</th></tr></thead>
               <tbody>
                 {rois.map((roi) => (
                   <tr key={roi.id} className="border-b">
                     <td className="p-2 font-semibold">{roi.type}</td>
+                    <td className="p-2"><span className={`rounded px-2 py-1 text-xs font-bold ${roi.source === "AUTO" ? "bg-cyan-100 text-cyan-800" : "bg-slate-100 text-slate-700"}`}>{roi.source || "MANUAL"}</span></td>
                     <td className="p-2">{roi.plane}</td>
                     {["sliceIndex", "x", "y", "width", "height"].map((key) => (
                       <td key={key} className="p-2"><input type="number" value={roi[key]} onChange={(event) => updateRoi(roi.id, { [key]: Number(event.target.value), confirmed: false })} className="h-8 w-20 rounded border px-2" /></td>
