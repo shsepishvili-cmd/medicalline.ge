@@ -60,7 +60,7 @@ export const blogArticles = [
         <li><strong>Form:</strong> მასალის სტაბილური მიწოდება ფენების ერთგვაროვან ფორმირებას უზრუნველყოფს.</li>
         <li><strong>Precision:</strong> კონტროლირებადი პროცესი ზუსტ და განმეორებად შედეგს იძლევა.</li>
       </ul>
-      <p>შედეგად ერთი გვირგვინი იბეჭდება <strong>8–10 წუთში</strong>, <strong>30 მკმ სიზუსტით</strong>. მასალის სიმტკიცე <strong>200 MPa</strong>-ია, რაც მუდმივი გვირგვინებისთვისაა გათვლილი. კაფსულები ხელმისაწვდომია 5 ბუნებრივ ელფერში.</p>
+      <p>შედეგად ერთი გვირგვინი იბეჭდება <strong>8–10 წუთში</strong>, <strong>30 მკმ სიზუსტით</strong>. მასალის სიმტკიცე <strong>200 MPa</strong>-ია, რაც მუდმივი გვირგვინებისთვისაა გათვლილი. კაფსულები ხელმისაწვდომია 5 ბუნებრივ ელფერში: BL1, A1, A2, A3 და B1.</p>
 
       <figure style="margin:2rem 0;">
         <img src="/images/blog/sidelab-p1/sidelab-p1-capsule-pps.webp" alt="SideLab P1 კერამიკული კაფსულა და PPS ბეჭდვის ტექნოლოგია" style="width:100%; border-radius:8px; display:block;" loading="lazy" />
