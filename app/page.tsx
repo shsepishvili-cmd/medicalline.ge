@@ -6,6 +6,7 @@ import {
   ArrowRight, Star, Camera, BookOpen, Facebook, Gamepad2, Trophy, Sparkles, UserCircle2,
 } from 'lucide-react';
 import SiteHeader from '@/app/components/SiteHeader';
+import ExpoRegistrationCard from '@/app/components/ExpoRegistrationCard';
 import TopGe from '@/app/components/TopGe';
 import { buildPageMetadata, siteConfig } from '@/app/lib/seo';
 
@@ -63,6 +64,7 @@ export default function MedicalLineHome() {
       />
 
       <SiteHeader />
+      <ExpoRegistrationCard />
 
       {/* --- HERO --- */}
       <section className="relative h-screen min-h-[600px] flex items-center overflow-hidden bg-slate-900 text-white">
