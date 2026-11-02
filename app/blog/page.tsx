@@ -26,7 +26,11 @@ const featuredArticles = [
   },
 ];
 
+const CURRENT_EVENT_SLUG = 'gdda-expo-2026-registration';
+
 export default function BlogPage() {
+  const currentEventArticles = blogArticles.filter((article) => article.slug === CURRENT_EVENT_SLUG);
+  const remainingArticles = blogArticles.filter((article) => article.slug !== CURRENT_EVENT_SLUG);
   const blogSchema = {
     '@context': 'https://schema.org',
     '@type': 'Blog',
@@ -42,7 +46,7 @@ export default function BlogPage() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(blogSchema) }}
       />
-      <BlogClient blogArticles={[...featuredArticles, ...blogArticles]} />
+      <BlogClient blogArticles={[...currentEventArticles, ...featuredArticles, ...remainingArticles]} />
     </>
   );
 }

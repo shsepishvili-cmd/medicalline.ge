@@ -1,5 +1,83 @@
 export const blogArticles = [
   {
+    id: 50,
+    slug: "gdda-expo-2026-registration",
+    title: "GDDA EXPO 2026: რეგისტრაცია კავკასიის უდიდეს სტომატოლოგიურ გამოფენაზე",
+    excerpt:
+      "13–15 ნოემბერს თბილისში GDDA EXPO 2026 გაიმართება. გაიგეთ სად ტარდება გამოფენა, რა გელით ადგილზე და როგორ გაიაროთ რეგისტრაცია.",
+    date: "2 ნოემბერი, 2026",
+    image: "/images/expo_hero.jpeg",
+    ogImage: "/images/expo_hero.jpeg",
+    imageFit: "cover",
+    category: "ღონისძიებები",
+    tags: ["GDDA EXPO 2026", "სტომატოლოგიური გამოფენა", "თბილისი", "რეგისტრაცია", "Medical Line Georgia"],
+    readTime: "4 წთ",
+    baseViews: 0,
+    ctaTitle: "გეგმავთ GDDA EXPO 2026-ზე მოსვლას?",
+    ctaDescription: "გაიარეთ ოფიციალური რეგისტრაცია წინასწარ და შემოგვიერთდით 13–15 ნოემბერს ჰუალინგ პლაზაში.",
+    ctaUrl: "https://docs.google.com/forms/d/e/1FAIpQLScyko9O7nscbPd_n2wjgZB5_Edtko3pJS2ZmH7-A2EdsLWAeg/viewform",
+    ctaLabel: "გამოფენაზე რეგისტრაცია",
+    content: `
+      <section style="margin:2rem 0; border-radius:28px; overflow:hidden; background:linear-gradient(135deg,#061b35 0%,#0b3c70 58%,#0f766e 100%); color:white;">
+        <img src="/images/expo_hero.jpeg" alt="Medical Line Georgia-ს სტენდი GDDA Dental Expo-ზე" style="width:100%; display:block; aspect-ratio:16/9; object-fit:cover;" loading="eager" />
+        <div style="padding:1.5rem;">
+          <p style="margin:0 0 .65rem; color:#93c5fd; font-size:.78rem; font-weight:800; letter-spacing:.12em; text-transform:uppercase;">13 · 14 · 15 ნოემბერი, 2026</p>
+          <p style="font-size:1.25rem; line-height:1.4; font-weight:800; margin:0 0 .65rem;">სტომატოლოგიის მომავალი — ერთ სივრცეში</p>
+          <p style="margin:0; color:#dbeafe;">თბილისი, ჰუალინგ პლაზა, ჯ. ლეჟავას ქ. 22</p>
+        </div>
+      </section>
+
+      <p><strong>GDDA EXPO 2026</strong> — კავკასიის ყველაზე დიდი სტომატოლოგიური გამოფენა — თბილისში, 2026 წლის <strong>13, 14 და 15 ნოემბერს</strong> გაიმართება. სამი დღის განმავლობაში ერთ სივრცეში შეიკრიბებიან სტომატოლოგები, კლინიკების წარმომადგენლები, ტექნოლოგიური ბრენდები და დარგის პროფესიონალები.</p>
+      <p>Medical Line Georgia გამოფენაზე საკუთარ გუნდთან ერთად გელოდებათ. ადგილზე შეძლებთ თანამედროვე სტომატოლოგიური აპარატურის გაცნობას, პროდუქციის რეალურ სამუშაო გარემოში ნახვას და ჩვენი სპეციალისტებისგან პროფესიული კონსულტაციის მიღებას.</p>
+
+      <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(210px,1fr)); gap:1rem; margin:1.75rem 0 2rem;">
+        <div style="background:#eff6ff; border:1px solid #bfdbfe; border-radius:18px; padding:1.25rem;">
+          <p style="font-size:.78rem; font-weight:800; color:#2563eb; margin:0 0 .45rem; text-transform:uppercase; letter-spacing:.08em;">თარიღი</p>
+          <p style="font-size:1.1rem; font-weight:800; color:#0f172a; margin:0;">13–15 ნოემბერი, 2026</p>
+        </div>
+        <div style="background:#ecfdf5; border:1px solid #a7f3d0; border-radius:18px; padding:1.25rem;">
+          <p style="font-size:.78rem; font-weight:800; color:#059669; margin:0 0 .45rem; text-transform:uppercase; letter-spacing:.08em;">მისამართი</p>
+          <p style="font-size:1.1rem; font-weight:800; color:#0f172a; margin:0;">ჰუალინგ პლაზა, ჯ. ლეჟავას ქ. 22, თბილისი</p>
+        </div>
+      </div>
+
+      <h2>რა გელით GDDA EXPO 2026-ზე?</h2>
+      <ul>
+        <li><strong>ინოვაციური ტექნოლოგიები</strong> — მსოფლიო ბრენდების უახლესი აპარატურა, მასალები და ციფრული გადაწყვეტილებები.</li>
+        <li><strong>პრაქტიკული ცოდნა</strong> — წამყვანი სპიკერების მასტერკლასები, ტრენინგები და პრეზენტაციები.</li>
+        <li><strong>B2B ნეთვორქინგი</strong> — ახალი პროფესიული კავშირები და პარტნიორული შესაძლებლობები.</li>
+        <li><strong>ცოცხალი დემონსტრაციები</strong> — შესაძლებლობა, მოწყობილობები ადგილზე ნახოთ, შეადაროთ და შეკითხვები უშუალოდ სპეციალისტებს დაუსვათ.</li>
+      </ul>
+
+      <figure style="margin:2rem 0;">
+        <img src="/images/expo_photo1.jpeg" alt="სტომატოლოგიური აპარატურის დემონსტრაცია Medical Line Georgia-ს საგამოფენო სივრცეში" style="width:100%; max-height:620px; object-fit:cover; border-radius:24px; display:block;" loading="lazy" />
+        <figcaption style="margin-top:.65rem; color:#64748b; font-size:.92rem;">Medical Line Georgia-ს გუნდი წინა GDDA EXPO-ზე — პროდუქტის ცოცხალი დემონსტრაცია.</figcaption>
+      </figure>
+
+      <h2>რატომ ღირს დასწრება?</h2>
+      <p>გამოფენა კარგი შესაძლებლობაა მათთვის, ვისაც სურს კლინიკის განახლება, ციფრულ სტომატოლოგიაზე გადასვლა ან ახალი ტექნოლოგიის შეძენამდე რეალური შედარება. ონლაინ კატალოგისგან განსხვავებით, აქ მოწყობილობის ზომას, ერგონომიკას, სისწრაფესა და სამუშაო პროცესს ადგილზე ნახავთ.</p>
+      <p>Medical Line Georgia-ს გუნდი დაგეხმარებათ თქვენი კლინიკის საჭიროებებისთვის შესაფერისი გადაწყვეტილების შერჩევაში — დაგეგმვიდან და ფინანსური პირობებიდან ინსტალაციამდე, ტრენინგამდე და შემდგომ ტექნიკურ მხარდაჭერამდე.</p>
+
+      <div style="margin:2rem 0; overflow:hidden; border-radius:24px; background:#020617;">
+        <video controls preload="metadata" poster="/images/expo_hero.jpeg" style="width:100%; display:block;" aria-label="Medical Line Georgia — GDDA EXPO-ს ვიდეო მიმოხილვა">
+          <source src="/videos/expo_recap.mp4" type="video/mp4" />
+        </video>
+      </div>
+
+      <h2>როგორ გავიაროთ რეგისტრაცია</h2>
+      <p>რეგისტრაცია ხელმისაწვდომია ღონისძიების ოფიციალურ Google ფორმაში. დააჭირეთ ქვემოთ მოცემულ ღილაკს, შეავსეთ მოთხოვნილი ინფორმაცია და შეინახეთ რეგისტრაციის დასტური.</p>
+      <p style="margin:1.5rem 0;">
+        <a href="https://docs.google.com/forms/d/e/1FAIpQLScyko9O7nscbPd_n2wjgZB5_Edtko3pJS2ZmH7-A2EdsLWAeg/viewform" target="_blank" rel="noopener noreferrer" style="display:inline-block; background:#2563eb; color:white; padding:.95rem 1.35rem; border-radius:14px; font-weight:800; text-decoration:none;">GDDA EXPO 2026-ზე რეგისტრაცია ↗</a>
+      </p>
+
+      <h2>ლოკაცია</h2>
+      <p><strong>ჰუალინგ პლაზა</strong><br />ჯ. ლეჟავას ქ. 22, თბილისი</p>
+      <p><a href="https://maps.app.goo.gl/MGomikMcZTHymYQn9" target="_blank" rel="noopener noreferrer">მისამართის გახსნა Google Maps-ში ↗</a></p>
+
+      <blockquote>ღონისძიების ოფიციალური ინფორმაცია და რეგისტრაციის ბმული აღებულია GDDA EXPO 2026-ის ოფიციალური გვერდიდან: https://gdda-expo-2026-git-main-sanitarier.vercel.app/ka/</blockquote>
+    `,
+  },
+  {
     id: 30,
     slug: "helios-680-intraoral-scanner-review",
     title: "Helios 680 — ინტრაორალური სკანირება მაღალი სიზუსტით და ყოველდღიური კომფორტით",
