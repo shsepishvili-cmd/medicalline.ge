@@ -489,6 +489,18 @@ export default function AdminPage() {
             {item.label}
           </button>
         ))}
+        <button
+          onClick={() => { window.location.href = '/admin/ai' }}
+          style={{ display: 'block', width: '100%', textAlign: 'left', padding: '10px 16px', background: 'transparent', color: '#9FE1CB', border: 'none', borderLeft: '3px solid transparent', cursor: 'pointer', fontSize: 13 }}
+        >
+          🤖 AI Operator
+        </button>
+        <button
+          onClick={() => { window.location.href = '/admin/ai-calls' }}
+          style={{ display: 'block', width: '100%', textAlign: 'left', padding: '10px 16px', background: 'transparent', color: '#9FE1CB', border: 'none', borderLeft: '3px solid transparent', cursor: 'pointer', fontSize: 13 }}
+        >
+          📞 AI ზარები
+        </button>
         <button onClick={logoutAdmin}
           style={{ marginTop: 'auto', padding: '10px 16px', background: 'transparent', color: '#9FE1CB', border: 'none', textAlign: 'left', cursor: 'pointer', fontSize: 12 }}>
           გამოსვლა
