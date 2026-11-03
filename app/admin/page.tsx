@@ -501,6 +501,24 @@ export default function AdminPage() {
         >
           📞 AI ზარები
         </button>
+        <button
+          onClick={() => { window.location.href = '/admin/ai-orders' }}
+          style={{ display: 'block', width: '100%', textAlign: 'left', padding: '10px 16px', background: 'transparent', color: '#9FE1CB', border: 'none', borderLeft: '3px solid transparent', cursor: 'pointer', fontSize: 13 }}
+        >
+          🤖 AI Agent შეკვეთები
+        </button>
+        <button
+          onClick={() => { window.location.href = '/admin/ai-knowledge' }}
+          style={{ display: 'block', width: '100%', textAlign: 'left', padding: '10px 16px', background: 'transparent', color: '#9FE1CB', border: 'none', borderLeft: '3px solid transparent', cursor: 'pointer', fontSize: 13 }}
+        >
+          🧠 AI ცოდნის ბაზა
+        </button>
+        <button
+          onClick={() => { window.location.href = '/admin/ai-corrections' }}
+          style={{ display: 'block', width: '100%', textAlign: 'left', padding: '10px 16px', background: 'transparent', color: '#9FE1CB', border: 'none', borderLeft: '3px solid transparent', cursor: 'pointer', fontSize: 13 }}
+        >
+          ✅ AI შესწორებები
+        </button>
         <button onClick={logoutAdmin}
           style={{ marginTop: 'auto', padding: '10px 16px', background: 'transparent', color: '#9FE1CB', border: 'none', textAlign: 'left', cursor: 'pointer', fontSize: 12 }}>
           გამოსვლა

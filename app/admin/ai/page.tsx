@@ -23,6 +23,7 @@ const sections = [
   { icon: History, title: 'Follow-ups', href: '/admin/ai-followups', description: 'დაგეგმილი follow-up-ები' },
   { icon: WalletCards, title: 'Debt Reminders', href: '/admin/ai-debt-reminders', description: 'დავალიანების შეხსენებების მართვა' },
   { icon: LineChart, title: 'AI Analytics', href: '/admin/ai-analytics', description: 'ზარები, შედეგები და corrections' },
+  { icon: ClipboardCheck, title: 'AI Evaluation', href: '/admin/ai-evaluation', description: 'AI ქცევის ტესტები და შეფასება' },
 ] as const
 
 const cardStyle = {
