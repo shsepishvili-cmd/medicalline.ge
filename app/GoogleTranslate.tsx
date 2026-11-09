@@ -39,7 +39,8 @@ export default function GoogleTranslate() {
       <div id="google_translate_element" style={{ display: 'none' }}></div>
       
       {/* დროშების ბლოკი - მობილურზე ავწიეთ უფრო მაღლა (bottom-44) */}
-      <div className="fixed md:bottom-24 bottom-44 right-4 z-[101] flex flex-col gap-2">
+      {/* Expo page on phones has its own bottom bar and sheets: the flags would cover them. */}
+      <div className={`fixed md:bottom-24 bottom-44 right-4 z-[101] flex-col gap-2 ${pathname?.startsWith('/expo2026') ? 'hidden md:flex' : 'flex'}`}>
         <button onClick={() => changeLanguage('en')} className="w-9 h-9 rounded-full border border-slate-200 shadow-md overflow-hidden bg-white"><img src="https://flagcdn.com/w40/gb.png" alt="EN" className="w-full h-full object-cover" /></button>
         <button onClick={() => changeLanguage('ru')} className="w-9 h-9 rounded-full border border-slate-200 shadow-md overflow-hidden bg-white"><img src="https://flagcdn.com/w40/ru.png" alt="RU" className="w-full h-full object-cover" /></button>
         <button onClick={() => changeLanguage('ka')} className="w-9 h-9 rounded-full border border-slate-200 shadow-md bg-white text-[10px] font-bold flex items-center justify-center">GE</button>
