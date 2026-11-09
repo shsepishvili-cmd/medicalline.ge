@@ -46,6 +46,7 @@ export default function AdminPage() {
   const [authNotice, setAuthNotice] = useState('')
   const [authLoading, setAuthLoading] = useState(false)
   const [tab, setTab] = useState<Tab>('dashboard')
+  const [menuOpen, setMenuOpen] = useState(false)
   const [users, setUsers] = useState<any[]>([])
   const [products, setProducts] = useState<any[]>([])
   const [requests, setRequests] = useState<any[]>([])
@@ -823,9 +824,15 @@ export default function AdminPage() {
   const newReqs = requests.filter(r => r.status === 'new').length + newCartInvoiceRequests
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', fontFamily: 'sans-serif' }}>
+    <div className="mla-shell" style={{ display: 'flex', minHeight: '100vh', fontFamily: 'sans-serif' }}>
+      {/* PHONE TOP BAR: opens the menu below as a slide-out drawer */}
+      <div className="mla-topbar" style={{ position: 'sticky', top: 0, zIndex: 900, alignItems: 'center', gap: 12, background: '#085041', color: '#fff', padding: 'calc(10px + env(safe-area-inset-top)) 14px 10px' }}>
+        <button type="button" aria-label="მენიუ" onClick={() => setMenuOpen(true)} style={{ border: 0, background: 'rgba(255,255,255,0.12)', color: '#fff', borderRadius: 10, width: 42, height: 42, fontSize: 20, cursor: 'pointer' }}>☰</button>
+        <strong style={{ fontSize: 15, fontWeight: 600 }}>MedLine Admin</strong>
+      </div>
+      <div className="mla-backdrop" data-open={menuOpen} onClick={() => setMenuOpen(false)} />
       {/* SIDEBAR */}
-      <div style={{ width: 200, background: '#085041', display: 'flex', flexDirection: 'column', padding: '20px 0' }}>
+      <div className="mla-sidebar" data-open={menuOpen} onClickCapture={(event) => { if ((event.target as HTMLElement).closest('button')) setMenuOpen(false) }} style={{ width: 200, background: '#085041', display: 'flex', flexDirection: 'column', padding: '20px 0' }}>
         <div style={{ padding: '0 16px 20px', borderBottom: '0.5px solid rgba(255,255,255,0.1)' }}>
           <p style={{ color: '#fff', fontWeight: 500, fontSize: 14 }}>MedLine Admin</p>
           <p style={{ color: '#9FE1CB', fontSize: 11, marginTop: 2 }}>medicalline.ge</p>
@@ -901,7 +908,7 @@ export default function AdminPage() {
       </div>
 
       {/* MAIN */}
-      <div style={{ flex: 1, background: '#f5f5f0', overflow: 'auto' }}>
+      <div style={{ flex: 1, minWidth: 0, background: '#f5f5f0', overflow: 'auto' }}>
         <div style={{ background: '#fff', padding: '14px 24px', borderBottom: '0.5px solid rgba(0,0,0,0.08)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <h2 style={{ fontSize: 16, fontWeight: 500, color: '#1a1a1a' }}>
             {tab === 'dashboard' ? 'Dashboard' : tab === 'analytics' ? 'Analytics' : tab === 'users' ? 'მომხმარებლები' : tab === 'communications' ? 'მომხმარებლებთან კომუნიკაცია' : tab === 'prices' ? 'ფასების მართვა' : tab === 'requests' ? 'მოთხოვნები' : tab === 'service' ? 'Service Dispatch' : 'Engineering Division'}

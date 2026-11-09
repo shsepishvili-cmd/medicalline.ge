@@ -177,9 +177,12 @@
 @media (max-width: 760px) {
   .wrap { padding-left: 16px; padding-right: 16px; }
   .top { padding-top: env(safe-area-inset-top); }
-  .topInner { min-height: 56px; padding: 8px 16px; flex-wrap: nowrap; }
+  .topInner { min-height: 56px; padding: 8px 16px; flex-wrap: wrap; row-gap: 6px; }
   .brand { font-size: 15px; white-space: nowrap; }
-  .topNav { gap: 12px; flex-wrap: nowrap; }
+  /* Admin pages have many tabs here: one swipeable row */
+  .topNav { gap: 14px; flex-wrap: nowrap; overflow-x: auto; max-width: 100%; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+  .topNav::-webkit-scrollbar { display: none; }
+  .topNav > * { flex: 0 0 auto; white-space: nowrap; }
   .hideMobile { display: none; }
 
   .heroInner { padding-top: 30px; padding-bottom: 32px; }
