@@ -4,6 +4,7 @@ import { products as part2 } from './catalog/data-part2';
 import { blogArticles } from './blog/blogData';
 import { absoluteUrl } from './lib/seo';
 import { loadQuickCatalogProducts } from './lib/quick-catalog';
+import { loadCatalogCorrections } from './lib/catalog-corrections';
 
 export const revalidate = 3600;
 
@@ -36,8 +37,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: index === 0 ? 1 : path === '/catalog' || path === '/blog' ? 0.9 : 0.7,
   }));
 
-  const added = await loadQuickCatalogProducts(allProducts.map((product) => product.slug));
-  const productUrls: MetadataRoute.Sitemap = [...allProducts, ...added].map((product) => ({
+  const [added, corrections] = await Promise.all([loadQuickCatalogProducts(allProducts.map((product) => product.slug)), loadCatalogCorrections()]);
+  const shown = allProducts.filter((product) => !corrections.get(product.slug)?.hidden);
+  const productUrls: MetadataRoute.Sitemap = [...shown, ...added].map((product) => ({
     url: absoluteUrl(`/catalog/${product.slug}`),
     lastModified: now,
     changeFrequency: 'weekly',

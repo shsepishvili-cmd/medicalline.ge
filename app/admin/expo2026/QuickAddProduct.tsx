@@ -6,24 +6,91 @@ import styles from '@/app/expo2026/expo.module.css'
 type Category = { slug: string; name_ka: string | null }
 
 // Phone photos are large and may be HEIC; re-encoding through a canvas gives a
-// small JPEG every browser can show. Falls back to the original file.
-async function toJpeg(file: File): Promise<Blob> {
+// small JPEG every browser can show, turned by the chosen quarter turns.
+// Falls back to the original file (unrotated) if the browser cannot decode it.
+export async function toJpeg(file: File, quarterTurns = 0): Promise<Blob> {
   try {
     const bitmap = await createImageBitmap(file)
     const scale = Math.min(1, 1600 / Math.max(bitmap.width, bitmap.height))
+    const width = Math.round(bitmap.width * scale)
+    const height = Math.round(bitmap.height * scale)
+    const turns = ((quarterTurns % 4) + 4) % 4
     const canvas = document.createElement('canvas')
-    canvas.width = Math.round(bitmap.width * scale)
-    canvas.height = Math.round(bitmap.height * scale)
+    canvas.width = turns % 2 ? height : width
+    canvas.height = turns % 2 ? width : height
     const context = canvas.getContext('2d')
     if (!context) return file
     context.fillStyle = '#fff'
     context.fillRect(0, 0, canvas.width, canvas.height)
-    context.drawImage(bitmap, 0, 0, canvas.width, canvas.height)
+    context.translate(canvas.width / 2, canvas.height / 2)
+    context.rotate((turns * Math.PI) / 2)
+    context.drawImage(bitmap, -width / 2, -height / 2, width, height)
     const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.85))
     return blob || file
   } catch {
     return file
   }
+}
+
+// File picker with a preview that can be turned in quarter steps.
+export function PhotoField({ file, turns, onFile, onTurn, label = 'ფოტო *' }: { file: File | null; turns: number; onFile: (file: File | null) => void; onTurn: (turns: number) => void; label?: string }) {
+  const [preview, setPreview] = useState('')
+  useEffect(() => {
+    if (!file) { setPreview(''); return }
+    const url = URL.createObjectURL(file)
+    setPreview(url)
+    return () => URL.revokeObjectURL(url)
+  }, [file])
+  return (
+    <>
+      <label className={styles.field}>{label}
+        <input type="file" accept="image/*" onChange={(event) => { onFile(event.target.files?.[0] || null); onTurn(0) }} />
+      </label>
+      {preview ? (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 8, flexWrap: 'wrap' }}>
+          <div style={{ width: 180, height: 180, borderRadius: 10, background: '#f0f4fa', display: 'grid', placeItems: 'center', overflow: 'hidden' }}>
+            <img src={preview} alt="" style={{ maxWidth: 170, maxHeight: 170, objectFit: 'contain', transform: `rotate(${turns * 90}deg)`, transition: 'transform .2s' }} />
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <button type="button" className={`${styles.btn} ${styles.btnLight}`} style={{ padding: '8px 12px' }} onClick={() => onTurn(turns - 1)}>↺ მარცხნივ</button>
+            <button type="button" className={`${styles.btn} ${styles.btnLight}`} style={{ padding: '8px 12px' }} onClick={() => onTurn(turns + 1)}>↻ მარჯვნივ</button>
+          </div>
+        </div>
+      ) : null}
+    </>
+  )
+}
+
+// Replaces the main photo of a product (by id for admin-added, by slug for
+// built-in catalogue products).
+export function PhotoReplace({ accessToken, target, onDone, onCancel }: { accessToken: string; target: { productId?: string; slug?: string }; onDone: () => void; onCancel: () => void }) {
+  const [file, setFile] = useState<File | null>(null)
+  const [turns, setTurns] = useState(0)
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState('')
+  async function save() {
+    if (!file) { setError('აირჩიეთ ფოტო.'); return }
+    setBusy(true); setError('')
+    const form = new FormData()
+    if (target.productId) form.set('productId', target.productId)
+    if (target.slug) form.set('slug', target.slug)
+    form.set('photo', await toJpeg(file, turns), 'photo.jpg')
+    const response = await fetch('/api/admin/products/photo', { method: 'POST', headers: { Authorization: `Bearer ${accessToken}` }, body: form }).catch(() => null)
+    const payload = response ? await response.json().catch(() => ({})) : {}
+    setBusy(false)
+    if (!response?.ok) { setError(payload.error || 'ფოტო ვერ შეიცვალა. შეამოწმეთ ინტერნეტი და სცადეთ თავიდან.'); return }
+    onDone()
+  }
+  return (
+    <div style={{ marginTop: 10 }}>
+      <PhotoField file={file} turns={turns} onFile={setFile} onTurn={setTurns} label="ახალი ფოტო" />
+      {error ? <p className={styles.error}>{error}</p> : null}
+      <div className={styles.row}>
+        <button type="button" className={`${styles.btn} ${styles.btnLight}`} disabled={busy} onClick={onCancel}>გაუქმება</button>
+        <button type="button" className={styles.btn} disabled={busy || !file} onClick={save}>{busy ? 'იტვირთება...' : 'ფოტოს შენახვა'}</button>
+      </div>
+    </div>
+  )
 }
 
 type Defaults = { inExpo: boolean; inCatalog: boolean; note: string }
@@ -40,15 +107,13 @@ export function QuickAddProduct({ accessToken, categories, onAdded, defaults = E
   const [inExpo, setInExpo] = useState(defaults.inExpo)
   const [inCatalog, setInCatalog] = useState(defaults.inCatalog)
   const [photo, setPhoto] = useState<File | null>(null)
-  const [preview, setPreview] = useState('')
+  const [turns, setTurns] = useState(0)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
 
-  useEffect(() => () => { if (preview) URL.revokeObjectURL(preview) }, [preview])
-
   function pickPhoto(file: File | null) {
     setPhoto(file)
-    setPreview(file ? URL.createObjectURL(file) : '')
+    setTurns(0)
   }
 
   function reset() {
@@ -62,7 +127,7 @@ export function QuickAddProduct({ accessToken, categories, onAdded, defaults = E
     if (!photo) return setError('დაამატეთ ფოტო.')
     if (!inExpo && !inCatalog) return setError('მონიშნეთ, სად გამოჩნდეს.')
     setBusy(true)
-    const image = await toJpeg(photo)
+    const image = await toJpeg(photo, turns)
     const form = new FormData()
     form.set('name', name); form.set('brand', brand); form.set('category', category)
     form.set('description', description); form.set('note', note); form.set('specs', specs)
@@ -89,10 +154,7 @@ export function QuickAddProduct({ accessToken, categories, onAdded, defaults = E
         <label className={styles.check} style={{ marginTop: 0, fontSize: 14 }}><input type="checkbox" checked={inCatalog} onChange={(event) => setInCatalog(event.target.checked)} /> მთავარ კატალოგში</label>
         <label className={styles.check} style={{ marginTop: 0, fontSize: 14 }}><input type="checkbox" checked={inExpo} onChange={(event) => setInExpo(event.target.checked)} /> Expo კატალოგში</label>
       </div>
-      <label className={styles.field}>ფოტო *
-        <input type="file" accept="image/*" onChange={(event) => pickPhoto(event.target.files?.[0] || null)} />
-      </label>
-      {preview ? <img src={preview} alt="" style={{ marginTop: 8, maxHeight: 180, maxWidth: '100%', borderRadius: 10, objectFit: 'contain', background: '#f0f4fa' }} /> : null}
+      <PhotoField file={photo} turns={turns} onFile={pickPhoto} onTurn={setTurns} />
       <label className={styles.field}>დასახელება *<input value={name} maxLength={120} onChange={(event) => setName(event.target.value)} placeholder="მაგ.: Intraoral Scanner X5" /></label>
       <label className={styles.field}>ბრენდი *<input value={brand} maxLength={60} onChange={(event) => setBrand(event.target.value)} placeholder="მაგ.: Eighteeth" /></label>
       <label className={styles.field}>კატეგორია

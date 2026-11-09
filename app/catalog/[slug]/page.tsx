@@ -11,6 +11,7 @@ import ProductViewTracker from '@/app/components/ProductViewTracker';
 import TrackedAnchor from '@/app/components/TrackedAnchor';
 import { absoluteImageUrl, buildPageMetadata, siteConfig } from '@/app/lib/seo';
 import { loadQuickCatalogProduct } from '@/app/lib/quick-catalog';
+import { applyCorrection, loadCatalogCorrections } from '@/app/lib/catalog-corrections';
 import {
   ArrowLeft,
   MessageCircle,
@@ -26,7 +27,12 @@ export const revalidate = 60;
 
 async function getProduct(slug: string) {
   const decodedSlug = decodeURIComponent(slug);
-  return allProducts.find((p) => p.slug === decodedSlug) || await loadQuickCatalogProduct(decodedSlug);
+  const builtIn = allProducts.find((p) => p.slug === decodedSlug);
+  if (!builtIn) return loadQuickCatalogProduct(decodedSlug);
+  // Admin corrections: hidden products are gone, corrected ones show the edit.
+  const correction = (await loadCatalogCorrections()).get(builtIn.slug);
+  if (correction?.hidden) return null;
+  return applyCorrection(builtIn, correction);
 }
 
 export async function generateStaticParams() {

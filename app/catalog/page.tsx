@@ -5,6 +5,7 @@ import { products as part1 } from './data-part1';
 import { products as part2 } from './data-part2';
 import { absoluteUrl, buildPageMetadata, siteConfig } from '@/app/lib/seo';
 import { loadQuickCatalogProducts } from '@/app/lib/quick-catalog';
+import { applyCorrection, loadCatalogCorrections } from '@/app/lib/catalog-corrections';
 
 // Admin-added products appear within a minute.
 export const revalidate = 60;
@@ -15,8 +16,14 @@ function getAllProducts() {
 
 async function getCatalogProducts() {
   const builtIn = getAllProducts();
-  const added = await loadQuickCatalogProducts(builtIn.map((product) => product.slug));
-  return [...added, ...builtIn];
+  const [added, corrections] = await Promise.all([
+    loadQuickCatalogProducts(builtIn.map((product) => product.slug)),
+    loadCatalogCorrections(),
+  ]);
+  const corrected = builtIn
+    .filter((product) => !corrections.get(product.slug)?.hidden)
+    .map((product) => applyCorrection(product, corrections.get(product.slug)));
+  return [...added, ...corrected];
 }
 
 export async function generateMetadata({
