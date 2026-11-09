@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { adminSupabase as supabase } from '@/app/lib/supabase-admin-browser'
 import { AuthBlockedView, LoadingView, useWarrantyAdminGate } from '@/app/admin/warranty/_components/WarrantyUi'
 import styles from '@/app/expo2026/expo.module.css'
+import { QuickAddProduct } from './QuickAddProduct'
 
 type RequestRow = {
   id: string; group_id: string | null; status: string; quantity: number; created_at: string; source: string
@@ -13,7 +14,7 @@ type RequestRow = {
 type OutboxRow = { id: string; created_at: string; recipient: string; purpose: string; status: string; attempts: number; last_error: string | null; sent_at: string | null }
 type AuditRow = { id: string; created_at: string; actor: string | null; action: string; target_type: string | null; target_id: string | null; details: Record<string, unknown> }
 type Conflict = { phone: string; profiles: number }
-type CatalogProduct = { id: string; name: string; brand: string | null }
+type CatalogProduct = { id: string; slug: string; name: string; brand: string | null }
 type Pick = { product_id: string; sort_order: number; note: string | null }
 
 const CATALOG_HINT = 'Expo კატალოგისთვის გაუშვით supabase/sql/55_expo_catalog.sql.'
@@ -37,6 +38,8 @@ export default function Expo2026AdminPage() {
   const [catalogError, setCatalogError] = useState('')
   const [catalogSearch, setCatalogSearch] = useState('')
   const [saving, setSaving] = useState('')
+  const [categories, setCategories] = useState<Array<{ slug: string; name_ka: string | null }>>([])
+  const [catalogNotice, setCatalogNotice] = useState('')
   const isAdmin = profile?.role === 'admin'
 
   const load = useCallback(async () => {
@@ -55,10 +58,12 @@ export default function Expo2026AdminPage() {
   }, [])
 
   const loadCatalog = useCallback(async () => {
-    const [products, selection] = await Promise.all([
-      supabase.from('products').select('id, name, brand').eq('is_active', true).order('sort_order'),
+    const [products, selection, cats] = await Promise.all([
+      supabase.from('products').select('id, slug, name, brand').eq('is_active', true).order('sort_order'),
       supabase.from('expo_catalog_items').select('product_id, sort_order, note').order('sort_order'),
+      supabase.from('categories').select('slug, name_ka').order('sort_order'),
     ])
+    setCategories((cats.data || []) as Array<{ slug: string; name_ka: string | null }>)
     setCatalog((products.data || []) as CatalogProduct[])
     setPicks((selection.data || []) as Pick[])
     setCatalogError(selection.error ? (/does not exist|schema cache/i.test(selection.error.message) ? CATALOG_HINT : selection.error.message) : products.error?.message || '')
@@ -79,6 +84,18 @@ export default function Expo2026AdminPage() {
   }
   function removePick(productId: string) {
     return persist(() => supabase.from('expo_catalog_items').delete().eq('product_id', productId), productId)
+  }
+  // Quick-added products can be withdrawn entirely; catalogue products only
+  // leave the expo selection. Deactivating keeps past price requests intact.
+  async function withdrawQuickProduct(product: CatalogProduct) {
+    if (!window.confirm(`„${product.name}“ საიტიდან მოიხსნას?`)) return
+    setSaving(product.id); setCatalogError('')
+    const { error } = await supabase.from('products').update({ is_active: false }).eq('id', product.id)
+    if (!error) await supabase.from('expo_catalog_items').delete().eq('product_id', product.id)
+    setSaving('')
+    if (error) setCatalogError(error.message)
+    else setCatalogNotice(`„${product.name}“ მოიხსნა.`)
+    await loadCatalog()
   }
   function saveNote(pick: Pick, note: string) {
     const clean = note.trim().slice(0, 80) || null
@@ -156,6 +173,8 @@ export default function Expo2026AdminPage() {
         {tab === 'catalog' ? (
           <>
             {catalogError ? <p className={styles.error}>{catalogError}</p> : null}
+            {catalogNotice ? <p className={styles.notice}>{catalogNotice}</p> : null}
+            <QuickAddProduct accessToken={accessToken} categories={categories} onAdded={(name) => { setCatalogNotice(`„${name}“ დაემატა Expo კატალოგს. საიტზე დაახლოებით 1 წუთში გამოჩნდება.`); void loadCatalog() }} />
             <p className={styles.muted}>
               აქ ირჩევთ, რომელი პროდუქტები გამოჩნდეს <Link href="/expo2026" target="_blank">/expo2026</Link>-ზე. ფოტო და აღწერა მთავარი კატალოგიდან მოდის, ფასი არსად ჩანს.
               {picks.length ? ' ცვლილება საიტზე დაახლოებით 1 წუთში ჩანს.' : ' სანამ არაფერია არჩეული, გვერდზე სრული კატალოგი ჩანს.'}
@@ -175,7 +194,10 @@ export default function Expo2026AdminPage() {
                       <input key={`${pick.product_id}-${pick.note || ''}`} defaultValue={pick.note || ''} maxLength={80} placeholder="წარწერა (არასავალდებულო), მაგ.: სტენდზე ცოცხლად" onBlur={(event) => saveNote(pick, event.target.value)} style={{ marginTop: 4, padding: '6px 8px', border: '1px solid #dce5ef', borderRadius: 8, width: '100%', maxWidth: 340, font: 'inherit', fontSize: 12, boxSizing: 'border-box' }} />
                     </span>
                   </span>
-                  <button type="button" className={styles.linkBtn} style={{ color: '#a12238' }} disabled={!!saving} onClick={() => removePick(pick.product_id)}>ამოღება</button>
+                  <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
+                    <button type="button" className={styles.linkBtn} style={{ color: '#a12238' }} disabled={!!saving} onClick={() => removePick(pick.product_id)}>ამოღება</button>
+                    {product?.slug.startsWith('expo-') ? <button type="button" className={styles.linkBtn} style={{ color: '#a12238', fontWeight: 400, fontSize: 12 }} disabled={!!saving} onClick={() => withdrawQuickProduct(product)}>საიტიდან მოხსნა</button> : null}
+                  </span>
                 </div>
               )
             })}
