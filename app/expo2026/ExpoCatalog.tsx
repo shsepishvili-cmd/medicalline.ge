@@ -5,6 +5,18 @@ import { useEffect, useMemo, useState } from 'react'
 import { supabase } from '@/app/lib/supabase'
 import { SmsSignInModal } from '@/app/components/expo/SmsSignIn'
 import styles from './expo.module.css'
+import Image from 'next/image'
+
+// Site photos and admin uploads (Supabase Storage) go through Next image
+// optimisation: some originals are 8000px wide, far too heavy for expo Wi-Fi.
+// Any other host falls back to a plain <img>, which next/image would reject.
+const STORAGE_HOST = (() => {
+  try { return new URL(process.env.NEXT_PUBLIC_SUPABASE_URL || '').host } catch { return '' }
+})()
+function canOptimize(src: string) {
+  if (src.startsWith('/')) return true
+  try { return !!STORAGE_HOST && new URL(src).host === STORAGE_HOST } catch { return false }
+}
 
 export type ExpoProduct = { id: string; name: string; brand: string; category: string; description: string; image: string | null; note?: string | null }
 
@@ -97,7 +109,13 @@ export function ExpoCatalog({ products }: { products: ExpoProduct[] }) {
             return (
               <article key={product.id} className={`${styles.card} ${quantity ? styles.cardSelected : ''}`}>
                 <div className={styles.photo}>
-                  {product.image ? <img src={product.image} alt={product.name} loading="lazy" /> : <span className={styles.noPhoto}>ფოტო მალე დაემატება</span>}
+                  {product.image ? (
+                    <div className={styles.photoInner}>
+                      {canOptimize(product.image)
+                        ? <Image src={product.image} alt={product.name} fill sizes="(max-width: 520px) 90vw, 280px" quality={80} />
+                        : <img src={product.image} alt={product.name} loading="lazy" />}
+                    </div>
+                  ) : <span className={styles.noPhoto}>ფოტო მალე დაემატება</span>}
                 </div>
                 <div className={styles.cardBody}>
                   <small>{product.brand} · {product.category}</small>

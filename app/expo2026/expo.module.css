@@ -59,8 +59,12 @@
 .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px; }
 .card { background: #fff; border: 1px solid var(--line); border-radius: 14px; overflow: hidden; display: flex; flex-direction: column; }
 .cardSelected { border-color: #497bd0; box-shadow: 0 6px 20px #204f9b18; }
-.photo { aspect-ratio: 4 / 3; background: #f0f4fa; display: grid; place-items: center; overflow: hidden; }
-.photo img { width: 100%; height: 100%; object-fit: contain; }
+/* Photo frame: the whole product always fits, centred with breathing room.
+   White product backgrounds blend into the frame (multiply). */
+.photo { position: relative; aspect-ratio: 4 / 3; background: linear-gradient(180deg, #ffffff 0%, #f2f6fb 100%); border-bottom: 1px solid var(--line); display: grid; place-items: center; overflow: hidden; }
+.photoInner { position: absolute; inset: 16px; }
+.photoInner img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; object-position: center; mix-blend-mode: multiply; transition: transform .25s ease; }
+.card:hover .photoInner img { transform: scale(1.04); }
 .noPhoto { color: var(--muted); font-size: 12px; }
 .cardBody { padding: 14px; display: flex; flex-direction: column; gap: 6px; flex: 1; }
 .cardBody small { color: var(--muted); font-size: 11px; }
