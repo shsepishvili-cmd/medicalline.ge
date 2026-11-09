@@ -1,7 +1,8 @@
-import { NextResponse } from 'next/server'
+import { NextResponse, after } from 'next/server'
 import { createSupabaseServiceClient } from '@/app/lib/supabase-service'
 import { createSupabaseTokenClient } from '@/app/lib/supabase-server'
 import { bearerToken } from '@/app/lib/admin-guard'
+import { sendMessage } from '@/app/lib/messaging-server'
 import { clientIp, forbiddenOrigin, isAllowedOrigin, serverError, tooManyRequests, withinRateLimits } from '@/app/lib/request-guard'
 
 export const runtime = 'nodejs'
@@ -9,6 +10,34 @@ export const runtime = 'nodejs'
 const TIMELINES = ['now', 'within_1_month', 'within_1_3_months', 'later']
 const PAYMENTS = ['full', 'bank_installment', 'medical_line_installment', 'advance_and_balance']
 const SOURCES = ['PORTAL', 'CATALOG', 'EXPO2026']
+
+function staffPhones() {
+  const raw = process.env.ORDER_NOTIFY_PHONE?.trim() || process.env.ORDER_ADMIN_PHONE?.trim() || process.env.ADMIN_NOTIFY_PHONE?.trim() || ''
+  return raw.split(/[,\s]+/).map((item) => item.trim()).filter(Boolean)
+}
+
+// Tells the sales team a doctor is waiting. Runs after the response is sent and
+// never affects the doctor's request; failures stay queued in the outbox.
+async function notifyStaff(service: ReturnType<typeof createSupabaseServiceClient>, groupId: string, source: string) {
+  const phones = staffPhones()
+  if (!phones.length) return
+  const { data: rows } = await service.from('special_price_requests')
+    .select('doctor_name_snapshot, clinic_name_snapshot, phone_snapshot, city_snapshot').eq('group_id', groupId)
+  const first = rows?.[0]
+  if (!first) return
+  const body = [
+    `Axali fasis motxovna${source === 'EXPO2026' ? ' (Expo 2026)' : ''}`,
+    `Eqimi: ${String(first.doctor_name_snapshot || '').slice(0, 60)}`,
+    `Tel: ${first.phone_snapshot || '-'}`,
+    first.clinic_name_snapshot ? `Klinika: ${String(first.clinic_name_snapshot).slice(0, 60)}` : '',
+    first.city_snapshot ? `Qalaqi: ${String(first.city_snapshot).slice(0, 40)}` : '',
+    `Produqti: ${rows.length}`,
+    'Admin: medicalline.ge/admin',
+  ].filter(Boolean).join('\n')
+  for (const phone of phones) {
+    await sendMessage(service, { recipient: phone, body, purpose: 'staff_notify', relatedType: 'price_request_group', relatedId: groupId })
+  }
+}
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
@@ -50,6 +79,7 @@ export async function POST(request: Request) {
       if (match) return NextResponse.json({ error: match[1][0] }, { status: match[1][1] })
       throw new Error(error.message)
     }
+    after(() => notifyStaff(service, String(data), source).catch((cause) => console.error('[price-requests] staff notify failed', cause instanceof Error ? cause.message : cause)))
     return NextResponse.json({ ok: true, requestGroupId: data }, { status: 201 })
   } catch (cause) {
     return serverError('price-requests', cause)
