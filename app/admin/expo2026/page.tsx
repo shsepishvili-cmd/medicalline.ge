@@ -13,7 +13,10 @@ type RequestRow = {
 type OutboxRow = { id: string; created_at: string; recipient: string; purpose: string; status: string; attempts: number; last_error: string | null; sent_at: string | null }
 type AuditRow = { id: string; created_at: string; actor: string | null; action: string; target_type: string | null; target_id: string | null; details: Record<string, unknown> }
 type Conflict = { phone: string; profiles: number }
+type CatalogProduct = { id: string; name: string; brand: string | null }
+type Pick = { product_id: string; sort_order: number; note: string | null }
 
+const CATALOG_HINT = 'Expo კატალოგისთვის გაუშვით supabase/sql/55_expo_catalog.sql.'
 const MIGRATION_HINT = 'ბაზა ჯერ არ არის განახლებული: გაუშვით supabase/sql/54_expo2026_integration.sql.'
 const STATUS: Record<string, string> = { received: 'ახალი', reviewing: 'განხილვაში', offer_ready: 'შეთავაზება გაგზავნილია', offer_received: 'ექიმმა ნახა', cancelled: 'გაუქმებული', expired: 'ვადაგასული' }
 const OUTBOX: Record<string, string> = { queued: 'რიგში', sending: 'იგზავნება', sent: 'გაიგზავნა', failed: 'ვერ გაიგზავნა', cancelled: 'გაუქმდა' }
@@ -23,12 +26,17 @@ const masked = (phone: string) => (phone.length > 6 ? `${phone.slice(0, 5)}***${
 
 export default function Expo2026AdminPage() {
   const { loading, error: gateError, profile, accessToken } = useWarrantyAdminGate()
-  const [tab, setTab] = useState<'requests' | 'messages' | 'audit' | 'conflicts'>('requests')
+  const [tab, setTab] = useState<'catalog' | 'requests' | 'messages' | 'audit' | 'conflicts'>('catalog')
   const [requests, setRequests] = useState<RequestRow[]>([])
   const [outbox, setOutbox] = useState<OutboxRow[]>([])
   const [audit, setAudit] = useState<AuditRow[]>([])
   const [conflicts, setConflicts] = useState<Conflict[]>([])
   const [message, setMessage] = useState('')
+  const [catalog, setCatalog] = useState<CatalogProduct[]>([])
+  const [picks, setPicks] = useState<Pick[]>([])
+  const [catalogError, setCatalogError] = useState('')
+  const [catalogSearch, setCatalogSearch] = useState('')
+  const [saving, setSaving] = useState('')
   const isAdmin = profile?.role === 'admin'
 
   const load = useCallback(async () => {
@@ -46,7 +54,51 @@ export default function Expo2026AdminPage() {
     setConflicts((c.data || []) as Conflict[])
   }, [])
 
-  useEffect(() => { if (isAdmin) void load() }, [isAdmin, load])
+  const loadCatalog = useCallback(async () => {
+    const [products, selection] = await Promise.all([
+      supabase.from('products').select('id, name, brand').eq('is_active', true).order('sort_order'),
+      supabase.from('expo_catalog_items').select('product_id, sort_order, note').order('sort_order'),
+    ])
+    setCatalog((products.data || []) as CatalogProduct[])
+    setPicks((selection.data || []) as Pick[])
+    setCatalogError(selection.error ? (/does not exist|schema cache/i.test(selection.error.message) ? CATALOG_HINT : selection.error.message) : products.error?.message || '')
+  }, [])
+
+  useEffect(() => { if (isAdmin) { void load(); void loadCatalog() } }, [isAdmin, load, loadCatalog])
+
+  async function persist(action: () => PromiseLike<{ error: { message: string } | null }>, id: string) {
+    setSaving(id); setCatalogError('')
+    const { error } = await action()
+    setSaving('')
+    if (error) setCatalogError(error.message)
+    await loadCatalog()
+  }
+  function addPick(productId: string) {
+    const next = picks.length ? Math.max(...picks.map((pick) => pick.sort_order)) + 10 : 10
+    return persist(() => supabase.from('expo_catalog_items').insert({ product_id: productId, sort_order: next }), productId)
+  }
+  function removePick(productId: string) {
+    return persist(() => supabase.from('expo_catalog_items').delete().eq('product_id', productId), productId)
+  }
+  function saveNote(pick: Pick, note: string) {
+    const clean = note.trim().slice(0, 80) || null
+    if (clean === (pick.note || null)) return
+    return persist(() => supabase.from('expo_catalog_items').update({ note: clean, updated_at: new Date().toISOString() }).eq('product_id', pick.product_id), pick.product_id)
+  }
+  // Rewrites every position so ties from earlier edits can never block a move.
+  async function move(index: number, delta: number) {
+    const target = index + delta
+    if (target < 0 || target >= picks.length) return
+    const order = [...picks]
+    const [item] = order.splice(index, 1)
+    order.splice(target, 0, item)
+    setSaving(item.product_id); setCatalogError('')
+    const results = await Promise.all(order.map((pick, position) => supabase.from('expo_catalog_items').update({ sort_order: (position + 1) * 10 }).eq('product_id', pick.product_id)))
+    setSaving('')
+    const failed = results.find((result) => result.error)
+    if (failed?.error) setCatalogError(failed.error.message)
+    await loadCatalog()
+  }
 
   const groups = useMemo(() => {
     const map = new Map<string, RequestRow[]>()
@@ -56,6 +108,13 @@ export default function Expo2026AdminPage() {
     }
     return [...map.values()]
   }, [requests])
+
+  const catalogById = useMemo(() => new Map(catalog.map((product) => [product.id, product])), [catalog])
+  const catalogOthers = useMemo(() => {
+    const chosen = new Set(picks.map((pick) => pick.product_id))
+    const query = catalogSearch.trim().toLowerCase()
+    return catalog.filter((product) => !chosen.has(product.id) && (!query || `${product.name} ${product.brand || ''}`.toLowerCase().includes(query)))
+  }, [catalog, picks, catalogSearch])
 
   async function retry(row: OutboxRow) {
     setMessage('')
@@ -71,6 +130,7 @@ export default function Expo2026AdminPage() {
 
   const failedCount = outbox.filter((row) => row.status === 'failed').length
   const tabs: Array<[typeof tab, string]> = [
+    ['catalog', `Expo კატალოგი (${picks.length})`],
     ['requests', `Expo მოთხოვნები (${groups.length})`],
     ['messages', `SMS${failedCount ? ` · ${failedCount} ჩავარდნილი` : ''}`],
     ['audit', 'აუდიტი'],
@@ -92,6 +152,44 @@ export default function Expo2026AdminPage() {
       </header>
       <main className={`${styles.wrap} ${styles.main}`}>
         {message ? <p className={styles.error}>{message}</p> : null}
+
+        {tab === 'catalog' ? (
+          <>
+            {catalogError ? <p className={styles.error}>{catalogError}</p> : null}
+            <p className={styles.muted}>
+              აქ ირჩევთ, რომელი პროდუქტები გამოჩნდეს <Link href="/expo2026" target="_blank">/expo2026</Link>-ზე. ფოტო და აღწერა მთავარი კატალოგიდან მოდის, ფასი არსად ჩანს.
+              {picks.length ? ' ცვლილება საიტზე დაახლოებით 1 წუთში ჩანს.' : ' სანამ არაფერია არჩეული, გვერდზე სრული კატალოგი ჩანს.'}
+            </p>
+            <h3 style={{ color: '#102952', margin: '18px 0 8px' }}>Expo-ზე ნაჩვენები ({picks.length})</h3>
+            {picks.map((pick, index) => {
+              const product = catalogById.get(pick.product_id)
+              return (
+                <div key={pick.product_id} className={styles.cartRow} style={{ alignItems: 'center', opacity: saving === pick.product_id ? 0.5 : 1 }}>
+                  <span style={{ display: 'flex', gap: 10, alignItems: 'center', flex: 1, minWidth: 0 }}>
+                    <span style={{ display: 'flex', flexDirection: 'column' }}>
+                      <button type="button" className={styles.linkBtn} disabled={!index || !!saving} onClick={() => move(index, -1)} aria-label="ზემოთ">▲</button>
+                      <button type="button" className={styles.linkBtn} disabled={index === picks.length - 1 || !!saving} onClick={() => move(index, 1)} aria-label="ქვემოთ">▼</button>
+                    </span>
+                    <span style={{ minWidth: 0, flex: 1 }}>
+                      <b>{product?.name || 'პროდუქტი კატალოგში აღარ არის აქტიური'}</b> <small className={styles.muted}>{product?.brand || ''}</small><br />
+                      <input key={`${pick.product_id}-${pick.note || ''}`} defaultValue={pick.note || ''} maxLength={80} placeholder="წარწერა (არასავალდებულო), მაგ.: სტენდზე ცოცხლად" onBlur={(event) => saveNote(pick, event.target.value)} style={{ marginTop: 4, padding: '6px 8px', border: '1px solid #dce5ef', borderRadius: 8, width: '100%', maxWidth: 340, font: 'inherit', fontSize: 12, boxSizing: 'border-box' }} />
+                    </span>
+                  </span>
+                  <button type="button" className={styles.linkBtn} style={{ color: '#a12238' }} disabled={!!saving} onClick={() => removePick(pick.product_id)}>ამოღება</button>
+                </div>
+              )
+            })}
+            {!picks.length ? <p className={styles.muted}>ჯერ არცერთი პროდუქტი არ არის არჩეული.</p> : null}
+            <h3 style={{ color: '#102952', margin: '24px 0 8px' }}>დამატება კატალოგიდან</h3>
+            <input className={styles.search} value={catalogSearch} onChange={(event) => setCatalogSearch(event.target.value)} placeholder="ძებნა: პროდუქტი ან ბრენდი" />
+            {catalogOthers.map((product) => (
+              <div key={product.id} className={styles.cartRow} style={{ alignItems: 'center', opacity: saving === product.id ? 0.5 : 1 }}>
+                <span><b>{product.name}</b> <small className={styles.muted}>{product.brand || ''}</small></span>
+                <button type="button" className={styles.linkBtn} disabled={!!saving} onClick={() => addPick(product.id)}>+ დამატება</button>
+              </div>
+            ))}
+          </>
+        ) : null}
 
         {tab === 'requests' ? (
           <>

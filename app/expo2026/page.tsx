@@ -5,7 +5,7 @@ import { findCatalogProductByAny, localCatalogProducts } from '@/app/lib/catalog
 import { ExpoCatalog, type ExpoProduct } from './ExpoCatalog'
 import styles from './expo.module.css'
 
-export const revalidate = 300
+export const revalidate = 60
 
 export const metadata = buildPageMetadata({
   path: '/expo2026',
@@ -16,22 +16,27 @@ export const metadata = buildPageMetadata({
 
 // Products come from the live catalogue (their ids are what a price request
 // refers to); photos and descriptions from the site's own verified catalogue
-// data. Prices are never selected here.
-async function loadProducts(): Promise<ExpoProduct[]> {
+// data. Prices are never selected here. When the admin has picked an expo
+// selection, only those products are shown, in the chosen order; until then,
+// or if the selection table is missing, the full catalogue is shown.
+async function loadProducts(): Promise<{ products: ExpoProduct[]; curated: boolean }> {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim() ?? ''
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim() ?? ''
-  if (!url || !key) return []
+  if (!url || !key) return { products: [], curated: false }
   const supabase = createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } })
-  const { data, error } = await supabase
-    .from('products')
-    .select('id, slug, name, brand, category_slug, short_desc, images, sort_order')
-    .eq('is_active', true)
-    .order('sort_order')
+  const [{ data, error }, selection] = await Promise.all([
+    supabase.from('products').select('id, slug, name, brand, category_slug, short_desc, images, sort_order').eq('is_active', true).order('sort_order'),
+    supabase.from('expo_catalog_items').select('product_id, sort_order, note').order('sort_order'),
+  ])
   if (error) {
     console.error('[expo2026] products', error.message)
-    return []
+    return { products: [], curated: false }
   }
-  return (data || []).map((product) => {
+  if (selection.error) console.error('[expo2026] expo selection', selection.error.message)
+  const picks = selection.error ? [] : (selection.data || []) as Array<{ product_id: string; sort_order: number; note: string | null }>
+  const rank = new Map(picks.map((pick, index) => [pick.product_id, { index, note: pick.note }]))
+
+  const all: ExpoProduct[] = (data || []).map((product) => {
     const local = findCatalogProductByAny({ slug: product.slug, name: product.name })
     const exact = localCatalogProducts.find((item) => item.slug === product.slug) || local
     return {
@@ -41,12 +46,16 @@ async function loadProducts(): Promise<ExpoProduct[]> {
       category: exact?.cat || product.category_slug || '',
       description: (product.short_desc || exact?.description || '').slice(0, 180),
       image: product.images?.[0] || exact?.img || null,
+      note: rank.get(product.id)?.note || null,
     }
   })
+  const chosen = all.filter((product) => rank.has(product.id))
+    .sort((a, b) => (rank.get(a.id)?.index ?? 0) - (rank.get(b.id)?.index ?? 0))
+  return chosen.length ? { products: chosen, curated: true } : { products: all, curated: false }
 }
 
 export default async function Expo2026Page() {
-  const products = await loadProducts()
+  const { products, curated } = await loadProducts()
 
   return (
     <div className={styles.page}>
@@ -85,8 +94,8 @@ export default async function Expo2026Page() {
         <section id="catalog">
           <div className={styles.head}>
             <div>
-              <h2>პროდუქციის კატალოგი</h2>
-              <p>ფასები არ ქვეყნდება — სპეციალურ ფასს მენეჯერი გიგზავნით პირადად.</p>
+              <h2>{curated ? 'Expo 2026 კატალოგი' : 'პროდუქციის კატალოგი'}</h2>
+              <p>{curated ? 'პროდუქტები, რომლებსაც სტენდ F4-ზე წარმოვადგენთ. ' : ''}ფასები არ ქვეყნდება — სპეციალურ ფასს მენეჯერი გიგზავნით პირადად.</p>
             </div>
           </div>
           {products.length ? <ExpoCatalog products={products} /> : <p className={styles.muted}>კატალოგი დროებით მიუწვდომელია. დაგვიკავშირდით: +995 514 011 116</p>}

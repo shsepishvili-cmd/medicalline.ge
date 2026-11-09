@@ -6,7 +6,7 @@ import { supabase } from '@/app/lib/supabase'
 import { SmsSignInModal } from '@/app/components/expo/SmsSignIn'
 import styles from './expo.module.css'
 
-export type ExpoProduct = { id: string; name: string; brand: string; category: string; description: string; image: string | null }
+export type ExpoProduct = { id: string; name: string; brand: string; category: string; description: string; image: string | null; note?: string | null }
 
 const PENDING_KEY = 'ml-expo2026-request'
 const TIMELINES = [['now', 'ახლავე'], ['within_1_month', '1 თვის განმავლობაში'], ['within_1_3_months', '1–3 თვეში'], ['later', 'მოგვიანებით']]
@@ -101,6 +101,7 @@ export function ExpoCatalog({ products }: { products: ExpoProduct[] }) {
                 </div>
                 <div className={styles.cardBody}>
                   <small>{product.brand} · {product.category}</small>
+                  {product.note ? <span className={styles.badge}>{product.note}</span> : null}
                   <h3>{product.name}</h3>
                   <p>{product.description}</p>
                   {quantity ? (

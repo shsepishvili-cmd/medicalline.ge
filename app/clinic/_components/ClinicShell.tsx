@@ -42,7 +42,7 @@ export function ClinicShell({ children }: { children: ReactNode }) {
     <aside className="clinic-sidebar">
       <div className="clinic-brand"><div className="clinic-brand-mark">ML</div><div><strong>Medical Line</strong><span>Doctor / Clinic Portal</span></div></div>
       <nav className="clinic-nav">{desktopItems.map(([href, label]) => <Link key={href} href={href} data-active={pathname === href || pathname.startsWith(`${href}/`)}>{label}</Link>)}</nav>
-      <div className="clinic-sidebar-foot"><strong>{profile.full_name}</strong><br />{profile.clinic_name || 'კლინიკის პროფილი'}<br />სტატუსი: {profile.status === 'active' ? 'აქტიური' : profile.status}<button className="clinic-signout" type="button" onClick={handleSignOut} disabled={signingOut}>{signingOut ? 'გასვლა...' : 'ანგარიშიდან გასვლა'}</button></div>
+      <div className="clinic-sidebar-foot"><strong>{profile.full_name}</strong><br />{profile.clinic_name || 'კლინიკის პროფილი'}<br />სტატუსი: {({ active: 'აქტიური', pending: 'დადასტურების მოლოდინში', blocked: 'დაბლოკილი' } as Record<string, string>)[profile.status] || profile.status}<button className="clinic-signout" type="button" onClick={handleSignOut} disabled={signingOut}>{signingOut ? 'გასვლა...' : 'ანგარიშიდან გასვლა'}</button></div>
     </aside>
     <main className="clinic-main">{children}</main>
     <nav className="clinic-mobile-nav">{mobileItems.map(([href, icon, label]) => <Link key={href} href={href} data-active={pathname === href || pathname.startsWith(`${href}/`)}><span>{icon}</span>{label}</Link>)}<button type="button" onClick={handleSignOut} disabled={signingOut}><span>↪</span>{signingOut ? 'გასვლა...' : 'გასვლა'}</button></nav>
