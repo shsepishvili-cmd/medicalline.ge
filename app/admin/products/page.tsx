@@ -25,10 +25,16 @@ const MIGRATION_57 = 'კორექციისთვის ბაზა ჯ�
 
 const fieldStyle = { display: 'block', width: '100%', marginTop: 4, padding: '8px 10px', border: '1px solid #dce5ef', borderRadius: 8, font: 'inherit', fontSize: 13, boxSizing: 'border-box' as const }
 
+// Shows "photo missing" both when there is no photo and when the file does not load.
 function Thumb({ src }: { src?: string | null }) {
+  const [broken, setBroken] = useState(false)
+  useEffect(() => setBroken(false), [src])
+  const missing = !src || broken
   return (
-    <div style={{ width: 72, height: 72, flex: '0 0 72px', borderRadius: 10, background: '#f0f4fa', overflow: 'hidden', display: 'grid', placeItems: 'center' }}>
-      {src ? <img src={src} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain' }} /> : null}
+    <div style={{ width: 72, height: 72, flex: '0 0 72px', borderRadius: 10, background: missing ? '#fff1f3' : '#f0f4fa', overflow: 'hidden', display: 'grid', placeItems: 'center', textAlign: 'center' }}>
+      {missing
+        ? <span style={{ color: '#a12238', fontSize: 11, fontWeight: 700, lineHeight: 1.2, padding: 4 }}>ფოტო აკლია</span>
+        : <img src={src!} alt="" onError={() => setBroken(true)} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />}
     </div>
   )
 }
@@ -105,6 +111,14 @@ export default function AdminProductsPage() {
     const query = search.trim().toLowerCase()
     return localCatalogProducts.filter((product) => !query || `${product.name} ${product.cat} ${product.brand || ''}`.toLowerCase().includes(query))
   }, [search])
+  // Products that exist only in the database (added there earlier, not from
+  // this panel and not part of the site code).
+  const builtInSlugs = useMemo(() => new Set(localCatalogProducts.map((product) => product.slug)), [])
+  const others = useMemo(() => {
+    const query = search.trim().toLowerCase()
+    return rows.filter((row) => row.is_active && !row.quick_added && !builtInSlugs.has(row.slug)
+      && (!query || `${row.name} ${row.brand || ''}`.toLowerCase().includes(query)))
+  }, [rows, builtInSlugs, search])
   const correctedCount = localCatalogProducts.filter((product) => bySlug.get(product.slug)?.catalog_override || bySlug.get(product.slug)?.catalog_hidden).length
 
   async function run(id: string, action: () => PromiseLike<{ error: { message: string } | null }>, done: string) {
@@ -285,6 +299,34 @@ export default function AdminProductsPage() {
               )
             })}
             {!builtIn.length ? <p className={styles.muted}>ვერაფერი მოიძებნა.</p> : null}
+
+            {others.length ? (
+              <>
+                <h2 style={{ color: '#102952', fontSize: 18, margin: '26px 0 6px' }}>ბაზის სხვა პროდუქტები ({others.length})</h2>
+                <p className={styles.muted} style={{ marginTop: 0 }}>ბაზაში ადრე დამატებული პროდუქტები (ჩანს Expo-ზე და ექიმის კაბინეტში). აქ შეგიძლიათ ფოტოს შეცვლა და ტექსტის შესწორება.</p>
+                {others.map((row) => (
+                  <div key={row.id} className={styles.step} style={{ marginBottom: 10, padding: 14, opacity: saving === row.id ? 0.5 : 1 }}>
+                    <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+                      <Thumb src={row.images?.[0]} />
+                      <div style={{ minWidth: 0, flex: 1 }}>
+                        <b style={{ color: '#102952' }}>{row.name}</b>
+                        <div className={styles.muted}>{row.brand || ''}{row.category_slug ? ` · ${categoryName.get(row.category_slug) || row.category_slug}` : ''}</div>
+                      </div>
+                    </div>
+                    {panel?.id === row.id && panel.kind === 'edit' ? (
+                      <EditForm draft={draft} setDraft={setDraft} categories={categories} busy={!!saving} onCancel={() => setPanel(null)} onSave={() => saveAdded(row)} />
+                    ) : panel?.id === row.id && panel.kind === 'photo' ? (
+                      <PhotoReplace accessToken={accessToken} target={{ productId: row.id }} onCancel={() => setPanel(null)} onDone={photoDone(row.name)} />
+                    ) : (
+                      <div style={{ display: 'flex', gap: 14, alignItems: 'center', flexWrap: 'wrap', marginTop: 10 }}>
+                        <button type="button" className={styles.linkBtn} disabled={!!saving} onClick={() => setPanel({ id: row.id, kind: 'photo' })}>ფოტოს შეცვლა</button>
+                        <button type="button" className={styles.linkBtn} disabled={!!saving} onClick={() => editAdded(row)}>რედაქტირება</button>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </>
+            ) : null}
           </>
         )}
       </main>

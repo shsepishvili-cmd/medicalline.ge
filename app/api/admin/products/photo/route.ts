@@ -40,7 +40,10 @@ export async function POST(request: Request) {
       throw new Error(readError.message)
     }
     if (!builtIn && !existing) return NextResponse.json({ error: 'პროდუქტი ვერ მოიძებნა.' }, { status: 404 })
-    if (!builtIn && !existing?.quick_added) return NextResponse.json({ error: 'ამ პროდუქტის ფოტო კატალოგის კორექციიდან იცვლება.' }, { status: 409 })
+    // Built-in catalogue products change through a correction (by slug), so
+    // the original in the code can be restored; any other database product
+    // (admin-added or added earlier straight to the database) by id.
+    if (!builtIn && existing && findBuiltInProduct(existing.slug)) return NextResponse.json({ error: 'ამ პროდუქტის ფოტო კატალოგის კორექციიდან იცვლება.' }, { status: 409 })
 
     const uploaded = await uploadProductPhoto(service, photo, existing?.slug || builtIn?.slug || 'product')
 
