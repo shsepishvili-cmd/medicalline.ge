@@ -26,16 +26,19 @@ async function toJpeg(file: File): Promise<Blob> {
   }
 }
 
-export function QuickAddProduct({ accessToken, categories, onAdded }: { accessToken: string; categories: Category[]; onAdded: (name: string, where: { inExpo: boolean; inCatalog: boolean }) => void }) {
+type Defaults = { inExpo: boolean; inCatalog: boolean; note: string }
+const EXPO_DEFAULTS: Defaults = { inExpo: true, inCatalog: true, note: 'სიახლე' }
+
+export function QuickAddProduct({ accessToken, categories, onAdded, defaults = EXPO_DEFAULTS }: { accessToken: string; categories: Category[]; onAdded: (name: string, where: { inExpo: boolean; inCatalog: boolean }) => void; defaults?: Defaults }) {
   const [open, setOpen] = useState(false)
   const [name, setName] = useState('')
   const [brand, setBrand] = useState('')
   const [category, setCategory] = useState('')
   const [description, setDescription] = useState('')
-  const [note, setNote] = useState('სიახლე')
+  const [note, setNote] = useState(defaults.note)
   const [specs, setSpecs] = useState('')
-  const [inExpo, setInExpo] = useState(true)
-  const [inCatalog, setInCatalog] = useState(true)
+  const [inExpo, setInExpo] = useState(defaults.inExpo)
+  const [inCatalog, setInCatalog] = useState(defaults.inCatalog)
   const [photo, setPhoto] = useState<File | null>(null)
   const [preview, setPreview] = useState('')
   const [busy, setBusy] = useState(false)
@@ -49,7 +52,7 @@ export function QuickAddProduct({ accessToken, categories, onAdded }: { accessTo
   }
 
   function reset() {
-    setName(''); setBrand(''); setCategory(''); setDescription(''); setNote('სიახლე'); setSpecs(''); setInExpo(true); setInCatalog(true); pickPhoto(null); setError('')
+    setName(''); setBrand(''); setCategory(''); setDescription(''); setNote(defaults.note); setSpecs(''); setInExpo(defaults.inExpo); setInCatalog(defaults.inCatalog); pickPhoto(null); setError('')
   }
 
   async function submit() {

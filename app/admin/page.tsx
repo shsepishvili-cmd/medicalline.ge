@@ -862,6 +862,10 @@ export default function AdminPage() {
           style={{ display: 'block', width: '100%', textAlign: 'left', padding: '10px 16px', background: 'transparent', color: '#9FE1CB', border: 'none', borderLeft: '3px solid transparent', cursor: 'pointer', fontSize: 13 }}>
           🎪 Expo 2026
         </button>
+        <button onClick={() => window.location.href = '/admin/products'}
+          style={{ display: 'block', width: '100%', textAlign: 'left', padding: '10px 16px', background: 'transparent', color: '#9FE1CB', border: 'none', borderLeft: '3px solid transparent', cursor: 'pointer', fontSize: 13 }}>
+          📦 პროდუქციის დამატება
+        </button>
                 <button onClick={() => window.location.href = '/admin/invoices/acceptance-acts'}
           style={{ display: 'block', width: '100%', textAlign: 'left', padding: '10px 16px', background: 'transparent', color: '#9FE1CB', border: 'none', borderLeft: '3px solid transparent', cursor: 'pointer', fontSize: 13 }}>
           📋 მიღება-ჩაბარების აქტი
