@@ -3,10 +3,13 @@ import { products as part1 } from './catalog/data-part1';
 import { products as part2 } from './catalog/data-part2';
 import { blogArticles } from './blog/blogData';
 import { absoluteUrl } from './lib/seo';
+import { loadQuickCatalogProducts } from './lib/quick-catalog';
+
+export const revalidate = 3600;
 
 const allProducts = [...part1, ...part2];
 
-export default function sitemap(): MetadataRoute.Sitemap {
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const now = new Date();
 
   const staticRoutes = [
@@ -33,7 +36,8 @@ export default function sitemap(): MetadataRoute.Sitemap {
     priority: index === 0 ? 1 : path === '/catalog' || path === '/blog' ? 0.9 : 0.7,
   }));
 
-  const productUrls: MetadataRoute.Sitemap = allProducts.map((product) => ({
+  const added = await loadQuickCatalogProducts(allProducts.map((product) => product.slug));
+  const productUrls: MetadataRoute.Sitemap = [...allProducts, ...added].map((product) => ({
     url: absoluteUrl(`/catalog/${product.slug}`),
     lastModified: now,
     changeFrequency: 'weekly',

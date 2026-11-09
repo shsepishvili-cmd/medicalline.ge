@@ -26,13 +26,16 @@ async function toJpeg(file: File): Promise<Blob> {
   }
 }
 
-export function QuickAddProduct({ accessToken, categories, onAdded }: { accessToken: string; categories: Category[]; onAdded: (name: string) => void }) {
+export function QuickAddProduct({ accessToken, categories, onAdded }: { accessToken: string; categories: Category[]; onAdded: (name: string, where: { inExpo: boolean; inCatalog: boolean }) => void }) {
   const [open, setOpen] = useState(false)
   const [name, setName] = useState('')
   const [brand, setBrand] = useState('')
   const [category, setCategory] = useState('')
   const [description, setDescription] = useState('')
   const [note, setNote] = useState('სიახლე')
+  const [specs, setSpecs] = useState('')
+  const [inExpo, setInExpo] = useState(true)
+  const [inCatalog, setInCatalog] = useState(true)
   const [photo, setPhoto] = useState<File | null>(null)
   const [preview, setPreview] = useState('')
   const [busy, setBusy] = useState(false)
@@ -46,7 +49,7 @@ export function QuickAddProduct({ accessToken, categories, onAdded }: { accessTo
   }
 
   function reset() {
-    setName(''); setBrand(''); setCategory(''); setDescription(''); setNote('სიახლე'); pickPhoto(null); setError('')
+    setName(''); setBrand(''); setCategory(''); setDescription(''); setNote('სიახლე'); setSpecs(''); setInExpo(true); setInCatalog(true); pickPhoto(null); setError('')
   }
 
   async function submit() {
@@ -54,11 +57,13 @@ export function QuickAddProduct({ accessToken, categories, onAdded }: { accessTo
     if (name.trim().length < 2) return setError('მიუთითეთ დასახელება.')
     if (!brand.trim()) return setError('მიუთითეთ ბრენდი.')
     if (!photo) return setError('დაამატეთ ფოტო.')
+    if (!inExpo && !inCatalog) return setError('მონიშნეთ, სად გამოჩნდეს.')
     setBusy(true)
     const image = await toJpeg(photo)
     const form = new FormData()
     form.set('name', name); form.set('brand', brand); form.set('category', category)
-    form.set('description', description); form.set('note', note)
+    form.set('description', description); form.set('note', note); form.set('specs', specs)
+    form.set('inExpo', inExpo ? '1' : '0'); form.set('inCatalog', inCatalog ? '1' : '0')
     form.set('photo', image, 'photo.jpg')
     const response = await fetch('/api/admin/expo/products', { method: 'POST', headers: { Authorization: `Bearer ${accessToken}` }, body: form }).catch(() => null)
     const payload = response ? await response.json().catch(() => ({})) : {}
@@ -66,17 +71,21 @@ export function QuickAddProduct({ accessToken, categories, onAdded }: { accessTo
     if (!response?.ok) return setError(payload.error || 'ვერ დაემატა. შეამოწმეთ ინტერნეტი და სცადეთ თავიდან.')
     const added = name.trim()
     reset(); setOpen(false)
-    onAdded(added)
+    onAdded(added, { inExpo, inCatalog })
   }
 
   if (!open) {
-    return <button type="button" className={styles.btn} style={{ width: '100%', margin: '14px 0 4px', padding: '14px 20px', fontSize: 15 }} onClick={() => setOpen(true)}>+ ახალი პროდუქტი (სწრაფი დამატება)</button>
+    return <button type="button" className={styles.btn} style={{ width: '100%', margin: '14px 0 4px', padding: '14px 20px', fontSize: 15 }} onClick={() => setOpen(true)}>+ ახალი პროდუქტი (კატალოგი / Expo)</button>
   }
 
   return (
     <div className={styles.step} style={{ margin: '14px 0' }}>
       <h3 style={{ marginTop: 0 }}>ახალი პროდუქტი</h3>
-      <p className={styles.muted} style={{ margin: 0 }}>დაემატება ბაზაში და მაშინვე გამოჩნდება Expo კატალოგში. ფასი აქ არ იწერება.</p>
+      <p className={styles.muted} style={{ margin: 0 }}>საიტზე დაახლოებით 1 წუთში გამოჩნდება. ფასი აქ არ იწერება.</p>
+      <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', marginTop: 10 }}>
+        <label className={styles.check} style={{ marginTop: 0, fontSize: 14 }}><input type="checkbox" checked={inCatalog} onChange={(event) => setInCatalog(event.target.checked)} /> მთავარ კატალოგში</label>
+        <label className={styles.check} style={{ marginTop: 0, fontSize: 14 }}><input type="checkbox" checked={inExpo} onChange={(event) => setInExpo(event.target.checked)} /> Expo კატალოგში</label>
+      </div>
       <label className={styles.field}>ფოტო *
         <input type="file" accept="image/*" onChange={(event) => pickPhoto(event.target.files?.[0] || null)} />
       </label>
@@ -90,7 +99,8 @@ export function QuickAddProduct({ accessToken, categories, onAdded }: { accessTo
         </select>
       </label>
       <label className={styles.field}>მოკლე აღწერა<textarea rows={3} value={description} maxLength={600} onChange={(event) => setDescription(event.target.value)} placeholder="რას აკეთებს, ძირითადი უპირატესობა" /></label>
-      <label className={styles.field}>წარწერა ბარათზე<input value={note} maxLength={80} onChange={(event) => setNote(event.target.value)} /></label>
+      <label className={styles.field}>მახასიათებლები (თითო ხაზზე ერთი)<textarea rows={4} value={specs} maxLength={2000} onChange={(event) => setSpecs(event.target.value)} placeholder={'მაგ.: სკანირების სიჩქარე 30 fps\nწონა 150 გ'} /></label>
+      <label className={styles.field}>წარწერა ბარათზე (Expo)<input value={note} maxLength={80} onChange={(event) => setNote(event.target.value)} /></label>
       {error ? <p className={styles.error}>{error}</p> : null}
       <div className={styles.row}>
         <button type="button" className={`${styles.btn} ${styles.btnLight}`} disabled={busy} onClick={() => { reset(); setOpen(false) }}>გაუქმება</button>

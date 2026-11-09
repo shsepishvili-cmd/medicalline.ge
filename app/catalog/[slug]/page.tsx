@@ -10,6 +10,7 @@ import ProductGallery from './ProductGallery';
 import ProductViewTracker from '@/app/components/ProductViewTracker';
 import TrackedAnchor from '@/app/components/TrackedAnchor';
 import { absoluteImageUrl, buildPageMetadata, siteConfig } from '@/app/lib/seo';
+import { loadQuickCatalogProduct } from '@/app/lib/quick-catalog';
 import {
   ArrowLeft,
   MessageCircle,
@@ -20,9 +21,12 @@ import {
 
 const allProducts = [...part1, ...part2];
 
+// Admin-added products are rendered on demand and refreshed every minute.
+export const revalidate = 60;
+
 async function getProduct(slug: string) {
   const decodedSlug = decodeURIComponent(slug);
-  return allProducts.find((p) => p.slug === decodedSlug) || null;
+  return allProducts.find((p) => p.slug === decodedSlug) || await loadQuickCatalogProduct(decodedSlug);
 }
 
 export async function generateStaticParams() {

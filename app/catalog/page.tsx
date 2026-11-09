@@ -4,9 +4,19 @@ import CatalogClient from './CatalogClient';
 import { products as part1 } from './data-part1';
 import { products as part2 } from './data-part2';
 import { absoluteUrl, buildPageMetadata, siteConfig } from '@/app/lib/seo';
+import { loadQuickCatalogProducts } from '@/app/lib/quick-catalog';
+
+// Admin-added products appear within a minute.
+export const revalidate = 60;
 
 function getAllProducts() {
   return [...part1, ...part2];
+}
+
+async function getCatalogProducts() {
+  const builtIn = getAllProducts();
+  const added = await loadQuickCatalogProducts(builtIn.map((product) => product.slug));
+  return [...added, ...builtIn];
 }
 
 export async function generateMetadata({
@@ -39,7 +49,7 @@ export async function generateMetadata({
 }
 
 export default async function CatalogPage() {
-  const allProducts = getAllProducts();
+  const allProducts = await getCatalogProducts();
 
   const itemListSchema = {
     '@context': 'https://schema.org',

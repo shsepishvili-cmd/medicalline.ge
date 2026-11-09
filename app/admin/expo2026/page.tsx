@@ -14,7 +14,7 @@ type RequestRow = {
 type OutboxRow = { id: string; created_at: string; recipient: string; purpose: string; status: string; attempts: number; last_error: string | null; sent_at: string | null }
 type AuditRow = { id: string; created_at: string; actor: string | null; action: string; target_type: string | null; target_id: string | null; details: Record<string, unknown> }
 type Conflict = { phone: string; profiles: number }
-type CatalogProduct = { id: string; slug: string; name: string; brand: string | null }
+type CatalogProduct = { id: string; slug: string; name: string; brand: string | null; quick_added?: boolean; show_in_catalog?: boolean }
 type Pick = { product_id: string; sort_order: number; note: string | null }
 
 const CATALOG_HINT = 'Expo კატალოგისთვის გაუშვით supabase/sql/55_expo_catalog.sql.'
@@ -59,7 +59,8 @@ export default function Expo2026AdminPage() {
 
   const loadCatalog = useCallback(async () => {
     const [products, selection, cats] = await Promise.all([
-      supabase.from('products').select('id, slug, name, brand').eq('is_active', true).order('sort_order'),
+      supabase.from('products').select('id, slug, name, brand, quick_added, show_in_catalog').eq('is_active', true).order('sort_order')
+        .then(async (result) => (result.error ? supabase.from('products').select('id, slug, name, brand').eq('is_active', true).order('sort_order') : result)),
       supabase.from('expo_catalog_items').select('product_id, sort_order, note').order('sort_order'),
       supabase.from('categories').select('slug, name_ka').order('sort_order'),
     ])
@@ -87,6 +88,10 @@ export default function Expo2026AdminPage() {
   }
   // Quick-added products can be withdrawn entirely; catalogue products only
   // leave the expo selection. Deactivating keeps past price requests intact.
+  async function setInCatalog(product: CatalogProduct, value: boolean) {
+    await persist(() => supabase.from('products').update({ show_in_catalog: value }).eq('id', product.id), product.id)
+    setCatalogNotice(value ? `„${product.name}“ მთავარ კატალოგში გამოჩნდება დაახლოებით 1 წუთში.` : `„${product.name}“ მთავარი კატალოგიდან მოიხსნა.`)
+  }
   async function withdrawQuickProduct(product: CatalogProduct) {
     if (!window.confirm(`„${product.name}“ საიტიდან მოიხსნას?`)) return
     setSaving(product.id); setCatalogError('')
@@ -126,6 +131,7 @@ export default function Expo2026AdminPage() {
     return [...map.values()]
   }, [requests])
 
+  const quickProducts = useMemo(() => catalog.filter((product) => product.quick_added), [catalog])
   const catalogById = useMemo(() => new Map(catalog.map((product) => [product.id, product])), [catalog])
   const catalogOthers = useMemo(() => {
     const chosen = new Set(picks.map((pick) => pick.product_id))
@@ -174,11 +180,32 @@ export default function Expo2026AdminPage() {
           <>
             {catalogError ? <p className={styles.error}>{catalogError}</p> : null}
             {catalogNotice ? <p className={styles.notice}>{catalogNotice}</p> : null}
-            <QuickAddProduct accessToken={accessToken} categories={categories} onAdded={(name) => { setCatalogNotice(`„${name}“ დაემატა Expo კატალოგს. საიტზე დაახლოებით 1 წუთში გამოჩნდება.`); void loadCatalog() }} />
+            <QuickAddProduct accessToken={accessToken} categories={categories} onAdded={(name, where) => { setCatalogNotice(`„${name}“ დაემატა: ${[where.inCatalog ? 'მთავარ კატალოგს' : '', where.inExpo ? 'Expo კატალოგს' : ''].filter(Boolean).join(' და ')}. საიტზე დაახლოებით 1 წუთში გამოჩნდება.`); void loadCatalog() }} />
             <p className={styles.muted}>
               აქ ირჩევთ, რომელი პროდუქტები გამოჩნდეს <Link href="/expo2026" target="_blank">/expo2026</Link>-ზე. ფოტო და აღწერა მთავარი კატალოგიდან მოდის, ფასი არსად ჩანს.
               {picks.length ? ' ცვლილება საიტზე დაახლოებით 1 წუთში ჩანს.' : ' სანამ არაფერია არჩეული, გვერდზე სრული კატალოგი ჩანს.'}
             </p>
+            {quickProducts.length ? (
+              <>
+                <h3 style={{ color: '#102952', margin: '18px 0 8px' }}>ადმინიდან დამატებული ({quickProducts.length})</h3>
+                {quickProducts.map((product) => {
+                  const inExpo = picks.some((pick) => pick.product_id === product.id)
+                  return (
+                    <div key={product.id} className={styles.cartRow} style={{ alignItems: 'center', flexWrap: 'wrap', opacity: saving === product.id ? 0.5 : 1 }}>
+                      <span style={{ minWidth: 0, flex: '1 1 160px' }}>
+                        <b>{product.name}</b> <small className={styles.muted}>{product.brand || ''}</small><br />
+                        <a href={`/catalog/${product.slug}`} target="_blank" rel="noreferrer" className={styles.muted}>/catalog/{product.slug}</a>
+                      </span>
+                      <span style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
+                        <label className={styles.check} style={{ marginTop: 0 }}><input type="checkbox" disabled={!!saving} checked={!!product.show_in_catalog} onChange={(event) => setInCatalog(product, event.target.checked)} /> კატალოგი</label>
+                        <label className={styles.check} style={{ marginTop: 0 }}><input type="checkbox" disabled={!!saving} checked={inExpo} onChange={() => (inExpo ? removePick(product.id) : addPick(product.id))} /> Expo</label>
+                        <button type="button" className={styles.linkBtn} style={{ color: '#a12238', fontWeight: 400, fontSize: 12 }} disabled={!!saving} onClick={() => withdrawQuickProduct(product)}>საიტიდან მოხსნა</button>
+                      </span>
+                    </div>
+                  )
+                })}
+              </>
+            ) : null}
             <h3 style={{ color: '#102952', margin: '18px 0 8px' }}>Expo-ზე ნაჩვენები ({picks.length})</h3>
             {picks.map((pick, index) => {
               const product = catalogById.get(pick.product_id)
@@ -196,7 +223,7 @@ export default function Expo2026AdminPage() {
                   </span>
                   <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
                     <button type="button" className={styles.linkBtn} style={{ color: '#a12238' }} disabled={!!saving} onClick={() => removePick(pick.product_id)}>ამოღება</button>
-                    {product?.slug.startsWith('expo-') ? <button type="button" className={styles.linkBtn} style={{ color: '#a12238', fontWeight: 400, fontSize: 12 }} disabled={!!saving} onClick={() => withdrawQuickProduct(product)}>საიტიდან მოხსნა</button> : null}
+                    {product?.quick_added || product?.slug.startsWith('expo-') ? <button type="button" className={styles.linkBtn} style={{ color: '#a12238', fontWeight: 400, fontSize: 12 }} disabled={!!saving} onClick={() => withdrawQuickProduct(product)}>საიტიდან მოხსნა</button> : null}
                   </span>
                 </div>
               )
