@@ -55,6 +55,13 @@ export type WarrantyRecord = {
   generated_at: string | null
   archived_at: string | null
   products?: ProductOption | null
+  // Added by 52_warranty_certificate_v2.sql
+  component_terms?: string | null
+  package_notes?: string | null
+  handover_device_checked?: boolean
+  handover_installation_done?: boolean
+  handover_manual_given?: boolean
+  handover_training_done?: boolean
 }
 
 export type ServiceCaseRecord = {
@@ -72,6 +79,8 @@ export type ServiceCaseRecord = {
   action_taken: string | null
   replaced_unit: string | null
   sent_to_factory: boolean
+  business_trip_required: boolean
+  business_trip_details: string | null
   factory_sent_at: string | null
   factory_returned_at: string | null
   closed_at: string | null
@@ -119,6 +128,12 @@ export type WarrantyFormValues = {
   soldBy: string
   status: WarrantyStatus
   notes: string
+  componentTerms: string
+  packageNotes: string
+  handoverDeviceChecked: boolean
+  handoverInstallationDone: boolean
+  handoverManualGiven: boolean
+  handoverTrainingDone: boolean
 }
 
 export type ServiceCaseFormValues = {
@@ -131,6 +146,8 @@ export type ServiceCaseFormValues = {
   actionTaken: string
   replacedUnit: string
   sentToFactory: boolean
+  businessTripRequired: boolean
+  businessTripDetails: string
   factorySentAt: string
   factoryReturnedAt: string
   closedAt: string

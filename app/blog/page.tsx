@@ -53,7 +53,9 @@ const featuredArticles = [
 ];
 
 const ARTICLES_PER_PAGE = 9;
+const CURRENT_EVENT_SLUG = 'gdda-expo-2026-registration';
 const PINNED_BLOG_SLUGS = [
+  'eighteeth-e-connect-cordless-endo-motor',
   'eighteeth-sidelab-p1-chairside-3d-printer',
   'eighteeth-onefit-intraoral-sensor-positioner',
   'eighteeth-ultrajet-s3-air-polisher-ultrasonic-scaler',
@@ -79,10 +81,14 @@ export default async function BlogPage({
 }) {
   const { page } = await searchParams;
   const pinnedBlogArticles = blogArticles.filter((article) =>
-    PINNED_BLOG_SLUGS.includes(article.slug),
+    PINNED_BLOG_SLUGS.includes(article.slug) && article.slug !== CURRENT_EVENT_SLUG,
   );
-  const featuredSlugs = new Set([...featuredArticles, ...pinnedBlogArticles].map((article) => article.slug));
+  const currentEventArticles = blogArticles.filter((article) => article.slug === CURRENT_EVENT_SLUG);
+  const featuredSlugs = new Set(
+    [...currentEventArticles, ...featuredArticles, ...pinnedBlogArticles].map((article) => article.slug),
+  );
   const allArticles = [
+    ...currentEventArticles,
     ...featuredArticles,
     ...pinnedBlogArticles,
     ...blogArticles.filter((article) => !featuredSlugs.has(article.slug)),

@@ -8,7 +8,7 @@
 import Link from 'next/link'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { supabase } from '@/app/lib/supabase'
+import { adminSupabase as supabase } from '@/app/lib/supabase-admin-browser'
 import { ui, colors, Field } from './AcademyUi'
 import { VIDEO_TYPES, VIDEO_TYPE_LABELS } from '@/app/lib/academy-types'
 import {

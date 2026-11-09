@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server'
+﻿import { NextRequest, NextResponse } from 'next/server'
 
 const RS_URL = 'https://www.revenue.mof.ge/ntosservice/ntosservice.asmx'
 const SPEC_RS_URL = 'https://webserv.rs.ge/specinvoices/SpecInvoicesService.asmx'
@@ -81,7 +81,19 @@ async function lookupOrgByTin(user_id: number, tin: string, su: string, sp: stri
   if (!un_id || parseInt(un_id) <= 0) {
     throw new Error(`Rs.ge: სუბიექტი "${tin}" ვერ მოიძებნა`)
   }
-  return { un_id: parseInt(un_id), tin, name: name || tin }
+  const address =
+    xmlVal(res.body, 'address') ||
+    xmlVal(res.body, 'adress') ||
+    xmlVal(res.body, 'legal_address') ||
+    xmlVal(res.body, 'fact_address') ||
+    null
+  const owner =
+    xmlVal(res.body, 'owner') ||
+    xmlVal(res.body, 'director') ||
+    xmlVal(res.body, 'director_name') ||
+    xmlVal(res.body, 'head_name') ||
+    null
+  return { un_id: parseInt(un_id), tin, name: name || tin, address, owner }
 }
 
 // =========== ანგარიშ-ფაქტურა (ntosservice) ===========
@@ -175,7 +187,7 @@ async function saveWaybillHeader(
 ): Promise<number> {
   const opDate  = (String(inv.date || '').split('T')[0] || new Date().toISOString().split('T')[0]) + 'T00:00:00'
   const rawTime = String(meta.docTime || '00:00:00')
-  const docTime = rawTime.length === 5 ? rawTime + ':00' : rawTime   // HH:MM → HH:MM:SS
+  const docTime = rawTime.length === 5 ? rawTime + ':00' : rawTime   // HH:MM â†’ HH:MM:SS
   const docDate = meta.docDate
     ? `${meta.docDate}T${docTime}`
     : opDate
@@ -298,7 +310,9 @@ async function sendWaybill(sui: number, invois_id: number, su: string, sp: strin
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { action, username, password, senderTin, invoice, query } = body
+    const { action, username: bodyUsername, password: bodyPassword, senderTin, invoice, query } = body
+    const username = String(bodyUsername || process.env.RSGE_USERNAME || '').trim()
+    const password = String(bodyPassword || process.env.RSGE_PASSWORD || '').trim()
 
     if (!username || !password)
       return NextResponse.json({ error: 'username და password სავალდებულოა' }, { status: 400 })

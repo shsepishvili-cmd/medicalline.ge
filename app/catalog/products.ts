@@ -303,12 +303,12 @@ export const products: Product[] = [
       specs: ["სილერის განაწილების რეჟიმი", "სენსორული მართვა", "ფართო თავაკების ნაკრები"] 
     },
     { 
-      id: 49, name: "CuringPen-X", img: "/images/curinpenx.png", cat: "სხვა", 
+      id: 49, name: "CuringPen-X", img: "/images/curinpenx.png", cat: "ენდოდონტია", 
       description: "მრავალფუნქციური პოლიმერიზაციის ნათურა.", 
       specs: ["3000 mW/cm²", "360° მბრუნავი თავაკი", "კარიეს დეტექტორი"] 
     },
     { 
-      id: 50, name: "CuringPen", img: "/images/curingpen.jpg", cat: "სხვა", 
+      id: 50, name: "CuringPen", img: "/images/curingpen.jpg", cat: "ენდოდონტია", 
       description: "კლასიკური უსადენო პოლიმერიზაციის ნათურა.", 
       specs: ["Broadband LED", "4 სამუშაო რეჟიმი", "ერგონომიული სახელური"] 
     },

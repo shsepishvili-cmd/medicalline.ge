@@ -1,5 +1,5 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
-import { isInternalWarrantyRole } from './warranty'
+import { isActiveProfileStatus, isInternalWarrantyRole } from './warranty'
 import type { ProfileSummary } from './warranty-types'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim() ?? ''
@@ -41,7 +41,7 @@ export async function requireWarrantySession(accessToken: string) {
     throw new Error('Profile not found')
   }
 
-  if (profile.status !== 'active' || !isInternalWarrantyRole(profile.role)) {
+  if (!isActiveProfileStatus(profile.status) || !isInternalWarrantyRole(profile.role)) {
     throw new Error('Forbidden')
   }
 

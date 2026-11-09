@@ -1,0 +1,19 @@
+[Unit]
+Description=Medical Line AI call worker
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=medicalline-ai
+WorkingDirectory=/opt/medical-line-ai-worker
+ExecStart=/usr/bin/node --env-file=/etc/medical-line-ai-worker.env /opt/medical-line-ai-worker/index.mjs
+Restart=always
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+
+[Install]
+WantedBy=multi-user.target

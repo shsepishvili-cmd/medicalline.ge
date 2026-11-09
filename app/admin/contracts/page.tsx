@@ -1,7 +1,7 @@
 'use client'
 import Link from 'next/link'
 import { useEffect, useMemo, useState } from 'react'
-import { supabase } from '@/app/lib/supabase'
+import { adminSupabase as supabase } from '@/app/lib/supabase-admin-browser'
 import type { ContractRecord } from '@/app/lib/contract-types'
 import { formatCurrency } from '@/app/lib/contract'
 import {

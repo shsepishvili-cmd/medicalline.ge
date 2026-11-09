@@ -3,9 +3,8 @@
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import QRCode from 'qrcode'
-import { supabase } from '@/app/lib/supabase'
-import { WARRANTY_STATUS_LABELS, WARRANTY_STATUS_TONES, formatDate } from '@/app/lib/warranty'
-import { isInternalWarrantyRole } from '@/app/lib/warranty'
+import { adminSupabase as supabase } from '@/app/lib/supabase-admin-browser'
+import { WARRANTY_STATUS_LABELS, WARRANTY_STATUS_TONES, formatDate, isActiveProfileStatus, isInternalWarrantyRole, normalizeProfileRole, normalizeProfileStatus } from '@/app/lib/warranty'
 import type { ProfileSummary, WarrantyStatus } from '@/app/lib/warranty-types'
 
 export const colors = {
@@ -123,9 +122,12 @@ export function useWarrantyAdminGate(): AuthState {
   useEffect(() => {
     let mounted = true
 
-    async function load() {
-      const { data: sessionData } = await supabase.auth.getSession()
-      const session = sessionData.session
+    async function load(sessionOverride?: { user?: { id?: string } | null; access_token?: string | null } | null) {
+      if (mounted) {
+        setState((current) => ({ ...current, loading: true }))
+      }
+
+      const session = sessionOverride ?? (await supabase.auth.getSession()).data.session
 
       if (!session?.user?.id || !session.access_token) {
         if (mounted) {
@@ -157,7 +159,7 @@ export function useWarrantyAdminGate(): AuthState {
         return
       }
 
-      if (profile.status !== 'active' || !isInternalWarrantyRole(profile.role)) {
+      if (!isActiveProfileStatus(profile.status) || !isInternalWarrantyRole(profile.role)) {
         setState({
           loading: false,
           error: 'გარანტიების მოდულზე წვდომა ამ ანგარიშს არ აქვს.',
@@ -176,8 +178,16 @@ export function useWarrantyAdminGate(): AuthState {
     }
 
     load()
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      void load(session)
+    })
+
     return () => {
       mounted = false
+      subscription.unsubscribe()
     }
   }, [])
 

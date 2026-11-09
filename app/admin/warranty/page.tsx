@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { useEffect, useMemo, useState } from 'react'
-import { supabase } from '@/app/lib/supabase'
+import { adminSupabase as supabase } from '@/app/lib/supabase-admin-browser'
 import type { WarrantyRecord } from '@/app/lib/warranty-types'
 import { formatDate } from '@/app/lib/warranty'
 import {
@@ -19,10 +19,13 @@ import {
   WarrantyRowMeta,
   WarrantyStatusBadge,
 } from './_components/WarrantyUi'
+import { sendWarrantySmsRequest } from './_components/warranty-sms'
 
 export default function WarrantyListPage() {
   const { loading, error, profile, accessToken } = useWarrantyAdminGate()
   const [warranties, setWarranties] = useState<WarrantyRecord[]>([])
+  const [loadError, setLoadError] = useState('')
+  const [listLoading, setListLoading] = useState(false)
   const [search, setSearch] = useState('')
   const [brand, setBrand] = useState('')
   const [model, setModel] = useState('')
@@ -31,16 +34,37 @@ export default function WarrantyListPage() {
   const [dateTo, setDateTo] = useState('')
   const [expiringSoon, setExpiringSoon] = useState(false)
   const [busyId, setBusyId] = useState<string | null>(null)
+  const [smsNotice, setSmsNotice] = useState('')
+  const [smsError, setSmsError] = useState('')
 
   useEffect(() => {
     if (!profile) return
+
+    let active = true
+    setListLoading(true)
+    setLoadError('')
 
     supabase
       .from('warranties')
       .select('*, products(id, name, brand, category_slug, slug)')
       .is('archived_at', null)
       .order('created_at', { ascending: false })
-      .then(({ data }) => setWarranties((data || []) as WarrantyRecord[]))
+      .then(({ data, error: queryError }) => {
+        if (!active) return
+        if (queryError) {
+          setLoadError(queryError.message)
+          setWarranties([])
+          return
+        }
+        setWarranties((data || []) as WarrantyRecord[])
+      })
+      .finally(() => {
+        if (active) setListLoading(false)
+      })
+
+    return () => {
+      active = false
+    }
   }, [profile])
 
   const brands = useMemo(() => Array.from(new Set(warranties.map((item) => item.brand).filter(Boolean))).sort(), [warranties])
@@ -72,6 +96,7 @@ export default function WarrantyListPage() {
         item.brand,
         item.model,
         item.product_name,
+        item.product_category,
         item.status,
       ].some((value) => String(value || '').toLowerCase().includes(query))
     })
@@ -114,6 +139,26 @@ export default function WarrantyListPage() {
     setBusyId(null)
   }
 
+  async function sendWarrantySms(warranty: WarrantyRecord) {
+    if (!accessToken) return
+    setBusyId(warranty.id)
+    setSmsNotice('')
+    setSmsError('')
+    try {
+      const result = await sendWarrantySmsRequest(accessToken, warranty.id)
+      if (result.smsSent) {
+        setSmsNotice(`${warranty.warranty_number} — გარანტიის დოკუმენტი SMS-ით გაიგზავნა${result.smsMessageId ? ` · ID ${result.smsMessageId}` : ''}.`)
+      } else if (result.smsText) {
+        await navigator.clipboard?.writeText(result.smsText)
+        setSmsNotice('GOSMS ჯერ არ არის ჩართული — SMS ტექსტი დაკოპირდა ხელით გასაგზავნად.')
+      }
+    } catch (cause) {
+      setSmsError(cause instanceof Error ? cause.message : 'გარანტიის SMS ვერ გაიგზავნა.')
+    } finally {
+      setBusyId(null)
+    }
+  }
+
   if (loading) return <LoadingView label="გარანტიების ჩანაწერები იტვირთება..." />
   if (error || !profile || !accessToken) return <AuthBlockedView message={error || 'წვდომა აკრძალულია.'} />
 
@@ -125,10 +170,15 @@ export default function WarrantyListPage() {
       actions={
         <>
           <span style={{ fontSize: 13, color: colors.muted }}>სწრაფი ძებნა მუშაობს სერიულ ნომერზე, კლინიკაზე, ექიმზე, ბრენდზე, მოდელსა და სტატუსზე.</span>
-          <Link href="/admin/warranty/new" style={ui.primaryButton}>გარანტიის დამატება</Link>
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+            <Link href="/warranty" target="_blank" style={ui.secondaryButton}>საჯარო გვერდი</Link>
+            <Link href="/admin/warranty/new" style={ui.primaryButton}>საგარანტიო ბარათის გაცემა</Link>
+          </div>
         </>
       }
     >
+      {smsNotice ? <div style={{ ...ui.panel, borderColor: '#A7F3D0', background: '#ECFDF5', color: '#047857' }}>{smsNotice}</div> : null}
+      {smsError ? <div style={{ ...ui.panel, borderColor: '#FECDD3', background: '#FFF1F2', color: '#9F1239' }}>{smsError}</div> : null}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: 12 }}>
         <InfoStat value={warranties.length} label="სულ გარანტიები" />
         <InfoStat value={stats.active} label="აქტიური" />
@@ -174,7 +224,13 @@ export default function WarrantyListPage() {
         </label>
       </div>
 
-      {filtered.length === 0 ? (
+      {loadError ? (
+        <div style={{ ...ui.panel, borderColor: 'rgba(185, 28, 28, 0.18)', background: '#FEF2F2', color: '#991B1B' }}>
+          საგარანტიო ჩანაწერები ვერ ჩაიტვირთა. {loadError}
+        </div>
+      ) : listLoading ? (
+        <LoadingView label="გარანტიების სია იტვირთება..." />
+      ) : filtered.length === 0 ? (
         <EmptyState
           title="გარანტიები ვერ მოიძებნა"
           description="შეცვალე ფილტრები ან დაამატე პირველი გარანტია ადმინ პანელიდან."
@@ -212,6 +268,7 @@ export default function WarrantyListPage() {
                 <p style={{ margin: '5px 0 0', fontSize: 12, color: colors.muted }}>
                   {item.brand}{item.model ? ` · ${item.model}` : ''} · გაყიდა: {item.sold_by || '—'}
                 </p>
+                {item.product_category ? <p style={{ margin: '5px 0 0', fontSize: 12, color: colors.muted }}>{item.product_category}</p> : null}
                 <p style={{ margin: '5px 0 0', fontSize: 12, color: colors.muted }}>შეიქმნა {formatDate(item.created_at)}</p>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -223,6 +280,9 @@ export default function WarrantyListPage() {
                 <Link href={`/admin/warranty/${item.id}/edit`} style={ui.secondaryButton}>რედაქტირება</Link>
                 <button type="button" onClick={() => openPdf(item.id)} disabled={busyId === item.id} style={{ ...ui.secondaryButton, opacity: busyId === item.id ? 0.7 : 1 }}>
                   PDF
+                </button>
+                <button type="button" onClick={() => sendWarrantySms(item)} disabled={busyId === item.id || !item.phone} title={!item.phone ? 'კლიენტის ტელეფონი არ არის მითითებული' : 'გარანტიის დოკუმენტის SMS-ით გაგზავნა'} style={{ ...ui.primaryButton, opacity: busyId === item.id || !item.phone ? 0.55 : 1 }}>
+                  {busyId === item.id ? 'იგზავნება...' : 'SMS'}
                 </button>
                 <Link href={`/admin/warranty/${item.id}/service/new`} style={ui.secondaryButton}>სერვისის დამატება</Link>
                 <button type="button" onClick={() => archiveWarranty(item.id)} disabled={busyId === item.id} style={{ ...ui.secondaryButton, color: '#991B1B' }}>

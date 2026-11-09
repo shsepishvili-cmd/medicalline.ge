@@ -1,506 +1,1028 @@
 'use client'
 
-import Image from 'next/image'
 import Link from 'next/link'
-import { useEffect, useMemo, useRef, useState } from 'react'
-import { motion } from 'framer-motion'
-import { ArrowLeft, BatteryFull, Play, RotateCcw } from 'lucide-react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { ArrowLeft, Play, RotateCcw, Send, Wind } from 'lucide-react'
 
-type Screen = 'menu' | 'playing' | 'win' | 'gameover'
-type ModeId = 'quick' | 'full' | 'kids' | 'boss'
-type Group = 'upper' | 'lower' | 'bite'
-type Segment = { id: number; x: number; y: number; angle: number; group: Group; scanned: boolean }
+// =============================================================================
+// Helios 700 Scan Hero – intraoral scanning simulator.
+// The model is built live from captured frames; tracking is lost when moving
+// too fast and is regained only on already captured data (stitching).
+// Coordinates are in millimetres.
+// =============================================================================
 
-const MODES = {
-  quick: { title: 'სწრაფი სკანი', time: 45, target: 10, speedLimit: 1.1, holdMs: 360, motion: 1.4, description: 'კომპაქტური მისია ზედა უბნებზე.' },
-  full: { title: 'სრული არკა', time: 80, target: 20, speedLimit: 0.95, holdMs: 420, motion: 1.8, description: 'ზედა, ქვედა და bite scan სრული პროცესით.' },
-  kids: { title: 'ბავშვის ვიზიტი', time: 60, target: 12, speedLimit: 1.05, holdMs: 320, motion: 1.2, description: 'უფრო რბილი მოძრაობა და ნაკლები დროის წნეხი.' },
-  boss: { title: 'რთული პაციენტი', time: 70, target: 20, speedLimit: 0.85, holdMs: 460, motion: 2.6, description: 'ხშირი მცირე მოძრაობა, მაგრამ მაინც რეალისტური flow.' },
-} as const
+type Screen = 'menu' | 'playing' | 'report'
+type Jaw = 'lower' | 'upper'
+type Phase = Jaw | 'bite'
+type ToothKind = 'I' | 'C' | 'P' | 'M'
+type View = 'occ' | 'buc' | 'lin'
+type ModeId = 'training' | 'full' | 'hard'
 
-const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value))
-const distance = (ax: number, ay: number, bx: number, by: number) => Math.hypot(ax - bx, ay - by)
+type Tooth = { kind: ToothKind; x: number; y: number; tx: number; ty: number; nx: number; ny: number; w: number; d: number }
+type Sample = { x: number; y: number; view: View; state: 0 | 1 | 2 }
+type Frame = { x: number; y: number; a: number; low: boolean }
+type Arch = { jaw: Jaw; teeth: Tooth[]; gumOuter: string; gumInner: string; inner: { x: number; y: number }; depth: number }
 
-function toothPath(segment: Segment) {
-  const localIndex = segment.group === 'upper' ? segment.id : segment.group === 'lower' ? segment.id - 100 : segment.id - 200
-
-  if (segment.group === 'bite') {
-    return 'M -12 -6 Q 0 -10 12 -6 L 10 6 Q 0 10 -10 6 Z'
-  }
-
-  if (localIndex <= 1 || localIndex >= 6) {
-    return segment.group === 'upper'
-      ? 'M -10 8 Q -12 -8 -3 -11 Q 0 -12 3 -11 Q 12 -8 10 8 Q 2 11 0 12 Q -2 11 -10 8 Z'
-      : 'M -10 -8 Q -12 8 -3 11 Q 0 12 3 11 Q 12 8 10 -8 Q 2 -11 0 -12 Q -2 -11 -10 -8 Z'
-  }
-
-  if (localIndex === 2 || localIndex === 5) {
-    return segment.group === 'upper'
-      ? 'M -9 8 Q -10 -7 -2 -13 Q 0 -15 2 -13 Q 10 -7 9 8 Q 2 10 0 11 Q -2 10 -9 8 Z'
-      : 'M -9 -8 Q -10 7 -2 13 Q 0 15 2 13 Q 10 7 9 -8 Q 2 -10 0 -11 Q -2 -10 -9 -8 Z'
-  }
-
-  return segment.group === 'upper'
-    ? 'M -11 8 Q -13 -6 -8 -12 Q 0 -14 8 -12 Q 13 -6 11 8 Q 3 11 0 12 Q -3 11 -11 8 Z'
-    : 'M -11 -8 Q -13 6 -8 12 Q 0 14 8 12 Q 13 6 11 -8 Q 3 -11 0 -12 Q -3 -11 -11 -8 Z'
+type Sim = {
+  pos: { x: number; y: number }
+  prev: { x: number; y: number }
+  speed: number
+  hist: { t: number; x: number; y: number }[]
+  scanning: boolean
+  view: View
+  rolling: number
+  tracking: 'idle' | 'ok' | 'lost'
+  regain: number
+  wet: number
+  drying: boolean
+  frames: Record<Jaw, Frame[]>
+  samples: Record<Jaw, Sample[]>
+  bite: [number, number]
+  phaseIndex: number
+  elapsed: number
+  losses: number
+  aiFiltered: number
+  message: string
+  tone: 'info' | 'good' | 'warn' | 'bad'
 }
 
-function createSegments(): Segment[] {
-  const upperLayout = [
-    { x: 98, y: 172, angle: -30 },
-    { x: 118, y: 142, angle: -22 },
-    { x: 148, y: 118, angle: -12 },
-    { x: 184, y: 104, angle: -5 },
-    { x: 236, y: 104, angle: 5 },
-    { x: 272, y: 118, angle: 12 },
-    { x: 302, y: 142, angle: 22 },
-    { x: 322, y: 172, angle: 30 },
-  ] as const
+const MODES: Record<ModeId, { title: string; desc: string; phases: Phase[]; speedLimit: number; wetRate: number; tongue: number }> = {
+  training: {
+    title: 'ქვედა ყბა: სწავლება',
+    desc: 'მხოლოდ ქვედა თაღი. ნაკლები ნერწყვი, მშვიდი ენა.',
+    phases: ['lower'],
+    speedLimit: 28,
+    wetRate: 0.03,
+    tongue: 0.6,
+  },
+  full: {
+    title: 'სრული სკანი და თანკბილვა',
+    desc: 'ქვედა და ზედა თაღი და ბუკალური თანკბილვის რეგისტრაცია.',
+    phases: ['lower', 'upper', 'bite'],
+    speedLimit: 25,
+    wetRate: 0.045,
+    tongue: 1,
+  },
+  hard: {
+    title: 'რთული პაციენტი',
+    desc: 'ბევრი ნერწყვი, აქტიური ენა და უფრო მკაცრი ტრეკინგი.',
+    phases: ['lower', 'upper', 'bite'],
+    speedLimit: 20,
+    wetRate: 0.08,
+    tongue: 1.7,
+  },
+}
 
-  const lowerLayout = [
-    { x: 98, y: 328, angle: 30 },
-    { x: 118, y: 356, angle: 22 },
-    { x: 148, y: 382, angle: 12 },
-    { x: 184, y: 396, angle: 5 },
-    { x: 236, y: 396, angle: -5 },
-    { x: 272, y: 382, angle: -12 },
-    { x: 302, y: 356, angle: -22 },
-    { x: 322, y: 328, angle: -30 },
-  ] as const
+// Helios 700 wand image (1400 × 275 px, scan tip at the right edge, x 1399 / y 135)
+const WAND_H = 22
+const WAND_LEN = (WAND_H * 1400) / 275
+const WAND_TIP_Y = (WAND_H * 135.5) / 275
+const FRAME_W = 14
+const FRAME_H = 11
+const WET_LIMIT = 0.55
+const DONE_COVERAGE = 0.9
+const VIEW_LABEL: Record<View, string> = { occ: 'ოკლუზიური', buc: 'ბუკალური', lin: 'ლინგვალური' }
+const JAW_LABEL: Record<Jaw, string> = { lower: 'ქვედა ყბა', upper: 'ზედა ყბა' }
 
-  const biteLayout = [
-    { x: 164, y: 230, angle: -4 },
-    { x: 194, y: 222, angle: -1 },
-    { x: 226, y: 222, angle: 1 },
-    { x: 256, y: 230, angle: 4 },
-  ] as const
+const clamp = (n: number, min: number, max: number) => Math.min(max, Math.max(min, n))
 
-  const upper = upperLayout.map((item, index) => ({
-    id: index,
-    ...item,
-    group: 'upper' as const,
-    scanned: false,
-  }))
+// -----------------------------------------------------------------------------
+// Arch geometry
+// -----------------------------------------------------------------------------
 
-  const lower = lowerLayout.map((item, index) => ({
-    id: 100 + index,
-    ...item,
-    group: 'lower' as const,
-    scanned: false,
-  }))
+const TOOTH_SIZES: Record<Jaw, [ToothKind, number, number][]> = {
+  lower: [['I', 5.2, 6], ['I', 5.8, 6.4], ['C', 6.9, 7.6], ['P', 7, 7.6], ['P', 7.2, 8.2], ['M', 11, 10.4], ['M', 10.4, 10]],
+  upper: [['I', 8.6, 7], ['I', 6.6, 6.2], ['C', 7.6, 8], ['P', 7, 9], ['P', 6.7, 9], ['M', 10.2, 11.2], ['M', 9.2, 11]],
+}
 
-  const bite = biteLayout.map((item, index) => ({
-    id: 200 + index,
-    ...item,
-    group: 'bite' as const,
-    scanned: false,
-  }))
+function buildArch(jaw: Jaw): Arch {
+  const sizes = TOOTH_SIZES[jaw]
+  const ratio = jaw === 'lower' ? 1.45 : 1.3
+  const need = sizes.reduce((sum, t) => sum + t[1], 0) * 1.02
+  const N = 600
+  const table: number[] = [0]
+  for (let i = 1; i <= N; i++) {
+    const u0 = (i - 1) / N
+    const u1 = i / N
+    table.push(table[i - 1] + Math.hypot(u1 - u0, ratio * (u1 * u1 - u0 * u0)))
+  }
+  const A = need / table[N]
+  const B = A * ratio
+  const uAt = (len: number) => {
+    const target = len / A
+    let lo = 0
+    let hi = N
+    while (hi - lo > 1) {
+      const mid = (lo + hi) >> 1
+      if (table[mid] < target) lo = mid
+      else hi = mid
+    }
+    return hi / N
+  }
+  const depth = B
+  const inner = { x: 0, y: depth * 0.72 }
+  const frameAt = (u: number, side: 1 | -1) => {
+    const x = side * A * u
+    const y = B * u * u
+    let tx = side * A
+    let ty = 2 * B * u
+    const l = Math.hypot(tx, ty)
+    tx /= l
+    ty /= l
+    let nx = ty
+    let ny = -tx
+    if (nx * (x - inner.x) + ny * (y - inner.y) < 0) {
+      nx = -nx
+      ny = -ny
+    }
+    return { x, y, tx, ty, nx, ny }
+  }
 
-  return [...upper, ...lower, ...bite]
+  const teeth: Tooth[] = []
+  for (const side of [1, -1] as const) {
+    let acc = 0
+    for (const [kind, w, d] of sizes) {
+      const f = frameAt(uAt(acc + w / 2), side)
+      teeth.push({ kind, w, d, ...f })
+      acc += w
+    }
+  }
+
+  const outer: string[] = []
+  const innerPts: string[] = []
+  const total = need
+  for (let s = -total - 3; s <= total + 3; s += 1.5) {
+    const side = s < 0 ? -1 : 1
+    const f = frameAt(uAt(Math.min(Math.abs(s), total)), side as 1 | -1)
+    const k = clamp(Math.abs(s) / total, 0, 1)
+    const half = 4.6 + k * 2.4
+    outer.push(`${(f.x + f.nx * (half + 3.2)).toFixed(2)} ${(f.y + f.ny * (half + 3.2)).toFixed(2)}`)
+    innerPts.unshift(`${(f.x - f.nx * (half + 3.5)).toFixed(2)} ${(f.y - f.ny * (half + 3.5)).toFixed(2)}`)
+  }
+  const gumOuter = `M ${outer.join(' L ')} L ${innerPts.join(' L ')} Z`
+  const gumInner = `M ${innerPts.join(' L ')} Z`
+  return { jaw, teeth, gumOuter, gumInner, inner, depth }
+}
+
+function toothOutline(t: Tooth) {
+  const n = t.kind === 'M' ? 3.2 : t.kind === 'P' ? 2.4 : t.kind === 'C' ? 2.1 : 2.6
+  const pts: string[] = []
+  for (let i = 0; i < 28; i++) {
+    const a = (i / 28) * Math.PI * 2
+    const c = Math.cos(a)
+    const s = Math.sin(a)
+    let u = Math.sign(c) * Math.pow(Math.abs(c), 2 / n) * t.w * 0.5
+    let v = Math.sign(s) * Math.pow(Math.abs(s), 2 / n) * t.d * 0.5
+    if (t.kind === 'M') v *= 1 + 0.05 * Math.cos(a * 4)
+    if (t.kind === 'I') v *= s > 0 ? 1 : 0.92
+    u *= 0.96
+    pts.push(`${u.toFixed(2)} ${v.toFixed(2)}`)
+  }
+  return `M ${pts.join(' L ')} Z`
+}
+
+function toothMatrix(t: Tooth) {
+  return `matrix(${t.tx} ${t.ty} ${t.nx} ${t.ny} ${t.x} ${t.y})`
+}
+
+function toLocal(t: Tooth, u: number, v: number) {
+  return { x: t.x + t.tx * u + t.nx * v, y: t.y + t.ty * u + t.ny * v }
+}
+
+function buildSamples(arch: Arch): Sample[] {
+  const out: Sample[] = []
+  for (const t of arch.teeth) {
+    const occ = t.kind === 'M' ? [-0.28, 0, 0.28] : t.kind === 'P' ? [-0.2, 0.2] : [0]
+    for (const k of occ) out.push({ ...toLocal(t, t.w * k, 0), view: 'occ', state: 0 })
+    const sides = t.kind === 'M' ? [-0.25, 0.25] : [0]
+    for (const k of sides) {
+      out.push({ ...toLocal(t, t.w * k, t.d * 0.5), view: 'buc', state: 0 })
+      out.push({ ...toLocal(t, t.w * k, -t.d * 0.5), view: 'lin', state: 0 })
+    }
+  }
+  return out
+}
+
+function biteTargets(arch: Arch) {
+  // Buccal surfaces between the second premolar and the first molar, both sides
+  return [arch.teeth[4], arch.teeth[11]].map((t) => toLocal(t, t.w * 0.55, t.d * 0.55))
+}
+
+// Soft-tissue intrusion (tongue on the lingual side of the lower arch)
+function tongueLobes(arch: Arch, time: number, amp: number) {
+  if (arch.jaw !== 'lower') return []
+  return [1, -1].map((side, i) => {
+    const t = arch.teeth[side === 1 ? 4 : 11]
+    const push = Math.max(0, Math.sin(time * 0.7 + i * 2.4)) * 3.2 * amp
+    const base = toLocal(t, 0, -t.d * 0.5 - 6 + push)
+    return { x: base.x, y: base.y, r: 5.5 }
+  })
+}
+
+function insideFrame(f: { x: number; y: number; a: number }, px: number, py: number, pad = 0.8) {
+  const dx = px - f.x
+  const dy = py - f.y
+  const c = Math.cos(-f.a)
+  const s = Math.sin(-f.a)
+  const lx = dx * c - dy * s
+  const ly = dx * s + dy * c
+  return Math.abs(lx) <= FRAME_W / 2 + pad && Math.abs(ly) <= FRAME_H / 2 + pad
+}
+
+function nearestTooth(arch: Arch, x: number, y: number) {
+  let best = arch.teeth[0]
+  let bd = Infinity
+  for (const t of arch.teeth) {
+    const d = (t.x - x) ** 2 + (t.y - y) ** 2
+    if (d < bd) {
+      bd = d
+      best = t
+    }
+  }
+  return { tooth: best, dist: Math.sqrt(bd) }
+}
+
+// -----------------------------------------------------------------------------
+// True-colour arch rendering (used for the live camera and the scanned model)
+// -----------------------------------------------------------------------------
+
+function ToothAnatomy({ t }: { t: Tooth }) {
+  const w = t.w
+  const d = t.d
+  const groove = { stroke: '#8a6f4e', strokeWidth: 0.32, fill: 'none', strokeLinecap: 'round' as const, opacity: 0.75 }
+  return (
+    <g transform={toothMatrix(t)}>
+      <path d={toothOutline(t)} fill="url(#sc-enamel)" stroke="#c9b08a" strokeWidth="0.25" />
+      {t.kind === 'M' && (
+        <>
+          {[[-0.24, 0.22], [0.24, 0.22], [-0.22, -0.22], [0.22, -0.22], [0.36, 0.05]].map(([u, v], i) => (
+            <ellipse key={i} cx={w * u} cy={d * v} rx={w * 0.13} ry={d * 0.13} fill="#fffaf0" opacity="0.75" />
+          ))}
+          <path d={`M ${-w * 0.38} ${d * 0.02} Q ${-w * 0.1} ${d * 0.1} 0 0 T ${w * 0.38} ${-d * 0.02}`} {...groove} />
+          <path d={`M ${-w * 0.02} 0 L ${w * 0.04} ${d * 0.4}`} {...groove} />
+          <path d={`M ${w * 0.02} 0 L ${-w * 0.03} ${-d * 0.38}`} {...groove} />
+          <path d={`M ${w * 0.22} ${d * 0.02} L ${w * 0.3} ${d * 0.32}`} {...groove} />
+        </>
+      )}
+      {t.kind === 'P' && (
+        <>
+          <ellipse cx={0} cy={d * 0.2} rx={w * 0.22} ry={d * 0.15} fill="#fffaf0" opacity="0.8" />
+          <ellipse cx={0} cy={-d * 0.2} rx={w * 0.18} ry={d * 0.12} fill="#fffaf0" opacity="0.65" />
+          <path d={`M ${-w * 0.32} 0 Q 0 ${d * 0.06} ${w * 0.32} 0`} {...groove} />
+        </>
+      )}
+      {t.kind === 'C' && (
+        <>
+          <ellipse cx={0} cy={d * 0.12} rx={w * 0.16} ry={d * 0.16} fill="#fffaf0" opacity="0.85" />
+          <path d={`M ${-w * 0.38} ${-d * 0.05} L 0 ${d * 0.12} L ${w * 0.38} ${-d * 0.05}`} {...groove} opacity="0.4" />
+        </>
+      )}
+      {t.kind === 'I' && <path d={`M ${-w * 0.42} ${d * 0.12} L ${w * 0.42} ${d * 0.12}`} stroke="#fffaf0" strokeWidth={d * 0.16} strokeLinecap="round" opacity="0.8" />}
+    </g>
+  )
+}
+
+function ArchArt({ arch, lobes }: { arch: Arch; lobes: { x: number; y: number; r: number }[] }) {
+  return (
+    <g>
+      {arch.jaw === 'lower' ? (
+        <ellipse cx={arch.inner.x} cy={arch.inner.y + 2} rx={arch.depth * 0.48} ry={arch.depth * 0.62} fill="url(#sc-tongue)" />
+      ) : (
+        <g>
+          <ellipse cx={arch.inner.x} cy={arch.inner.y - 2} rx={arch.depth * 0.6} ry={arch.depth * 0.68} fill="#d9918c" />
+          {[-1, 1].flatMap((side) =>
+            [0, 1, 2].map((i) => (
+              <path
+                key={`${side}${i}`}
+                d={`M ${side * 2} ${10 + i * 5} q ${side * 5} -2 ${side * 9} 2`}
+                stroke="#c6716d"
+                strokeWidth="1.1"
+                fill="none"
+                strokeLinecap="round"
+              />
+            )),
+          )}
+          <line x1="0" y1="8" x2="0" y2={arch.depth * 0.9} stroke="#c6716d" strokeWidth="0.6" />
+        </g>
+      )}
+      <path d={arch.gumOuter} fill="url(#sc-gum)" fillRule="evenodd" />
+      {arch.teeth.map((t, i) => (
+        <ToothAnatomy key={i} t={t} />
+      ))}
+      {lobes.map((l, i) => (
+        <circle key={i} cx={l.x} cy={l.y} r={l.r} fill="url(#sc-tongue)" />
+      ))}
+    </g>
+  )
+}
+
+function SharedDefs() {
+  return (
+    <defs>
+      <radialGradient id="sc-enamel" cx="45%" cy="40%" r="70%">
+        <stop offset="0%" stopColor="#fbf4e4" />
+        <stop offset="70%" stopColor="#ecdcbc" />
+        <stop offset="100%" stopColor="#d4bd93" />
+      </radialGradient>
+      <linearGradient id="sc-gum" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stopColor="#e7a2a0" />
+        <stop offset="100%" stopColor="#d4827f" />
+      </linearGradient>
+      <radialGradient id="sc-tongue" cx="50%" cy="40%" r="60%">
+        <stop offset="0%" stopColor="#e2898a" />
+        <stop offset="100%" stopColor="#b85a5f" />
+      </radialGradient>
+      <pattern id="sc-speckle" width="1.6" height="1.6" patternUnits="userSpaceOnUse">
+        <rect width="1.6" height="1.6" fill="#f59e0b" opacity="0.18" />
+        <circle cx="0.5" cy="0.5" r="0.35" fill="#f59e0b" opacity="0.8" />
+      </pattern>
+    </defs>
+  )
+}
+
+// -----------------------------------------------------------------------------
+// Main component
+// -----------------------------------------------------------------------------
+
+function newSim(arches: Record<Jaw, Arch>): Sim {
+  return {
+    pos: { x: arches.lower.teeth[6].x, y: arches.lower.teeth[6].y },
+    prev: { x: arches.lower.teeth[6].x, y: arches.lower.teeth[6].y },
+    speed: 0,
+    hist: [],
+    scanning: false,
+    view: 'occ',
+    rolling: 0,
+    tracking: 'idle',
+    regain: 0,
+    wet: 0.15,
+    drying: false,
+    frames: { lower: [], upper: [] },
+    samples: { lower: buildSamples(arches.lower), upper: buildSamples(arches.upper) },
+    bite: [0, 0],
+    phaseIndex: 0,
+    elapsed: 0,
+    losses: 0,
+    aiFiltered: 0,
+    message: 'დაიწყე მარჯვენა ბოლო მოლარის ოკლუზიური ზედაპირიდან. სკანირება: მაუსის დაჭერა ან Space.',
+    tone: 'info',
+  }
+}
+
+function coverageOf(samples: Sample[], view?: View) {
+  const list = view ? samples.filter((s) => s.view === view) : samples
+  const captured = list.filter((s) => s.state > 0).length
+  const good = list.filter((s) => s.state === 2).length
+  return { captured: captured / list.length, good: good / list.length }
 }
 
 export default function ScannerRushClient() {
-  const boardRef = useRef<HTMLDivElement>(null)
-  const holdStartRef = useRef<number | null>(null)
-  const lastMoveRef = useRef<{ x: number; y: number; t: number } | null>(null)
-
+  const arches = useMemo(() => ({ lower: buildArch('lower'), upper: buildArch('upper') }), [])
   const [screen, setScreen] = useState<Screen>('menu')
-  const [modeId, setModeId] = useState<ModeId>('quick')
-  const [segments, setSegments] = useState<Segment[]>(createSegments())
-  const [scanner, setScanner] = useState({ x: 118, y: 146 })
-  const [tilt, setTilt] = useState(-12)
-  const [timeLeft, setTimeLeft] = useState<number>(MODES.quick.time)
-  const [score, setScore] = useState(0)
-  const [accuracy, setAccuracy] = useState(100)
-  const [battery, setBattery] = useState(100)
-  const [speed, setSpeed] = useState(0)
-  const [message, setMessage] = useState('მონიშნულ უბანზე მიდი და რამდენიმე წამით სტაბილურად გააჩერე სკანერი.')
-  const [dragging, setDragging] = useState(false)
+  const [modeId, setModeId] = useState<ModeId>('full')
   const [best, setBest] = useState(0)
-  const [mouthShift, setMouthShift] = useState({ x: 0, y: 0 })
-  const [stability, setStability] = useState(0)
-
+  const [result, setResult] = useState<{ score: number; time: number; coverage: number; good: number; losses: number; ai: number } | null>(null)
+  const [, setTick] = useState(0)
+  const simRef = useRef<Sim>(newSim(arches))
+  const svgRef = useRef<SVGSVGElement>(null)
   const mode = MODES[modeId]
-  const targetSegments = useMemo(() => segments.slice(0, mode.target), [segments, mode.target])
-  const currentIndex = targetSegments.findIndex((segment) => !segment.scanned)
-  const current = currentIndex >= 0 ? targetSegments[currentIndex] : null
-  const scannedCount = targetSegments.filter((segment) => segment.scanned).length
-  const coverage = Math.round((scannedCount / mode.target) * 100)
-  const upperDone = targetSegments.filter((segment) => segment.group === 'upper' && segment.scanned).length
-  const lowerDone = targetSegments.filter((segment) => segment.group === 'lower' && segment.scanned).length
-  const biteDone = targetSegments.filter((segment) => segment.group === 'bite' && segment.scanned).length
-  const scanLabel = current ? current.group === 'upper' ? 'ზედა არკა' : current.group === 'lower' ? 'ქვედა არკა' : 'bite scan' : 'დასრულებულია'
+  const modeRef = useRef(mode)
+  modeRef.current = mode
+  const sim = simRef.current
+  const phase: Phase = mode.phases[Math.min(sim.phaseIndex, mode.phases.length - 1)]
+  const jaw: Jaw = phase === 'upper' ? 'upper' : 'lower'
+  const arch = arches[jaw]
 
   useEffect(() => {
     try {
-      const stored = window.localStorage.getItem('helios700-scan-hero-best')
-      if (stored) setBest(Number(stored) || 0)
+      setBest(Number(window.localStorage.getItem('helios-scan-sim-best')) || 0)
     } catch {}
   }, [])
 
-  useEffect(() => {
-    try {
-      window.localStorage.setItem('helios700-scan-hero-best', String(best))
-    } catch {}
-  }, [best])
-
-  useEffect(() => {
-    if (screen !== 'playing') return
-    if (timeLeft <= 0 || battery <= 0 || accuracy <= 0) {
-      setBest((value) => Math.max(value, score))
-      setScreen(scannedCount >= mode.target ? 'win' : 'gameover')
-      return
-    }
-    const timer = window.setTimeout(() => setTimeLeft((value) => value - 1), 1000)
-    return () => window.clearTimeout(timer)
-  }, [accuracy, battery, mode.target, scannedCount, score, screen, timeLeft])
-
-  useEffect(() => {
-    if (screen !== 'playing') return
-    if (scannedCount >= mode.target) {
-      setBest((value) => Math.max(value, score))
-      setScreen('win')
-      setMessage('სკანირება წარმატებით დასრულდა.')
-    }
-  }, [mode.target, scannedCount, score, screen])
-
-  useEffect(() => {
-    if (screen !== 'playing') return
-
-    const interval = window.setInterval(() => {
-      setBattery((value) => clamp(value - 0.35, 0, 100))
-      setMouthShift({
-        x: Math.sin(Date.now() / 1200) * mode.motion,
-        y: Math.cos(Date.now() / 1500) * (mode.motion * 0.55),
-      })
-    }, 180)
-
-    return () => window.clearInterval(interval)
-  }, [mode.motion, screen])
-
-  function resetGame(nextMode: ModeId = modeId) {
-    setModeId(nextMode)
-    setSegments(createSegments())
-    setScanner({ x: 118, y: 146 })
-    setTilt(-12)
-    setTimeLeft(MODES[nextMode].time)
-    setScore(0)
-    setAccuracy(100)
-    setBattery(100)
-    setSpeed(0)
-    setMessage('მონიშნულ უბანზე მიდი და რამდენიმე წამით სტაბილურად გააჩერე სკანერი.')
-    setDragging(false)
-    setMouthShift({ x: 0, y: 0 })
-    setStability(0)
-    holdStartRef.current = null
-    lastMoveRef.current = null
+  const start = (id: ModeId) => {
+    setModeId(id)
+    simRef.current = newSim(arches)
+    setResult(null)
     setScreen('playing')
   }
 
-  function completeSegment() {
-    if (!current) return
+  const setView = useCallback((v: View) => {
+    const s = simRef.current
+    if (s.view === v) return
+    s.view = v
+    s.rolling = 0.35
+  }, [])
 
-    const gain = Math.round(70 + accuracy * 0.4 + battery * 0.1)
-    setSegments((value) => value.map((segment) => (segment.id === current.id ? { ...segment, scanned: true } : segment)))
-    setScore((value) => value + gain)
-    setMessage(current.group === 'bite' ? 'bite scan ჩაითვალა.' : 'უბანი წარმატებით ჩაითვალა.')
-    setStability(0)
-    holdStartRef.current = null
+  // ---------------------------------------------------------------------------
+  // Simulation loop
+  // ---------------------------------------------------------------------------
+  useEffect(() => {
+    if (screen !== 'playing') return
+    let raf = 0
+    let last = performance.now()
+
+    const step = (now: number) => {
+      const dt = Math.min(0.05, (now - last) / 1000)
+      last = now
+      const s = simRef.current
+      const m = modeRef.current
+      const ph = m.phases[s.phaseIndex]
+      const j: Jaw = ph === 'upper' ? 'upper' : 'lower'
+      const a = arches[j]
+
+      s.elapsed += dt
+      // Speed over a ~0.3 s window, so pointer-event bursts do not read as jerks
+      s.hist.push({ t: s.elapsed, x: s.pos.x, y: s.pos.y })
+      while (s.hist.length > 2 && s.elapsed - s.hist[0].t > 0.3) s.hist.shift()
+      const h0 = s.hist[0]
+      const span = s.elapsed - h0.t
+      s.speed = span > 0.08 ? Math.hypot(s.pos.x - h0.x, s.pos.y - h0.y) / span : 0
+      s.prev = { ...s.pos }
+      s.rolling = Math.max(0, s.rolling - dt)
+      s.wet = clamp(s.wet + (s.drying ? -0.9 : m.wetRate) * dt, 0, 1)
+
+      const { tooth, dist } = nearestTooth(a, s.pos.x, s.pos.y)
+      const angle = Math.atan2(tooth.ty, tooth.tx)
+      const frame = { x: s.pos.x, y: s.pos.y, a: angle }
+      const frames = s.frames[j]
+      const lobes = tongueLobes(a, s.elapsed, m.tongue)
+
+      if (!s.scanning) {
+        if (s.tracking === 'ok') s.tracking = 'idle'
+      } else {
+        if (s.tracking === 'idle') {
+          s.speed = 0
+          s.hist = [{ t: s.elapsed, x: s.pos.x, y: s.pos.y }]
+          const onData = ph === 'bite' || frames.length === 0 || frames.some((f) => Math.hypot(f.x - s.pos.x, f.y - s.pos.y) < 6)
+          s.tracking = onData ? 'ok' : 'lost'
+          if (!onData) {
+            s.message = 'სკანირება უნდა გაგრძელდეს უკვე დასკანერებული უბნიდან, რომ მოდელი შეიკრას.'
+            s.tone = 'warn'
+          }
+        }
+
+        if (s.tracking === 'ok' && s.speed > m.speedLimit && ph !== 'bite') {
+          s.tracking = 'lost'
+          s.losses += 1
+          s.regain = 0
+          s.message = 'ტრეკინგი დაიკარგა: მოძრაობა ზედმეტად სწრაფია. დაბრუნდი დასკანერებულ უბანზე და იმოძრავე ნელა.'
+          s.tone = 'bad'
+        } else if (s.tracking === 'lost') {
+          const near = frames.length === 0 || frames.some((f) => Math.hypot(f.x - s.pos.x, f.y - s.pos.y) < 5)
+          if (near && s.speed < m.speedLimit * 0.6) {
+            s.regain += dt
+            if (s.regain > 0.35) {
+              s.tracking = 'ok'
+              s.message = 'ტრეკინგი აღდგა. გააგრძელე თანაბარი სიჩქარით.'
+              s.tone = 'good'
+            }
+          } else s.regain = 0
+        }
+
+        if (s.tracking === 'ok' && s.rolling === 0 && dist < 14) {
+          if (ph === 'bite') {
+            const targets = biteTargets(arches.lower)
+            targets.forEach((tp, i) => {
+              if (s.view === 'buc' && insideFrame(frame, tp.x, tp.y, 0) && s.speed < 12) {
+                s.bite[i] = clamp(s.bite[i] + dt / 1.3, 0, 1)
+                s.message = s.bite[i] >= 1 ? 'თანკბილვის ეს მხარე დარეგისტრირდა.' : 'სტაბილურად გააჩერე: თანკბილვის რეგისტრაცია მიმდინარეობს…'
+                s.tone = s.bite[i] >= 1 ? 'good' : 'info'
+              }
+            })
+            if (s.view !== 'buc') {
+              s.message = 'თანკბილვა მხოლოდ ბუკალური ხედით რეგისტრირდება.'
+              s.tone = 'warn'
+            }
+          } else {
+            const low = s.wet > WET_LIMIT
+            const lastFrame = frames[frames.length - 1]
+            if (!lastFrame || Math.hypot(lastFrame.x - frame.x, lastFrame.y - frame.y) > 1.8) frames.push({ ...frame, low })
+            let blocked = false
+            for (const smp of s.samples[j]) {
+              if (smp.view !== s.view || smp.state === 2) continue
+              if (!insideFrame(frame, smp.x, smp.y)) continue
+              if (smp.view === 'lin' && lobes.some((l) => Math.hypot(l.x - smp.x, l.y - smp.y) < l.r + 1)) {
+                blocked = true
+                continue
+              }
+              smp.state = low ? Math.max(smp.state, 1) as 1 | 2 : 2
+            }
+            if (blocked) {
+              s.aiFiltered += dt
+              s.message = 'ენა ხედშია. Helios AI ფილტრი რბილ ქსოვილს აშორებს, მაგრამ ზედაპირი არ ჩანს. დაელოდე ან გადაინაცვლე.'
+              s.tone = 'warn'
+            } else if (low) {
+              s.message = 'ზედაპირი სველია: მონაცემი დაბალი ხარისხისაა. გააშრე ჰაერით (A) და გადაუარე ხელახლა.'
+              s.tone = 'warn'
+            } else if (s.tone !== 'good' || s.message.startsWith('ტრეკინგი')) {
+              s.message = `სკანირება: ${VIEW_LABEL[s.view]} ზედაპირი · ${JAW_LABEL[j]}`
+              s.tone = 'info'
+            }
+          }
+        }
+      }
+
+      setTick((t) => (t + 1) % 1_000_000)
+      raf = requestAnimationFrame(step)
+    }
+
+    raf = requestAnimationFrame(step)
+    return () => cancelAnimationFrame(raf)
+  }, [screen, arches])
+
+  // Keyboard
+  useEffect(() => {
+    if (screen !== 'playing') return
+    const down = (e: KeyboardEvent) => {
+      const k = e.key.toLowerCase()
+      const s = simRef.current
+      if (k === ' ') {
+        e.preventDefault()
+        s.scanning = true
+      }
+      if (k === 'a') s.drying = true
+      if (k === '1') setView('occ')
+      if (k === '2') setView('lin')
+      if (k === '3') setView('buc')
+    }
+    const up = (e: KeyboardEvent) => {
+      const k = e.key.toLowerCase()
+      if (k === ' ') simRef.current.scanning = false
+      if (k === 'a') simRef.current.drying = false
+    }
+    window.addEventListener('keydown', down)
+    window.addEventListener('keyup', up)
+    return () => {
+      window.removeEventListener('keydown', down)
+      window.removeEventListener('keyup', up)
+    }
+  }, [screen, setView])
+
+  const toMm = (clientX: number, clientY: number) => {
+    const svg = svgRef.current
+    const ctm = svg?.getScreenCTM()
+    if (!svg || !ctm) return null
+    const pt = svg.createSVGPoint()
+    pt.x = clientX
+    pt.y = clientY
+    const p = pt.matrixTransform(ctm.inverse())
+    return { x: clamp(p.x, -44, 44), y: clamp(p.y, -14, 60) }
   }
 
-  function evaluateScan(x: number, y: number, nextSpeed: number) {
-    if (!current) return
+  // ---------------------------------------------------------------------------
+  // Phase handling and report
+  // ---------------------------------------------------------------------------
+  const cov = phase === 'bite' ? null : coverageOf(sim.samples[jaw])
+  const phaseDone = phase === 'bite' ? sim.bite[0] >= 1 && sim.bite[1] >= 1 : (cov?.captured ?? 0) >= DONE_COVERAGE
+  const isLastPhase = sim.phaseIndex >= mode.phases.length - 1
 
-    const targetX = current.x + mouthShift.x
-    const targetY = current.y + mouthShift.y
-    const nearTarget = distance(x, y, targetX, targetY) < 22
-    const angleOk = Math.abs(tilt - current.angle) <= 10
-    const speedOk = nextSpeed <= mode.speedLimit
-
-    if (!nearTarget) {
-      holdStartRef.current = null
-      setStability(0)
-      setMessage('ჯერ მონიშნულ უბანზე მიიყვანე სკანერი.')
-      return
-    }
-
-    if (!angleOk) {
-      holdStartRef.current = null
-      setStability(0)
-      setAccuracy((value) => clamp(value - 0.35, 0, 100))
-      setMessage('კუთხე ოდნავ დააკორექტირე.')
-      return
-    }
-
-    if (!speedOk) {
-      holdStartRef.current = null
-      setStability(0)
-      setAccuracy((value) => clamp(value - 0.4, 0, 100))
-      setMessage('მოძრაობა ზედმეტად სწრაფია — უფრო რბილად ამოძრავე Helios700.')
-      return
-    }
-
-    const now = performance.now()
-    if (!holdStartRef.current) holdStartRef.current = now
-    const heldMs = now - holdStartRef.current
-    const percent = clamp((heldMs / mode.holdMs) * 100, 0, 100)
-    setStability(percent)
-    setMessage(percent < 100 ? 'კარგია — იგივე სტაბილურობით გააგრძელე.' : 'უბანი ჩაითვალა.')
-
-    if (heldMs >= mode.holdMs) {
-      completeSegment()
-    }
+  const finish = () => {
+    const s = simRef.current
+    const jaws = mode.phases.filter((p): p is Jaw => p !== 'bite')
+    const all = jaws.flatMap((jw) => s.samples[jw])
+    const c = coverageOf(all)
+    const targetTime = jaws.length * 45 + (mode.phases.includes('bite') ? 15 : 0)
+    const timeBonus = clamp(Math.round((targetTime - s.elapsed) * 4), -150, 200)
+    const score = clamp(Math.round(c.captured * 500 + c.good * 300 + timeBonus - s.losses * 15), 0, 1000)
+    setResult({ score, time: s.elapsed, coverage: c.captured, good: c.good, losses: s.losses, ai: s.aiFiltered })
+    setBest((b) => {
+      const next = Math.max(b, score)
+      try {
+        window.localStorage.setItem('helios-scan-sim-best', String(next))
+      } catch {}
+      return next
+    })
+    setScreen('report')
   }
 
-  function moveScanner(clientX: number, clientY: number) {
-    const rect = boardRef.current?.getBoundingClientRect()
-    if (!rect || screen !== 'playing') return
-
-    const x = clamp(clientX - rect.left, 72, rect.width - 72)
-    const y = clamp(clientY - rect.top, 112, rect.height - 100)
-    const now = performance.now()
-    let nextSpeed = 0
-
-    if (lastMoveRef.current) {
-      nextSpeed = Math.hypot(x - lastMoveRef.current.x, y - lastMoveRef.current.y) / Math.max(now - lastMoveRef.current.t, 16)
+  const nextPhase = () => {
+    const s = simRef.current
+    if (isLastPhase) return finish()
+    s.phaseIndex += 1
+    s.tracking = 'idle'
+    s.scanning = false
+    const nextJaw: Jaw = mode.phases[s.phaseIndex] === 'upper' ? 'upper' : 'lower'
+    const t = arches[nextJaw].teeth[6]
+    s.pos = { x: t.x, y: t.y }
+    s.prev = { ...s.pos }
+    if (mode.phases[s.phaseIndex] === 'bite') {
+      setView('buc')
+      s.message = 'პაციენტმა კბილები დახუროს. ბუკალური ხედით დაარეგისტრირე თანკბილვა ორივე მხარეს, პრემოლარ-მოლარის მიდამოში.'
+    } else {
+      setView('occ')
+      s.message = 'ზედა ყბა: ისევ ბოლო მოლარიდან დაიწყე, ჯერ ოკლუზიური ზედაპირი.'
     }
-
-    lastMoveRef.current = { x, y, t: now }
-    setScanner({ x, y })
-    setSpeed(nextSpeed)
-    evaluateScan(x, y, nextSpeed)
+    s.tone = 'info'
   }
 
-  const scannerGlow = current ? distance(scanner.x, scanner.y, current.x + mouthShift.x, current.y + mouthShift.y) < 28 : false
+  // ---------------------------------------------------------------------------
+  // Render helpers
+  // ---------------------------------------------------------------------------
+  const nearest = nearestTooth(arch, sim.pos.x, sim.pos.y)
+  const frameAngle = Math.atan2(nearest.tooth.ty, nearest.tooth.tx)
+  const frameDeg = (frameAngle * 180) / Math.PI
+  const lobes = tongueLobes(arch, sim.elapsed, mode.tongue)
+  const frames = sim.frames[jaw]
+  const frameColor =
+    sim.tracking === 'lost' ? '#f87171' : sim.rolling > 0 ? '#94a3b8' : sim.scanning && sim.wet > WET_LIMIT ? '#fbbf24' : sim.scanning ? '#4ade80' : '#7dd3fc'
+  const facing = sim.view === 'buc' ? 1 : sim.view === 'lin' ? -1 : 0
+  // The wand enters from the front corner of the mouth on the side being scanned
+  const entry = { x: (sim.pos.x >= 0 ? 1 : -1) * 24, y: -42 }
+  const wandDeg = (Math.atan2(-(entry.y - sim.pos.y), -(entry.x - sim.pos.x)) * 180) / Math.PI
+  const toneClass = {
+    info: 'border-sky-400/30 bg-sky-400/10 text-sky-100',
+    good: 'border-emerald-400/30 bg-emerald-400/10 text-emerald-100',
+    warn: 'border-amber-400/40 bg-amber-400/10 text-amber-100',
+    bad: 'border-rose-400/40 bg-rose-500/15 text-rose-100',
+  }[sim.tone]
+  const speedPct = clamp((sim.speed / mode.speedLimit) * 100, 0, 130)
+  const occ = coverageOf(sim.samples[jaw], 'occ')
+  const lin = coverageOf(sim.samples[jaw], 'lin')
+  const buc = coverageOf(sim.samples[jaw], 'buc')
 
   return (
-    <main className="min-h-screen overflow-hidden bg-[radial-gradient(circle_at_top,_rgba(186,230,253,0.52),_transparent_24%),linear-gradient(180deg,#f4fdff_0%,#ebf8ff_45%,#e3f4ff_100%)] px-3 py-4 md:px-8 md:py-10">
+    <div className="min-h-screen bg-[#0b1016] px-3 py-5 text-slate-100 md:px-8 md:py-8">
       <div className="mx-auto max-w-6xl">
-        <motion.div initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} className="mb-6 grid gap-4 md:grid-cols-[1.15fr_.85fr]">
-          <div className="rounded-[30px] border border-white/70 bg-white/90 p-5 shadow-[0_22px_70px_rgba(15,23,42,0.08)] backdrop-blur md:p-7">
-            <div className="mb-4 flex flex-wrap items-center gap-2">
-              <Link href="/game" className="inline-flex items-center gap-2 rounded-full bg-slate-950 px-3 py-1 text-xs font-semibold text-white transition hover:bg-slate-800">
-                <ArrowLeft size={14} />
-                Game Lounge
-              </Link>
-              <span className="inline-flex rounded-full bg-cyan-100 px-3 py-1 text-xs font-semibold text-cyan-700">Helios700 Wireless</span>
-              <span className="inline-flex rounded-full bg-blue-100 px-3 py-1 text-xs font-semibold text-blue-700">სიჩქარე • სტაბილურობა • კუთხე</span>
-            </div>
-            <p className="text-[10px] font-black uppercase tracking-[0.34em] text-cyan-600 md:text-xs">Eighteeth Helios700 Wireless Intraoral Scanner</p>
-            <h1 className="mt-2 text-3xl font-black tracking-tight text-slate-950 md:text-5xl">Helios700 Scan Hero</h1>
-            <p className="mt-4 max-w-3xl text-sm font-bold leading-7 text-slate-600 md:text-base">
-              ახლა თამაში უფრო რეალური სკანირების ტრენერია: სწორი ტრაექტორია, სტაბილური დაყოვნება, ზუსტი კუთხე და პაციენტის მსუბუქი მოძრაობა.
-            </p>
-          </div>
-
-          <div className="rounded-[30px] border border-white/70 bg-slate-950 p-5 text-white shadow-[0_22px_70px_rgba(15,23,42,0.18)] md:p-7">
-            <p className="text-[10px] font-black uppercase tracking-[0.34em] text-cyan-300">საუკეთესო შედეგი</p>
-            <div className="mt-2 text-4xl font-black">{best}</div>
-            <div className="mt-5 rounded-[24px] border border-white/10 bg-white/5 p-4 text-sm font-bold leading-7 text-slate-200">
-              აქ მთავარი ფოკუსია სწრაფი, მაგრამ ბუნებრივი scan flow — არა კარნავალი.
+        <header className="mb-5 flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <Link href="/game" className="inline-flex items-center gap-2 rounded-lg border border-white/10 px-3 py-2 text-xs font-semibold text-slate-300 hover:bg-white/5">
+              <ArrowLeft className="h-4 w-4" />
+              თამაშები
+            </Link>
+            <div>
+              <h1 className="text-lg font-bold text-white md:text-2xl">Helios 700 Scan Hero</h1>
+              <p className="text-xs text-slate-400">ინტრაორალური სკანირება · კლინიკური სიმულატორი</p>
             </div>
           </div>
-        </motion.div>
+          <span className="text-xs text-slate-400">
+            საუკეთესო: <b className="text-white">{best}</b>
+          </span>
+        </header>
 
         {screen === 'menu' && (
-          <div className="rounded-[30px] border border-white/70 bg-white/90 p-5 shadow-[0_22px_70px_rgba(15,23,42,0.08)] backdrop-blur md:p-8">
-            <div className="grid gap-6 md:grid-cols-[1.02fr_.98fr]">
-              <div>
-                <h2 className="text-2xl font-black text-slate-950">როგორ მუშაობს</h2>
-                <div className="mt-4 space-y-3 text-sm font-bold leading-7 text-slate-600">
-                  <p>1. მონიშნულ უბანზე მიიყვანე სკანერი.</p>
-                  <p>2. შეინარჩუნე სწორი კუთხე და ზედმეტად სწრაფად ნუ ამოძრავებ.</p>
-                  <p>3. რამდენიმე წამით სტაბილურად გააჩერე, სანამ progress შეივსება.</p>
-                  <p>4. პაციენტის მცირე მოძრაობას მოერგე ისე, როგორც რეალურ სკანირებაში.</p>
+          <div className="grid gap-5 lg:grid-cols-[1.15fr_.85fr]">
+            <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-5 md:p-7">
+              <h2 className="text-xl font-bold text-white md:text-2xl">ციფრული ანაბეჭდი Helios 700-ით</h2>
+              <p className="mt-3 text-sm leading-7 text-slate-300">
+                ეკრანზე ხედავთ სკანირების პროგრამას: 3D მოდელი იწყობა მხოლოდ იქ, სადაც სკანერმა უკვე გაიარა. კადრები ერთმანეთს
+                გადაფარვით „იკერება“. თუ ზედმეტად სწრაფად ამოძრავებთ, ტრეკინგი იკარგება და გაგრძელება მხოლოდ უკვე დასკანერებული
+                უბნიდან შეიძლება, როგორც რეალურ კლინიკაში.
+              </p>
+              <ol className="mt-5 space-y-2 text-sm text-slate-300">
+                <li><b className="text-white">1.</b> დაიწყეთ ბოლო მოლარიდან, ოკლუზიური ხედით (1) და გაიარეთ მთელი თაღი.</li>
+                <li><b className="text-white">2.</b> გადაატრიალეთ სკანერი ლინგვალურად (2) და დაბრუნდით, შემდეგ ბუკალურად (3).</li>
+                <li><b className="text-white">3.</b> სკანირება: მაუსის დაჭერა ან Space. ჰაერი: A. ნერწყვი ამცირებს მონაცემის ხარისხს.</li>
+                <li><b className="text-white">4.</b> ბოლოს ზედა ყბა და თანკბილვის ბუკალური რეგისტრაცია ორივე მხარეს.</li>
+              </ol>
+              <p className="mt-5 rounded-lg border border-white/10 p-3 text-xs text-slate-400">
+                Helios 700: უკაბელო, სიზუსტე 16 μm, სრული თაღი 30 წამამდე, AI ფილტრი ენისა და ლოყის მოსაშორებლად.
+              </p>
+            </section>
+            <section className="grid content-start gap-3">
+              {(Object.entries(MODES) as [ModeId, (typeof MODES)[ModeId]][]).map(([id, m]) => (
+                <button
+                  key={id}
+                  type="button"
+                  onClick={() => start(id)}
+                  className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-left transition hover:border-sky-400/40 hover:bg-sky-400/[0.06]"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-white">{m.title}</span>
+                    <Play className="h-4 w-4 text-sky-300" />
+                  </div>
+                  <p className="mt-1 text-sm text-slate-400">{m.desc}</p>
+                  <p className="mt-2 text-[11px] text-slate-500">
+                    მაქს. სიჩქარე {m.speedLimit} მმ/წმ · {m.phases.map((p) => (p === 'bite' ? 'თანკბილვა' : JAW_LABEL[p])).join(' → ')}
+                  </p>
+                </button>
+              ))}
+            </section>
+          </div>
+        )}
+
+        {screen === 'report' && result && (
+          <section className="mx-auto max-w-xl rounded-2xl border border-white/10 bg-white/[0.03] p-6">
+            <div className="text-xs font-semibold text-emerald-300">მოდელი მზადაა · {mode.title}</div>
+            <div className="mt-2 text-5xl font-bold text-white">{result.score}</div>
+            <dl className="mt-5 grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+              <dt className="text-slate-400">დრო</dt>
+              <dd className="text-right text-white">{Math.round(result.time)} წმ</dd>
+              <dt className="text-slate-400">დაფარვა</dt>
+              <dd className="text-right text-white">{Math.round(result.coverage * 100)}%</dd>
+              <dt className="text-slate-400">მაღალი ხარისხის მონაცემი</dt>
+              <dd className="text-right text-white">{Math.round(result.good * 100)}%</dd>
+              <dt className="text-slate-400">ტრეკინგის დაკარგვა</dt>
+              <dd className="text-right text-white">{result.losses}</dd>
+              <dt className="text-slate-400">AI ფილტრი (ენა ხედში)</dt>
+              <dd className="text-right text-white">{result.ai.toFixed(1)} წმ</dd>
+            </dl>
+            <p className="mt-5 text-sm leading-7 text-slate-300">
+              {result.good < 0.85
+                ? 'მოდელში ბევრი სველი ზედაპირია: ლაბორატორია ზღვრებს ვერ წაიკითხავს. სკანირებამდე და შუალედში გამოიყენეთ ჰაერი.'
+                : result.losses > 4
+                  ? 'მოდელი სრულია, მაგრამ ხშირი ტრეკინგის დაკარგვა დროს კარგავს. იმოძრავეთ თანაბრად, დაახლოებით 1–2 სმ/წმ სიჩქარით.'
+                  : 'კარგი სკანი: სრული დაფარვა, მშრალი ზედაპირი და თანაბარი მოძრაობა. მოდელი ლაბორატორიაში გასაგზავნად მზადაა.'}
+            </p>
+            <div className="mt-6 flex flex-wrap gap-2">
+              <button type="button" onClick={() => start(modeId)} className="inline-flex items-center gap-2 rounded-xl bg-sky-400 px-5 py-2.5 text-sm font-bold text-slate-950">
+                <RotateCcw className="h-4 w-4" />
+                თავიდან
+              </button>
+              <button type="button" onClick={() => setScreen('menu')} className="rounded-xl border border-white/15 px-5 py-2.5 text-sm font-semibold text-slate-200">
+                სხვა რეჟიმი
+              </button>
+            </div>
+          </section>
+        )}
+
+        {screen === 'playing' && (
+          <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_330px]">
+            <section className="overflow-hidden rounded-2xl border border-white/10 bg-[#1b2027]">
+              <div className="flex items-center justify-between border-b border-white/10 bg-[#232a33] px-3 py-2 text-[11px] text-slate-300">
+                <span className="font-semibold text-white">Helios · {phase === 'bite' ? 'თანკბილვა' : JAW_LABEL[jaw]}</span>
+                <span className="tabular-nums">
+                  {Math.floor(sim.elapsed / 60)}:{String(Math.floor(sim.elapsed % 60)).padStart(2, '0')} · ეტაპი {sim.phaseIndex + 1}/{mode.phases.length}
+                </span>
+              </div>
+              <div className="relative aspect-[6/5] w-full">
+                <svg
+                  ref={svgRef}
+                  viewBox="-44 -14 88 74"
+                  className="absolute inset-0 h-full w-full touch-none select-none"
+                  style={{ cursor: 'none' }}
+                  onPointerMove={(e) => {
+                    const p = toMm(e.clientX, e.clientY)
+                    if (p) simRef.current.pos = p
+                  }}
+                  onPointerDown={(e) => {
+                    e.currentTarget.setPointerCapture(e.pointerId)
+                    const p = toMm(e.clientX, e.clientY)
+                    if (p) {
+                      simRef.current.pos = p
+                      simRef.current.prev = p
+                    }
+                    simRef.current.scanning = true
+                  }}
+                  onPointerUp={() => {
+                    simRef.current.scanning = false
+                  }}
+                  onPointerCancel={() => {
+                    simRef.current.scanning = false
+                  }}
+                  onWheel={(e) => {
+                    const order: View[] = ['occ', 'lin', 'buc']
+                    const i = order.indexOf(simRef.current.view)
+                    setView(order[(i + (e.deltaY > 0 ? 1 : 2)) % 3])
+                  }}
+                >
+                  <SharedDefs />
+                  <defs>
+                    <clipPath id="sc-cap">
+                      {frames.map((f, i) => (
+                        <rect key={i} x={f.x - FRAME_W / 2} y={f.y - FRAME_H / 2} width={FRAME_W} height={FRAME_H} rx="2" transform={`rotate(${(f.a * 180) / Math.PI} ${f.x} ${f.y})`} />
+                      ))}
+                    </clipPath>
+                    <clipPath id="sc-low">
+                      {frames
+                        .filter((f) => f.low)
+                        .map((f, i) => (
+                          <rect key={i} x={f.x - FRAME_W / 2} y={f.y - FRAME_H / 2} width={FRAME_W} height={FRAME_H} rx="2" transform={`rotate(${(f.a * 180) / Math.PI} ${f.x} ${f.y})`} />
+                        ))}
+                    </clipPath>
+                    <filter id="sc-wand-shadow" x="-20%" y="-50%" width="140%" height="200%">
+                      <feDropShadow dx="1.5" dy="2.5" stdDeviation="1.6" floodColor="#000" floodOpacity="0.55" />
+                    </filter>
+                    <radialGradient id="sc-light" cx="40%" cy="25%" r="80%">
+                      <stop offset="0%" stopColor="#fff" stopOpacity="0.12" />
+                      <stop offset="100%" stopColor="#000" stopOpacity="0.25" />
+                    </radialGradient>
+                  </defs>
+
+                  {/* Guide: faint outline of what still has to be scanned */}
+                  <g opacity="0.55">
+                    <path d={arch.gumOuter} fill="none" stroke="#3a4552" strokeWidth="0.3" strokeDasharray="1 1" fillRule="evenodd" />
+                    {arch.teeth.map((t, i) => (
+                      <path key={i} d={toothOutline(t)} transform={toothMatrix(t)} fill="#222a33" stroke="#4b5867" strokeWidth="0.25" />
+                    ))}
+                  </g>
+
+                  {/* Captured model in true colour */}
+                  <g clipPath="url(#sc-cap)">
+                    <ArchArt arch={arch} lobes={[]} />
+                    <rect x="-44" y="-14" width="88" height="74" fill="url(#sc-light)" />
+                  </g>
+                  <g clipPath="url(#sc-low)">
+                    <rect x="-44" y="-14" width="88" height="74" fill="url(#sc-speckle)" />
+                  </g>
+
+                  {/* Side surfaces (rim) and remaining holes */}
+                  {phase !== 'bite' &&
+                    sim.samples[jaw]
+                      .filter((smp) => smp.view !== 'occ')
+                      .map((smp, i) => (
+                        <circle
+                          key={i}
+                          cx={smp.x}
+                          cy={smp.y}
+                          r={smp.state === 0 ? 0.55 : 0.75}
+                          fill={smp.state === 2 ? '#f5ead4' : smp.state === 1 ? '#f59e0b' : 'none'}
+                          stroke={smp.state === 0 ? (smp.view === 'buc' ? '#38bdf8' : '#c084fc') : 'none'}
+                          strokeWidth="0.25"
+                          opacity={smp.state === 0 ? 0.8 : 1}
+                        />
+                      ))}
+
+                  {/* Bite registration targets */}
+                  {phase === 'bite' &&
+                    biteTargets(arches.lower).map((tp, i) => (
+                      <g key={i}>
+                        <circle cx={tp.x} cy={tp.y} r="4" fill="none" stroke={sim.bite[i] >= 1 ? '#4ade80' : '#38bdf8'} strokeWidth="0.4" strokeDasharray="1 0.8" />
+                        <circle cx={tp.x} cy={tp.y} r={4 * sim.bite[i]} fill="#4ade80" opacity="0.25" />
+                      </g>
+                    ))}
+
+                  {/* Helios 700 wand: head over the scan window, handle exits through the front of the mouth */}
+                  <g transform={`translate(${sim.pos.x} ${sim.pos.y}) rotate(${wandDeg})`} opacity="0.88" pointerEvents="none" filter="url(#sc-wand-shadow)">
+                    <image href="/images/helios700-wand.webp" x={-WAND_LEN} y={-WAND_TIP_Y} width={WAND_LEN} height={WAND_H} />
+                    {sim.scanning && <rect x={-9} y={-3.2} width={8} height={6.4} rx="1.5" fill="#38bdf8" opacity="0.35" />}
+                  </g>
+
+                  {/* Scanner field of view */}
+                  <g transform={`rotate(${frameDeg} ${sim.pos.x} ${sim.pos.y})`}>
+                    <rect x={sim.pos.x - FRAME_W / 2} y={sim.pos.y - FRAME_H / 2} width={FRAME_W} height={FRAME_H} rx="1.5" fill={frameColor} opacity="0.07" />
+                    {[
+                      [-1, -1],
+                      [1, -1],
+                      [1, 1],
+                      [-1, 1],
+                    ].map(([sx, sy], i) => (
+                      <path
+                        key={i}
+                        d={`M ${sim.pos.x + (sx * FRAME_W) / 2} ${sim.pos.y + sy * (FRAME_H / 2 - 2.5)} L ${sim.pos.x + (sx * FRAME_W) / 2} ${sim.pos.y + (sy * FRAME_H) / 2} L ${sim.pos.x + sx * (FRAME_W / 2 - 2.5)} ${sim.pos.y + (sy * FRAME_H) / 2}`}
+                        fill="none"
+                        stroke={frameColor}
+                        strokeWidth="0.45"
+                        strokeLinecap="round"
+                      />
+                    ))}
+                    <circle cx={sim.pos.x} cy={sim.pos.y} r="0.5" fill={frameColor} />
+                  </g>
+                  {facing !== 0 && (
+                    <line
+                      x1={sim.pos.x - nearest.tooth.nx * facing * 6}
+                      y1={sim.pos.y - nearest.tooth.ny * facing * 6}
+                      x2={sim.pos.x - nearest.tooth.nx * facing * 2.5}
+                      y2={sim.pos.y - nearest.tooth.ny * facing * 2.5}
+                      stroke={frameColor}
+                      strokeWidth="0.45"
+                      markerEnd=""
+                    />
+                  )}
+                </svg>
+              </div>
+              <div className={`m-2 rounded-xl border px-3 py-2.5 text-sm ${toneClass}`}>{sim.message}</div>
+            </section>
+
+            <aside className="grid content-start gap-3">
+              <div className="overflow-hidden rounded-2xl border border-white/10 bg-black">
+                <div className="flex items-center justify-between px-3 py-1.5 text-[10px] text-slate-400">
+                  <span>ცოცხალი კამერა · {VIEW_LABEL[sim.view]}</span>
+                  <span className={sim.scanning ? 'text-emerald-300' : ''}>{sim.scanning ? '● REC' : 'პაუზა'}</span>
+                </div>
+                <svg viewBox="0 0 240 170" className="block w-full">
+                  <SharedDefs />
+                  <g transform={`translate(120 85) rotate(${-frameDeg}) scale(14) translate(${-sim.pos.x} ${-sim.pos.y})`}>
+                    <rect x="-60" y="-30" width="120" height="110" fill="#7a2f33" />
+                    <ArchArt arch={arch} lobes={lobes} />
+                  </g>
+                  <g opacity={sim.wet}>
+                    {[
+                      [40, 50, 16, 5],
+                      [150, 110, 22, 6],
+                      [190, 40, 10, 4],
+                      [90, 130, 12, 4],
+                    ].map(([x, y, rx, ry], i) => (
+                      <ellipse key={i} cx={x} cy={y} rx={rx} ry={ry} fill="#fff" opacity="0.55" />
+                    ))}
+                  </g>
+                  {sim.rolling > 0 && <rect width="240" height="170" fill="#0b1016" opacity="0.6" />}
+                  <rect x="1" y="1" width="238" height="168" fill="none" stroke={frameColor} strokeWidth="2" />
+                  <rect width="240" height="170" fill="url(#sc-vig)" />
+                  <defs>
+                    <radialGradient id="sc-vig" cx="50%" cy="50%" r="70%">
+                      <stop offset="65%" stopColor="#000" stopOpacity="0" />
+                      <stop offset="100%" stopColor="#000" stopOpacity="0.6" />
+                    </radialGradient>
+                  </defs>
+                </svg>
+              </div>
+
+              <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-3">
+                <div className="flex items-center justify-between text-[11px] font-semibold text-slate-400">
+                  <span>სიჩქარე</span>
+                  <span className={`whitespace-nowrap tabular-nums ${speedPct > 100 ? 'text-rose-300' : 'text-white'}`}>
+                    {sim.speed.toFixed(0)} / {mode.speedLimit}
+                    <span className="ml-1 font-normal text-slate-500">მმ/წმ</span>
+                  </span>
+                </div>
+                <div className="relative mt-2 h-1.5 rounded-full bg-white/10">
+                  <div className={`h-full rounded-full ${speedPct > 100 ? 'bg-rose-500' : speedPct > 75 ? 'bg-amber-400' : 'bg-emerald-400'}`} style={{ width: `${Math.min(speedPct, 100)}%` }} />
+                </div>
+                <div className="mt-3 flex items-center justify-between text-[11px] font-semibold text-slate-400">
+                  <span>ზედაპირის სინესტე</span>
+                  <span className={`tabular-nums ${sim.wet > WET_LIMIT ? 'text-amber-300' : 'text-white'}`}>{Math.round(sim.wet * 100)}%</span>
+                </div>
+                <div className="mt-2 h-1.5 rounded-full bg-white/10">
+                  <div className={`h-full rounded-full ${sim.wet > WET_LIMIT ? 'bg-amber-400' : 'bg-sky-400'}`} style={{ width: `${sim.wet * 100}%` }} />
+                </div>
+                <div className="mt-3 flex items-center justify-between text-[11px]">
+                  <span className="font-semibold text-slate-400">ტრეკინგი</span>
+                  <span className={sim.tracking === 'lost' ? 'font-bold text-rose-300' : sim.tracking === 'ok' ? 'font-bold text-emerald-300' : 'text-slate-400'}>
+                    {sim.tracking === 'lost' ? 'დაკარგულია' : sim.tracking === 'ok' ? 'აქტიური' : 'პაუზა'}
+                  </span>
                 </div>
               </div>
 
-              <div className="rounded-[28px] border border-cyan-100 bg-gradient-to-br from-cyan-50 via-white to-blue-50 p-5">
-                <div className="grid gap-3">
-                  {(Object.entries(MODES) as [ModeId, (typeof MODES)[ModeId]][]).map(([id, item]) => (
+              {phase !== 'bite' ? (
+                <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-3 text-[11px]">
+                  <div className="mb-2 font-semibold text-slate-400">დაფარვა · {JAW_LABEL[jaw]}</div>
+                  {(
+                    [
+                      ['ოკლუზიური', occ],
+                      ['ლინგვალური', lin],
+                      ['ბუკალური', buc],
+                    ] as [string, { captured: number; good: number }][]
+                  ).map(([label, c]) => (
+                    <div key={label} className="mb-2">
+                      <div className="flex justify-between text-slate-300">
+                        <span>{label}</span>
+                        <span className="tabular-nums">{Math.round(c.captured * 100)}%</span>
+                      </div>
+                      <div className="mt-1 flex h-1.5 overflow-hidden rounded-full bg-white/10">
+                        <div className="h-full bg-emerald-400" style={{ width: `${c.good * 100}%` }} />
+                        <div className="h-full bg-amber-400" style={{ width: `${(c.captured - c.good) * 100}%` }} />
+                      </div>
+                    </div>
+                  ))}
+                  <div className="mt-1 text-[10px] text-slate-500">მწვანე: მშრალი მონაცემი · ყვითელი: სველი, დაბალი ხარისხი</div>
+                </div>
+              ) : (
+                <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-3 text-[11px] text-slate-300">
+                  <div className="mb-2 font-semibold text-slate-400">თანკბილვის რეგისტრაცია</div>
+                  <div>მარჯვენა მხარე: {Math.round(sim.bite[0] * 100)}%</div>
+                  <div>მარცხენა მხარე: {Math.round(sim.bite[1] * 100)}%</div>
+                </div>
+              )}
+
+              <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-3">
+                <div className="mb-2 text-[11px] font-semibold text-slate-400">სკანერის ხედი (1 / 2 / 3, ან ბორბალი)</div>
+                <div className="grid grid-cols-3 gap-2">
+                  {(['occ', 'lin', 'buc'] as View[]).map((v, i) => (
                     <button
-                      key={id}
+                      key={v}
                       type="button"
-                      onClick={() => setModeId(id)}
-                      className={`rounded-[24px] border p-4 text-left transition ${modeId === id ? 'border-cyan-400 bg-slate-950 text-white shadow-lg' : 'border-slate-200 bg-white text-slate-900 hover:border-cyan-300'}`}
+                      onClick={() => setView(v)}
+                      className={`rounded-lg px-1 py-2 text-[11px] font-bold ${sim.view === v ? 'bg-white text-slate-950' : 'bg-white/[0.06] text-slate-300 hover:bg-white/10'}`}
                     >
-                      <div className="text-sm font-black uppercase tracking-[0.16em]">{item.title}</div>
-                      <div className={`mt-2 text-xs font-bold leading-6 ${modeId === id ? 'text-slate-300' : 'text-slate-500'}`}>დრო: {item.time} წმ · უბნები: {item.target}</div>
-                      <div className={`mt-1 text-xs font-bold leading-6 ${modeId === id ? 'text-slate-300' : 'text-slate-500'}`}>{item.description}</div>
+                      {i + 1}. {VIEW_LABEL[v]}
                     </button>
                   ))}
                 </div>
-
                 <button
                   type="button"
-                  onClick={() => resetGame(modeId)}
-                  className="mt-5 inline-flex w-full items-center justify-center gap-3 rounded-2xl bg-cyan-400 px-7 py-4 text-[11px] font-black uppercase tracking-[0.24em] text-slate-950 transition hover:bg-cyan-300"
+                  onPointerDown={(e) => {
+                    e.currentTarget.setPointerCapture(e.pointerId)
+                    simRef.current.drying = true
+                  }}
+                  onPointerUp={() => {
+                    simRef.current.drying = false
+                  }}
+                  onPointerCancel={() => {
+                    simRef.current.drying = false
+                  }}
+                  className={`mt-2 flex w-full touch-none select-none items-center justify-center gap-2 rounded-lg py-2.5 text-xs font-bold ${sim.drying ? 'bg-sky-400 text-slate-950' : 'bg-white/[0.06] text-slate-200 hover:bg-white/10'}`}
                 >
-                  <Play size={16} />
-                  დაწყება
+                  <Wind className="h-4 w-4" />
+                  ჰაერით გაშრობა (A)
                 </button>
               </div>
-            </div>
-          </div>
-        )}
 
-        {(screen === 'playing' || screen === 'win' || screen === 'gameover') && (
-          <div className="grid gap-6 lg:grid-cols-[1.15fr_.85fr]">
-            <div className="rounded-[30px] border border-white/70 bg-white/90 p-3 shadow-[0_22px_70px_rgba(15,23,42,0.08)] backdrop-blur md:p-6">
-              <div
-                ref={boardRef}
-                className="relative mx-auto h-[500px] w-full max-w-[420px] touch-none overflow-hidden rounded-[30px] border border-cyan-200 bg-[linear-gradient(180deg,#dff6ff_0%,#f7fdff_42%,#ebfbff_100%)]"
-                onMouseDown={(event) => { setDragging(true); moveScanner(event.clientX, event.clientY) }}
-                onMouseMove={(event) => dragging && moveScanner(event.clientX, event.clientY)}
-                onMouseUp={() => setDragging(false)}
-                onMouseLeave={() => { setDragging(false); holdStartRef.current = null; setStability(0) }}
-                onTouchStart={(event) => { setDragging(true); const touch = event.touches[0]; if (touch) moveScanner(touch.clientX, touch.clientY) }}
-                onTouchMove={(event) => { const touch = event.touches[0]; if (touch) moveScanner(touch.clientX, touch.clientY) }}
-                onTouchEnd={() => { setDragging(false); holdStartRef.current = null; setStability(0) }}
+              <button
+                type="button"
+                disabled={!phaseDone}
+                onClick={nextPhase}
+                className="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-400 px-4 py-3 text-sm font-bold text-slate-950 transition hover:bg-emerald-300 disabled:cursor-not-allowed disabled:bg-white/[0.06] disabled:text-slate-500"
               >
-                <div className="absolute inset-x-6 top-4 rounded-full bg-white/90 px-4 py-2 text-center shadow-sm">
-                  <p className="text-[10px] font-black uppercase tracking-[0.34em] text-cyan-600">Helios700 Scan Session</p>
-                </div>
-
-                <svg viewBox="0 0 420 500" className="absolute inset-0 h-full w-full">
-                  <defs>
-                    <linearGradient id="lipTone" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#f8b4c0" />
-                      <stop offset="100%" stopColor="#f59db0" />
-                    </linearGradient>
-                    <linearGradient id="gumTone" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#f6cad4" />
-                      <stop offset="100%" stopColor="#ebb1c1" />
-                    </linearGradient>
-                    <linearGradient id="oralCavity" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#8b1e35" />
-                      <stop offset="100%" stopColor="#5f1025" />
-                    </linearGradient>
-                    <linearGradient id="tongueTone" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#d97988" />
-                      <stop offset="100%" stopColor="#c86376" />
-                    </linearGradient>
-                  </defs>
-
-                  <path d="M210 24C116 24 42 96 42 244c0 149 74 224 168 224s168-75 168-224C378 96 304 24 210 24Z" fill="url(#lipTone)" />
-                  <path d="M210 54C134 54 76 112 76 202v96c0 89 58 146 134 146s134-57 134-146v-96C344 112 286 54 210 54Z" fill="#f7b1bf" opacity="0.7" />
-                  <path d="M88 142c18-36 62-58 122-58s104 22 122 58c-14 26-36 42-63 50H151c-28-8-50-24-63-50Z" fill="url(#gumTone)" />
-                  <path d="M88 356c18 36 62 58 122 58s104-22 122-58c-14-26-36-42-63-50H151c-28 8-50 24-63 50Z" fill="url(#gumTone)" />
-                  <path d="M102 174c18-20 48-31 108-31s90 11 108 31c8 10 12 24 12 40 0 48-19 71-41 87-21 16-51 23-79 23s-58-7-79-23c-22-16-41-39-41-87 0-16 4-30 12-40Z" fill="url(#oralCavity)" />
-                  <path d="M146 178c13-10 34-16 64-18 30-2 50-1 64 2 22 5 40 14 52 30-10 12-23 21-39 27-19 7-47 11-77 11-31 0-58-4-77-11-17-6-30-15-39-27 13-7 29-12 52-14Z" fill="#9d2840" opacity="0.5" />
-                  <path d="M164 176c14 5 28 8 46 10 17 2 37 2 54 0 18-2 32-5 46-10" fill="none" stroke="#cf7e91" strokeWidth="5" strokeLinecap="round" opacity="0.4" />
-                  <path d="M171 191c12 4 24 7 39 8 15 2 35 2 50 0 15-1 27-4 39-8" fill="none" stroke="#cf7e91" strokeWidth="4" strokeLinecap="round" opacity="0.28" />
-                  <path d="M180 204c9 3 19 5 30 6 11 1 29 1 40 0 11-1 21-3 30-6" fill="none" stroke="#cf7e91" strokeWidth="3" strokeLinecap="round" opacity="0.22" />
-                  <path d="M210 166c-7 2-12 7-13 15 1 10 6 16 13 18 7-2 12-8 13-18-1-8-6-13-13-15Z" fill="#bb546b" opacity="0.55" />
-                  <path d="M157 236c-8 6-13 16-15 30 6 18 19 30 38 38 18 8 41 12 68 12s50-4 68-12c19-8 32-20 38-38-2-14-7-24-15-30-7 11-17 20-31 27-16 8-36 12-60 12s-44-4-60-12c-14-7-24-16-31-27Z" fill="#6a162b" opacity="0.32" />
-                  <path d="M126 310c18-11 46-16 84-16s66 5 84 16c-8 40-36 64-84 64s-76-24-84-64Z" fill="url(#tongueTone)" />
-                  <path d="M142 318c17-8 40-12 68-12s51 4 68 12c-8 24-31 39-68 39s-60-15-68-39Z" fill="#d26f80" opacity="0.55" />
-                  <path d="M210 308v54" fill="none" stroke="#c25e73" strokeWidth="4" strokeLinecap="round" opacity="0.45" />
-                  <path d="M174 330c10 7 22 10 36 11m-36 12c10 5 22 8 36 8m10-31c14-1 26-4 36-11m-36 31c14 0 26-3 36-8" fill="none" stroke="#e6a5b0" strokeWidth="3" strokeLinecap="round" opacity="0.32" />
-                  <path d="M132 171c15 8 46 12 78 12s63-4 78-12" fill="none" stroke="#f7d9de" strokeWidth="6" strokeLinecap="round" opacity="0.4" />
-                  <path d="M144 332c16 10 38 15 66 15s50-5 66-15" fill="none" stroke="#efb8c2" strokeWidth="5" strokeLinecap="round" opacity="0.5" />
-                  <path d="M90 170c-8 17-11 35-11 55m262-55c8 17 11 35 11 55m-262 65c4 15 10 28 18 39m226-39c-4 15-10 28-18 39" fill="none" stroke="#7a2236" strokeWidth="3" strokeLinecap="round" opacity="0.28" />
-
-                  {targetSegments.map((segment) => {
-                    const tx = segment.x + mouthShift.x
-                    const ty = segment.y + mouthShift.y
-                    const active = segment.id === current?.id
-                    const rotation = segment.group === 'upper' ? -segment.angle * 0.25 : segment.group === 'lower' ? -segment.angle * 0.25 : 0
-                    return (
-                      <g key={segment.id} transform={`translate(${tx} ${ty}) rotate(${rotation})`}>
-                        <path
-                          d={toothPath(segment)}
-                          fill={segment.scanned ? '#06b6d4' : '#fffdfd'}
-                          stroke={active ? '#38bdf8' : '#d7c4ca'}
-                          strokeWidth={active ? 3 : 2}
-                          opacity={segment.scanned ? 1 : 0.98}
-                        />
-                        {!segment.scanned && <path d={segment.group === 'upper' ? 'M -5 1 Q 0 4 5 1' : segment.group === 'lower' ? 'M -5 -1 Q 0 -4 5 -1' : 'M -6 0 Q 0 3 6 0'} fill="none" stroke="#e7c9c9" strokeWidth="1.5" strokeLinecap="round" opacity="0.7" />}
-                      </g>
-                    )
-                  })}
-                </svg>
-
-                <div
-                  className={`absolute transition ${scannerGlow ? 'drop-shadow-[0_0_22px_rgba(34,211,238,0.75)]' : 'drop-shadow-[0_10px_18px_rgba(15,23,42,0.18)]'}`}
-                  style={{ left: scanner.x - 122, top: scanner.y - 42, transform: `rotate(${tilt}deg)` }}
-                >
-                  <div className="relative h-[80px] w-[244px]">
-                    <Image
-                      src="/images/helios700-scanner.png"
-                      alt="Eighteeth Helios700 wireless intraoral scanner"
-                      fill
-                      sizes="244px"
-                      className="object-contain select-none"
-                      priority
-                    />
-                  </div>
-                </div>
-
-                {screen === 'win' && (
-                  <div className="absolute inset-0 grid place-items-center bg-white/84 backdrop-blur-sm">
-                    <div className="mx-3 rounded-3xl bg-white p-6 text-center shadow-xl">
-                      <div className="text-2xl font-black text-slate-950">გაიმარჯვე</div>
-                      <div className="mt-2 text-sm font-bold text-slate-600">სკანირება ზუსტად და ბუნებრივ flow-ში დაასრულე.</div>
-                      <button type="button" onClick={() => resetGame(modeId)} className="mt-5 inline-flex rounded-2xl bg-slate-950 px-6 py-3 text-sm font-black uppercase tracking-[0.18em] text-white">თავიდან ცდა</button>
-                    </div>
-                  </div>
-                )}
-
-                {screen === 'gameover' && (
-                  <div className="absolute inset-0 grid place-items-center bg-slate-950/45 backdrop-blur-sm">
-                    <div className="mx-3 rounded-3xl bg-white p-6 text-center shadow-xl">
-                      <div className="text-2xl font-black text-slate-950">თავიდან ცდა</div>
-                      <div className="mt-2 text-sm font-bold text-slate-600">ამ რაუნდში flow დაიშალა — კიდევ ერთხელ სცადე.</div>
-                      <button type="button" onClick={() => resetGame(modeId)} className="mt-5 inline-flex rounded-2xl bg-slate-950 px-6 py-3 text-sm font-black uppercase tracking-[0.18em] text-white">თავიდან ცდა</button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <div className="grid gap-6">
-              <div className="rounded-[30px] border border-white/70 bg-white/90 p-5 shadow-[0_22px_70px_rgba(15,23,42,0.08)] backdrop-blur md:p-6">
-                <h2 className="mb-4 text-xl font-black text-slate-950">კონტროლი</h2>
-                <div className="grid grid-cols-2 gap-3">
-                  <button type="button" onClick={() => setTilt((value) => clamp(value - 6, -24, 24))} disabled={screen !== 'playing'} className="rounded-2xl bg-slate-950 px-4 py-3 text-sm font-black uppercase tracking-[0.16em] text-white disabled:opacity-50">კუთხე -</button>
-                  <button type="button" onClick={() => setTilt((value) => clamp(value + 6, -24, 24))} disabled={screen !== 'playing'} className="rounded-2xl bg-slate-950 px-4 py-3 text-sm font-black uppercase tracking-[0.16em] text-white disabled:opacity-50">კუთხე +</button>
-                </div>
-                <button type="button" onClick={() => resetGame(modeId)} className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm font-black uppercase tracking-[0.16em] text-slate-950"><RotateCcw size={16} />თავიდან ცდა</button>
-              </div>
-
-              <div className="rounded-[30px] border border-white/70 bg-white/90 p-5 shadow-[0_22px_70px_rgba(15,23,42,0.08)] backdrop-blur md:p-6">
-                <h2 className="mb-4 text-xl font-black text-slate-950">სტატუსი</h2>
-                <div className="space-y-4">
-                  <div><div className="mb-2 flex justify-between text-sm font-bold text-slate-600"><span>ქულა</span><span>{score}</span></div><div className="h-3 overflow-hidden rounded-full bg-slate-200"><div className="h-full rounded-full bg-gradient-to-r from-cyan-500 to-blue-500 transition-all" style={{ width: `${coverage}%` }} /></div></div>
-                  <div><div className="mb-2 flex justify-between text-sm font-bold text-slate-600"><span>დრო</span><span>{timeLeft} წმ</span></div><div className="h-3 overflow-hidden rounded-full bg-slate-200"><div className="h-full rounded-full bg-gradient-to-r from-violet-500 to-fuchsia-500 transition-all" style={{ width: `${(timeLeft / mode.time) * 100}%` }} /></div></div>
-                  <div><div className="mb-2 flex justify-between text-sm font-bold text-slate-600"><span>სიზუსტე</span><span>{Math.round(accuracy)}%</span></div><div className="h-3 overflow-hidden rounded-full bg-slate-200"><div className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-cyan-500 transition-all" style={{ width: `${accuracy}%` }} /></div></div>
-                  <div><div className="mb-2 flex justify-between text-sm font-bold text-slate-600"><span>ბატარეა</span><span>{Math.round(battery)}%</span></div><div className="h-3 overflow-hidden rounded-full bg-slate-200"><div className="h-full rounded-full bg-gradient-to-r from-amber-400 to-orange-500 transition-all" style={{ width: `${battery}%` }} /></div></div>
-                </div>
-                <div className="mt-5 grid grid-cols-2 gap-3">
-                  <div className="rounded-2xl bg-slate-50 p-4 text-center"><div className="text-[10px] font-black uppercase tracking-[0.28em] text-slate-500">დაფარვა</div><div className="mt-2 text-2xl font-black text-slate-950">{coverage}%</div></div>
-                  <div className="rounded-2xl bg-slate-50 p-4 text-center"><div className="text-[10px] font-black uppercase tracking-[0.28em] text-slate-500">სიჩქარე</div><div className="mt-2 text-2xl font-black text-cyan-600">{speed.toFixed(2)}</div></div>
-                  <div className="rounded-2xl bg-slate-50 p-4 text-center"><div className="text-[10px] font-black uppercase tracking-[0.28em] text-slate-500">სტაბილურობა</div><div className="mt-2 text-2xl font-black text-violet-600">{Math.round(stability)}%</div></div>
-                  <div className="rounded-2xl bg-slate-50 p-4 text-center"><div className="text-[10px] font-black uppercase tracking-[0.28em] text-slate-500">აქტიური უბანი</div><div className="mt-2 text-lg font-black text-slate-950">{scanLabel}</div></div>
-                </div>
-              </div>
-
-              <div className="rounded-[30px] border border-white/70 bg-white/90 p-5 shadow-[0_22px_70px_rgba(15,23,42,0.08)] backdrop-blur md:p-6">
-                <div className="mb-4 flex items-center justify-between">
-                  <h2 className="text-xl font-black text-slate-950">სკანის რუკა</h2>
-                  <BatteryFull className="text-cyan-500" size={22} />
-                </div>
-                <div className="grid grid-cols-3 gap-3">
-                  <div className="rounded-2xl bg-slate-50 p-4 text-center"><div className="text-[10px] font-black uppercase tracking-[0.28em] text-slate-500">ზედა</div><div className="mt-2 text-2xl font-black text-slate-950">{upperDone}/8</div></div>
-                  <div className="rounded-2xl bg-slate-50 p-4 text-center"><div className="text-[10px] font-black uppercase tracking-[0.28em] text-slate-500">ქვედა</div><div className="mt-2 text-2xl font-black text-slate-950">{lowerDone}/8</div></div>
-                  <div className="rounded-2xl bg-slate-50 p-4 text-center"><div className="text-[10px] font-black uppercase tracking-[0.28em] text-slate-500">bite</div><div className="mt-2 text-2xl font-black text-slate-950">{biteDone}/4</div></div>
-                </div>
-                <div className="mt-4 rounded-[24px] bg-gradient-to-br from-cyan-50 via-white to-blue-50 p-4 text-sm font-bold leading-7 text-slate-700">{message}</div>
-              </div>
-            </div>
+                {isLastPhase ? <Send className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+                {isLastPhase ? 'მოდელის დასრულება და გაგზავნა' : 'შემდეგი ეტაპი'}
+              </button>
+              <p className="text-[10px] leading-4 text-slate-600">
+                სასწავლო სიმულაცია. გეომეტრია და პარამეტრები გამარტივებულია.
+              </p>
+            </aside>
           </div>
         )}
       </div>
-    </main>
+    </div>
   )
 }

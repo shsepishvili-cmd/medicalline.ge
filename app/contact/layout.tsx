@@ -3,10 +3,9 @@ import { buildPageMetadata } from '@/app/lib/seo';
 
 export const metadata = buildPageMetadata({
   path: '/contact',
-  title: 'Contact | Medical Line',
-  description:
-    'დაგვიკავშირდით Medical Line Georgia-სთან სტომატოლოგიური აპარატურის, ფასების, ინსტალაციის და სერვისის შესახებ.',
-  keywords: ['contact medical line', 'დაგვიკავშირდით', 'სტომატოლოგიური აპარატურის ფასი'],
+  title: 'კონტაქტი | Medical Line Georgia',
+  description: 'დაუკავშირდით Medical Line Georgia-ს: თბილისი, დ. ჯაბიძის ქ. #8, +995 514 011 116, ltdmedicalline@gmail.com.',
+  keywords: ['Medical Line Georgia კონტაქტი', 'სტომატოლოგიური აპარატურა', 'ტექნიკური სერვისი'],
 });
 
 export default function ContactLayout({ children }: { children: ReactNode }) {

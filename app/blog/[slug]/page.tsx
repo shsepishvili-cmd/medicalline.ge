@@ -24,7 +24,7 @@ export async function generateMetadata({
     path: `/blog/${slug}`,
     title: post.title,
     description: post.excerpt,
-    image: post.image,
+    image: post.ogImage || post.image,
     keywords: [post.category, ...(post.tags || [])],
     type: 'article',
   });
@@ -47,7 +47,7 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
     '@type': 'Article',
     headline: post.title,
     description: post.excerpt,
-    image: [absoluteImageUrl(post.image)],
+    image: [absoluteImageUrl(post.ogImage || post.image)],
     author: {
       '@type': 'Organization',
       name: siteConfig.name,

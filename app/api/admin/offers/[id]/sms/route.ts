@@ -66,9 +66,25 @@ function siteOrigin(request: Request) {
   return new URL(request.url).origin
 }
 
-function buildSmsText(offer: { client_name?: string | null; product_name: string; token: string }, origin: string) {
+function formatMoney(value?: number | null) {
+  const amount = Number(value || 0)
+  return amount > 0 ? `${amount.toLocaleString('ka-GE')} ₾` : ''
+}
+
+function buildSmsText(offer: {
+  client_name?: string | null
+  product_name: string
+  token: string
+  price_gel?: number | null
+  installment_monthly?: number | null
+  installment_months?: number | null
+}, origin: string) {
   const greeting = offer.client_name ? `გამარჯობა, ${offer.client_name}.` : 'გამარჯობა.'
-  return `${greeting} გიგზავნით Medical Line-ის შეთავაზებას ${offer.product_name}-ზე: ${origin}/offer/${offer.token}`
+  const total = formatMoney(offer.price_gel)
+  const monthly = formatMoney(offer.installment_monthly)
+  const months = Number(offer.installment_months || 0)
+  const terms = monthly && months ? ` ${monthly}/თვე, ${months} თვე.` : total ? ` თანხა: ${total}.` : ''
+  return `${greeting} Medical Line-ის განვადების დოკუმენტი — ${offer.product_name}.${terms} ნახვა: ${origin}/offer/${offer.token}`
 }
 
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -78,7 +94,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   const { id } = await params
   const { data: offer, error } = await auth.admin
     .from('product_offers')
-    .select('id, token, product_name, client_name, client_phone, status')
+    .select('id, token, product_name, client_name, client_phone, price_gel, installment_monthly, installment_months, status')
     .eq('id', id)
     .single()
 
@@ -116,6 +132,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     ok: true,
     smsSent: true,
     smsText,
+    documentUrl: `${siteOrigin(request)}/offer/${offer.token}`,
     smsProvider: delivery.provider,
     smsMessageId: delivery.messageId ?? null,
     balance: delivery.balance ?? null,

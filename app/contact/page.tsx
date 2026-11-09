@@ -5,12 +5,20 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { 
   Phone, MapPin, Facebook, Instagram, Youtube, 
-  Menu, X, Send, ChevronRight, CheckCircle2, MessageCircle, Camera
+  Menu, X, Send, ChevronRight, MessageCircle, Camera, Mail, Clock
 } from 'lucide-react';
 
 export default function Home() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  const sendContact = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const data = new FormData(event.currentTarget);
+    const subject = encodeURIComponent(`ვებგვერდის შეტყობინება — ${data.get('name') || 'მომხმარებელი'}`);
+    const body = encodeURIComponent(`სახელი: ${data.get('name')}\nელფოსტა: ${data.get('email')}\nტელეფონი: ${data.get('phone')}\n\n${data.get('message')}`);
+    window.location.href = `mailto:ltdmedicalline@gmail.com?subject=${subject}&body=${body}`;
+  };
 
   useEffect(() => {
     const handleScroll = () => setIsScrolled(window.scrollY > 50);
@@ -43,7 +51,10 @@ export default function Home() {
         <a href="https://wa.me/995514011116" target="_blank" className="w-12 h-12 bg-[#25D366] text-white flex items-center justify-center rounded-l-2xl hover:pr-8 hover:w-20 transition-all duration-300 group shadow-lg">
           <MessageCircle size={24} />
         </a>
-        <a href="#" target="_blank" className="w-12 h-12 bg-[#1877F2] text-white flex items-center justify-center rounded-l-2xl hover:pr-8 hover:w-20 transition-all duration-300 group shadow-lg">
+        <a href="https://m.me/medicalline.ge" target="_blank" className="w-12 h-12 bg-[#0084FF] text-white flex items-center justify-center rounded-l-2xl hover:pr-8 hover:w-20 transition-all duration-300 group shadow-lg">
+          <Send size={24} />
+        </a>
+        <a href="https://www.facebook.com/medicalline.ge" target="_blank" className="w-12 h-12 bg-[#1877F2] text-white flex items-center justify-center rounded-l-2xl hover:pr-8 hover:w-20 transition-all duration-300 group shadow-lg">
           <Facebook size={24} />
         </a>
         <a href="#" target="_blank" className="w-12 h-12 bg-[#E4405F] text-white flex items-center justify-center rounded-l-2xl hover:pr-8 hover:w-20 transition-all duration-300 group shadow-lg">
@@ -166,11 +177,18 @@ export default function Home() {
         <div className="max-w-7xl mx-auto grid lg:grid-cols-2 gap-20">
           <div className="space-y-10">
             <h2 className="text-5xl font-black uppercase tracking-tighter leading-none">დაგვიკავშირდით <br/> <span className="text-blue-500">კონსულტაციისთვის</span></h2>
-            <form className="space-y-6">
-              <input type="text" placeholder="სახელი" className="w-full p-5 bg-white/5 border border-white/10 rounded-2xl outline-none focus:border-blue-600 transition" />
-              <textarea placeholder="შეტყობინება" rows={4} className="w-full p-5 bg-white/5 border border-white/10 rounded-2xl outline-none focus:border-blue-600 transition"></textarea>
+            <form className="space-y-4" onSubmit={sendContact}>
+              <input name="name" required type="text" placeholder="სახელი და გვარი" className="w-full p-5 bg-white/5 border border-white/10 rounded-2xl outline-none focus:border-blue-600 transition" />
+              <input name="email" required type="email" placeholder="ელფოსტა" className="w-full p-5 bg-white/5 border border-white/10 rounded-2xl outline-none focus:border-blue-600 transition" />
+              <input name="phone" required type="tel" placeholder="ტელეფონი" className="w-full p-5 bg-white/5 border border-white/10 rounded-2xl outline-none focus:border-blue-600 transition" />
+              <textarea name="message" required placeholder="შეტყობინება" rows={4} className="w-full p-5 bg-white/5 border border-white/10 rounded-2xl outline-none focus:border-blue-600 transition"></textarea>
               <button className="w-full py-5 bg-blue-600 text-white rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-white hover:text-slate-900 transition-all">გაგზავნა</button>
             </form>
+            <div className="grid sm:grid-cols-2 gap-3">
+              <a href="tel:+995514011116" className="flex items-center justify-center gap-2 rounded-xl bg-white text-slate-900 px-4 py-4 font-black"><Phone size={18}/> დაგვირეკეთ</a>
+              <a href="mailto:ltdmedicalline@gmail.com" className="flex items-center justify-center gap-2 rounded-xl border border-white/20 px-4 py-4 font-black"><Mail size={18}/> მოგვწერეთ</a>
+              <a href="https://wa.me/995514011116" target="_blank" rel="noreferrer" className="sm:col-span-2 flex items-center justify-center gap-2 rounded-xl bg-[#25D366] px-4 py-4 font-black"><MessageCircle size={18}/> WhatsApp</a>
+            </div>
           </div>
           <div className="space-y-12">
             <div className="h-[400px] rounded-[3rem] overflow-hidden shadow-2xl border-4 border-white/10 relative">
@@ -179,9 +197,11 @@ export default function Home() {
                 width="100%" height="100%" style={{ border: 0 }} allowFullScreen loading="lazy">
               </iframe>
             </div>
-            <div className="flex justify-between items-center font-bold text-slate-400 uppercase text-[10px] tracking-widest">
-              <span>დავით ჯაბიძის #8, თბილისი</span>
-              <span>+995 514 011 116</span>
+            <div className="grid sm:grid-cols-2 gap-3 font-bold text-slate-300 text-sm">
+              <span className="flex gap-2"><MapPin size={18} className="text-blue-500 shrink-0"/> თბილისი, დ. ჯაბიძის ქ. #8</span>
+              <a href="tel:+995514011116" className="flex gap-2"><Phone size={18} className="text-blue-500 shrink-0"/> +995 514 011 116</a>
+              <a href="mailto:ltdmedicalline@gmail.com" className="flex gap-2 break-all"><Mail size={18} className="text-blue-500 shrink-0"/> ltdmedicalline@gmail.com</a>
+              <span className="flex gap-2"><Clock size={18} className="text-blue-500 shrink-0"/> ორშაბათი–პარასკევი, 10:00–18:00</span>
             </div>
           </div>
         </div>

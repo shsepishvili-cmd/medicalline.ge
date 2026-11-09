@@ -1,0 +1,5 @@
+.deploy-*/
+.history-memo/
+tmp/
+dev-*.log
+*.bak

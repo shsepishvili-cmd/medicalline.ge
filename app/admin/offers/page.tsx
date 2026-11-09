@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { Copy, ExternalLink, MessageCircle, Phone, Plus, Send, CheckCircle2 } from 'lucide-react'
-import { supabase } from '../../lib/supabase'
+import { adminSupabase as supabase } from '../../lib/supabase-admin-browser'
 import {
   collapseDatabaseProducts,
   findDatabaseProductMatch,
@@ -20,10 +20,22 @@ type Offer = {
   client_name: string | null
   client_phone: string | null
   price_gel: number | null
+  installment_monthly: number | null
+  installment_months: number | null
+  sms_sent_at?: string | null
   status: string
   views_count: number
   expires_at: string | null
   created_at: string
+}
+
+async function apiJson(response: Response, fallbackError: string) {
+  const raw = await response.text()
+  try {
+    return JSON.parse(raw)
+  } catch {
+    throw new Error(response.ok ? fallbackError : `სერვერის შეცდომა (${response.status}). გვერდი განაახლეთ და თავიდან სცადეთ.`)
+  }
 }
 
 function dedupeProductList<T extends { slug?: string; name?: string }>(list: T[]) {
@@ -49,7 +61,7 @@ function money(value: unknown) {
 function offerBrand(product: { slug?: string; name?: string }) {
   const key = `${product.slug || ''} ${product.name || ''}`.toLowerCase()
   if (key.includes('finscan')) return 'FinScan'
-  return inferBrand(product)
+  return inferBrand({ slug: product.slug || '', name: product.name || '', brand: '' })
 }
 
 export default function AdminOffersPage() {
@@ -159,7 +171,7 @@ export default function AdminOffersPage() {
       }
 
       const response = await fetch('/api/admin/offers', { headers, cache: 'no-store' })
-      const payload = await response.json().catch(() => null)
+      const payload = await apiJson(response, 'შეთავაზებების პასუხი ვერ დამუშავდა.')
       if (!response.ok || !payload?.ok) throw new Error(payload?.error || 'შეთავაზებები ვერ ჩაიტვირთა.')
       setOffers(payload.offers || [])
     } catch (loadError) {
@@ -195,7 +207,7 @@ export default function AdminOffersPage() {
           customNote,
         }),
       })
-      const payload = await response.json().catch(() => null)
+      const payload = await apiJson(response, 'განვადების დოკუმენტის პასუხი ვერ დამუშავდა.')
       if (!response.ok || !payload?.ok) throw new Error(payload?.error || 'შეთავაზება ვერ შეიქმნა.')
 
       setOffers((prev) => [payload.offer, ...prev])
@@ -227,7 +239,7 @@ export default function AdminOffersPage() {
         headers,
         body: JSON.stringify({ id, status }),
       })
-      const payload = await response.json().catch(() => null)
+      const payload = await apiJson(response, 'სტატუსის პასუხი ვერ დამუშავდა.')
       if (!response.ok || !payload?.ok) throw new Error(payload?.error || 'სტატუსი ვერ შეიცვალა.')
       setOffers((prev) => prev.map((offer) => offer.id === id ? payload.offer : offer))
     } catch (statusError) {
@@ -247,11 +259,11 @@ export default function AdminOffersPage() {
         method: 'POST',
         headers,
       })
-      const payload = await response.json().catch(() => null)
+      const payload = await apiJson(response, 'SMS სერვერის პასუხი ვერ დამუშავდა.')
       if (!response.ok || !payload?.ok) throw new Error(payload?.error || 'SMS ვერ გაიგზავნა.')
 
       if (payload.smsSent) {
-        setMessage(`SMS გაიგზავნა: ${offer.client_phone || ''}${payload.smsMessageId ? ` · ID ${payload.smsMessageId}` : ''}`)
+        setMessage(`განვადების დოკუმენტი SMS-ით გაიგზავნა: ${offer.client_phone || ''}${payload.smsMessageId ? ` · ID ${payload.smsMessageId}` : ''}`)
         setOffers((prev) => prev.map((item) => item.id === offer.id ? { ...item, status: item.status === 'draft' ? 'sent' : item.status } : item))
         return
       }
@@ -269,7 +281,7 @@ export default function AdminOffersPage() {
 
   function messageText(offer: Offer) {
     return encodeURIComponent(
-      `გამარჯობა${offer.client_name ? `, ${offer.client_name}` : ''}. გიგზავნით Medical Line-ის შეთავაზებას ${offer.product_name}-ზე: ${offerUrl(offer.token)}`,
+      `გამარჯობა${offer.client_name ? `, ${offer.client_name}` : ''}. გიგზავნით Medical Line-ის განვადების დოკუმენტს ${offer.product_name}-ზე: ${offerUrl(offer.token)}`,
     )
   }
 
@@ -279,8 +291,8 @@ export default function AdminOffersPage() {
         <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'center', marginBottom: 18 }}>
           <div>
             <Link href="/admin" style={{ color: '#085041', fontSize: 12, fontWeight: 700, textDecoration: 'none' }}>← Admin</Link>
-            <h1 style={{ margin: '8px 0 4px', fontSize: 28, color: '#101828' }}>შეთავაზებები</h1>
-            <p style={{ margin: 0, color: '#667085', fontSize: 14 }}>პროდუქტის ლინკი კლიენტისთვის: SMS, WhatsApp ან კოპირება.</p>
+            <h1 style={{ margin: '8px 0 4px', fontSize: 28, color: '#101828' }}>შეთავაზებები და განვადება</h1>
+            <p style={{ margin: 0, color: '#667085', fontSize: 14 }}>განვადების დოკუმენტი კლიენტისთვის: SMS, WhatsApp ან კოპირება.</p>
           </div>
           <button onClick={loadData} style={{ border: '1px solid #d0d5dd', background: '#fff', borderRadius: 8, padding: '10px 12px', cursor: 'pointer' }}>
             განახლება
@@ -297,8 +309,8 @@ export default function AdminOffersPage() {
                 <Plus size={20} />
               </div>
               <div>
-                <h2 style={{ margin: 0, fontSize: 16 }}>ახალი შეთავაზება</h2>
-                <p style={{ margin: '3px 0 0', color: '#667085', fontSize: 12 }}>აირჩიე აპარატი და შეავსე პირობა.</p>
+                <h2 style={{ margin: 0, fontSize: 16 }}>ახალი განვადების დოკუმენტი</h2>
+                <p style={{ margin: '3px 0 0', color: '#667085', fontSize: 12 }}>აირჩიე აპარატი, მიუთითე კლიენტი და განვადების ვადა.</p>
               </div>
             </div>
 
@@ -343,17 +355,17 @@ export default function AdminOffersPage() {
                 checked={sendSmsOnCreate}
                 onChange={(event) => setSendSmsOnCreate(event.target.checked)}
               />
-              შექმნისთანავე GOSMS-ით SMS გაგზავნა ტელეფონზე
+              შექმნისთანავე განვადების დოკუმენტი SMS-ით გაიგზავნოს
             </label>
 
             <button onClick={createOffer} disabled={saving || loading} style={{ marginTop: 12, width: '100%', border: 'none', borderRadius: 8, padding: '13px 14px', background: '#085041', color: '#fff', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-              <Send size={17} /> {saving ? 'იქმნება...' : 'შეთავაზების ლინკის შექმნა'}
+              <Send size={17} /> {saving ? 'იქმნება...' : 'განვადების დოკუმენტის შექმნა'}
             </button>
           </section>
 
           <section style={{ background: '#fff', border: '1px solid rgba(0,0,0,.08)', borderRadius: 8, overflow: 'hidden' }}>
             <div style={{ padding: 16, borderBottom: '1px solid #eef2f0', display: 'flex', justifyContent: 'space-between' }}>
-              <h2 style={{ margin: 0, fontSize: 16 }}>ბოლო შეთავაზებები</h2>
+              <h2 style={{ margin: 0, fontSize: 16 }}>ბოლო განვადების დოკუმენტები</h2>
               <span style={{ color: '#667085', fontSize: 12 }}>{offers.length} ჩანაწერი</span>
             </div>
 
@@ -373,7 +385,8 @@ export default function AdminOffersPage() {
                         </span>
                       </div>
                       <p style={{ margin: '5px 0 0', color: '#667085', fontSize: 12 }}>
-                        {offer.client_name || 'კლიენტი'} · {offer.client_phone || 'ტელეფონის გარეშე'} · {money(offer.price_gel)} · ნახვა: {offer.views_count || 0}
+                        {offer.client_name || 'კლიენტი'} · {offer.client_phone || 'ტელეფონის გარეშე'} · {money(offer.price_gel)}
+                        {offer.installment_monthly && offer.installment_months ? ` · ${money(offer.installment_monthly)}/თვე × ${offer.installment_months}` : ''} · ნახვა: {offer.views_count || 0}
                       </p>
                       <p style={{ margin: '4px 0 0', color: '#98a2b3', fontSize: 11 }}>
                         {new Date(offer.created_at).toLocaleString('ka-GE')}
@@ -391,8 +404,8 @@ export default function AdminOffersPage() {
                       <a title="WhatsApp" href={`https://wa.me/${(offer.client_phone || '').replace(/\D/g, '')}?text=${messageText(offer)}`} target="_blank" rel="noreferrer" style={{ width: 34, height: 34, borderRadius: 8, border: '1px solid #b7ead9', background: '#ecfdf5', color: '#047857', display: 'grid', placeItems: 'center' }}>
                         <MessageCircle size={16} />
                       </a>
-                      <button title="GOSMS SMS" onClick={() => sendOfferSms(offer)} disabled={smsBusyId === offer.id} style={{ minHeight: 34, borderRadius: 8, border: '1px solid #d0d5dd', background: smsBusyId === offer.id ? '#f2f4f7' : '#f9fafb', color: '#344054', display: 'inline-flex', alignItems: 'center', gap: 6, padding: '0 10px', cursor: 'pointer', fontSize: 11, fontWeight: 800 }}>
-                        <Phone size={14} /> {smsBusyId === offer.id ? 'იგზავნება...' : 'SMS გაგზავნა'}
+                      <button title="განვადების დოკუმენტის SMS-ით გაგზავნა" onClick={() => sendOfferSms(offer)} disabled={smsBusyId === offer.id} style={{ minHeight: 34, borderRadius: 8, border: '1px solid #b7ead9', background: smsBusyId === offer.id ? '#f2f4f7' : '#ecfdf5', color: '#047857', display: 'inline-flex', alignItems: 'center', gap: 6, padding: '0 10px', cursor: 'pointer', fontSize: 11, fontWeight: 800 }}>
+                        <Phone size={14} /> {smsBusyId === offer.id ? 'იგზავნება...' : 'განვადების SMS'}
                       </button>
                       {offer.status !== 'accepted' && (
                         <button onClick={() => updateStatus(offer.id, 'accepted')} style={{ border: 'none', borderRadius: 8, padding: '9px 10px', background: '#085041', color: '#fff', fontWeight: 800, cursor: 'pointer', fontSize: 12 }}>

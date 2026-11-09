@@ -1,5 +1,191 @@
 export const blogArticles = [
   {
+    id: 50,
+    slug: "gdda-expo-2026-registration",
+    title: "GDDA EXPO 2026: რეგისტრაცია კავკასიის უდიდეს სტომატოლოგიურ გამოფენაზე",
+    excerpt:
+      "13–15 ნოემბერს თბილისში GDDA EXPO 2026 გაიმართება. გაიგეთ სად ტარდება გამოფენა, რა გელით ადგილზე და როგორ გაიაროთ რეგისტრაცია.",
+    date: "2 ნოემბერი, 2026",
+    image: "/images/expo_hero.jpeg",
+    ogImage: "/images/expo_hero.jpeg",
+    imageFit: "cover",
+    category: "ღონისძიებები",
+    tags: ["GDDA EXPO 2026", "სტომატოლოგიური გამოფენა", "თბილისი", "რეგისტრაცია", "Medical Line Georgia"],
+    readTime: "4 წთ",
+    baseViews: 0,
+    ctaTitle: "გეგმავთ GDDA EXPO 2026-ზე მოსვლას?",
+    ctaDescription: "გაიარეთ ოფიციალური რეგისტრაცია წინასწარ და შემოგვიერთდით 13–15 ნოემბერს ჰუალინგ პლაზაში.",
+    ctaUrl: "https://docs.google.com/forms/d/e/1FAIpQLScyko9O7nscbPd_n2wjgZB5_Edtko3pJS2ZmH7-A2EdsLWAeg/viewform",
+    ctaLabel: "გამოფენაზე რეგისტრაცია",
+    content: `
+      <section style="margin:2rem 0; border-radius:28px; overflow:hidden; background:linear-gradient(135deg,#061b35 0%,#0b3c70 58%,#0f766e 100%); color:white;">
+        <img src="/images/expo_hero.jpeg" alt="Medical Line Georgia-ს სტენდი GDDA Dental Expo-ზე" style="width:100%; display:block; aspect-ratio:16/9; object-fit:cover;" loading="eager" />
+        <div style="padding:1.5rem;">
+          <p style="margin:0 0 .65rem; color:#93c5fd; font-size:.78rem; font-weight:800; letter-spacing:.12em; text-transform:uppercase;">13 · 14 · 15 ნოემბერი, 2026</p>
+          <p style="font-size:1.25rem; line-height:1.4; font-weight:800; margin:0 0 .65rem;">სტომატოლოგიის მომავალი — ერთ სივრცეში</p>
+          <p style="margin:0; color:#dbeafe;">თბილისი, ჰუალინგ პლაზა, ჯ. ლეჟავას ქ. 22</p>
+        </div>
+      </section>
+
+      <p><strong>GDDA EXPO 2026</strong> — კავკასიის ყველაზე დიდი სტომატოლოგიური გამოფენა — თბილისში, 2026 წლის <strong>13, 14 და 15 ნოემბერს</strong> გაიმართება. სამი დღის განმავლობაში ერთ სივრცეში შეიკრიბებიან სტომატოლოგები, კლინიკების წარმომადგენლები, ტექნოლოგიური ბრენდები და დარგის პროფესიონალები.</p>
+      <p>Medical Line Georgia გამოფენაზე საკუთარ გუნდთან ერთად გელოდებათ. ადგილზე შეძლებთ თანამედროვე სტომატოლოგიური აპარატურის გაცნობას, პროდუქციის რეალურ სამუშაო გარემოში ნახვას და ჩვენი სპეციალისტებისგან პროფესიული კონსულტაციის მიღებას.</p>
+
+      <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(210px,1fr)); gap:1rem; margin:1.75rem 0 2rem;">
+        <div style="background:#eff6ff; border:1px solid #bfdbfe; border-radius:18px; padding:1.25rem;">
+          <p style="font-size:.78rem; font-weight:800; color:#2563eb; margin:0 0 .45rem; text-transform:uppercase; letter-spacing:.08em;">თარიღი</p>
+          <p style="font-size:1.1rem; font-weight:800; color:#0f172a; margin:0;">13–15 ნოემბერი, 2026</p>
+        </div>
+        <div style="background:#ecfdf5; border:1px solid #a7f3d0; border-radius:18px; padding:1.25rem;">
+          <p style="font-size:.78rem; font-weight:800; color:#059669; margin:0 0 .45rem; text-transform:uppercase; letter-spacing:.08em;">მისამართი</p>
+          <p style="font-size:1.1rem; font-weight:800; color:#0f172a; margin:0;">ჰუალინგ პლაზა, ჯ. ლეჟავას ქ. 22, თბილისი</p>
+        </div>
+      </div>
+
+      <h2>რა გელით GDDA EXPO 2026-ზე?</h2>
+      <ul>
+        <li><strong>ინოვაციური ტექნოლოგიები</strong> — მსოფლიო ბრენდების უახლესი აპარატურა, მასალები და ციფრული გადაწყვეტილებები.</li>
+        <li><strong>პრაქტიკული ცოდნა</strong> — წამყვანი სპიკერების მასტერკლასები, ტრენინგები და პრეზენტაციები.</li>
+        <li><strong>B2B ნეთვორქინგი</strong> — ახალი პროფესიული კავშირები და პარტნიორული შესაძლებლობები.</li>
+        <li><strong>ცოცხალი დემონსტრაციები</strong> — შესაძლებლობა, მოწყობილობები ადგილზე ნახოთ, შეადაროთ და შეკითხვები უშუალოდ სპეციალისტებს დაუსვათ.</li>
+      </ul>
+
+      <figure style="margin:2rem 0;">
+        <img src="/images/expo_photo1.jpeg" alt="სტომატოლოგიური აპარატურის დემონსტრაცია Medical Line Georgia-ს საგამოფენო სივრცეში" style="width:100%; max-height:620px; object-fit:cover; border-radius:24px; display:block;" loading="lazy" />
+        <figcaption style="margin-top:.65rem; color:#64748b; font-size:.92rem;">Medical Line Georgia-ს გუნდი წინა GDDA EXPO-ზე — პროდუქტის ცოცხალი დემონსტრაცია.</figcaption>
+      </figure>
+
+      <h2>რატომ ღირს დასწრება?</h2>
+      <p>გამოფენა კარგი შესაძლებლობაა მათთვის, ვისაც სურს კლინიკის განახლება, ციფრულ სტომატოლოგიაზე გადასვლა ან ახალი ტექნოლოგიის შეძენამდე რეალური შედარება. ონლაინ კატალოგისგან განსხვავებით, აქ მოწყობილობის ზომას, ერგონომიკას, სისწრაფესა და სამუშაო პროცესს ადგილზე ნახავთ.</p>
+      <p>Medical Line Georgia-ს გუნდი დაგეხმარებათ თქვენი კლინიკის საჭიროებებისთვის შესაფერისი გადაწყვეტილების შერჩევაში — დაგეგმვიდან და ფინანსური პირობებიდან ინსტალაციამდე, ტრენინგამდე და შემდგომ ტექნიკურ მხარდაჭერამდე.</p>
+
+      <div style="margin:2rem 0; overflow:hidden; border-radius:24px; background:#020617;">
+        <video controls preload="metadata" poster="/images/expo_hero.jpeg" style="width:100%; display:block;" aria-label="Medical Line Georgia — GDDA EXPO-ს ვიდეო მიმოხილვა">
+          <source src="/videos/expo_recap.mp4" type="video/mp4" />
+        </video>
+      </div>
+
+      <h2>როგორ გავიაროთ რეგისტრაცია</h2>
+      <p>რეგისტრაცია ხელმისაწვდომია ღონისძიების ოფიციალურ Google ფორმაში. დააჭირეთ ქვემოთ მოცემულ ღილაკს, შეავსეთ მოთხოვნილი ინფორმაცია და შეინახეთ რეგისტრაციის დასტური.</p>
+      <p style="margin:1.5rem 0;">
+        <a href="https://docs.google.com/forms/d/e/1FAIpQLScyko9O7nscbPd_n2wjgZB5_Edtko3pJS2ZmH7-A2EdsLWAeg/viewform" target="_blank" rel="noopener noreferrer" style="display:inline-block; background:#2563eb; color:white; padding:.95rem 1.35rem; border-radius:14px; font-weight:800; text-decoration:none;">GDDA EXPO 2026-ზე რეგისტრაცია ↗</a>
+      </p>
+
+      <h2>ლოკაცია</h2>
+      <p><strong>ჰუალინგ პლაზა</strong><br />ჯ. ლეჟავას ქ. 22, თბილისი</p>
+      <p><a href="https://maps.app.goo.gl/MGomikMcZTHymYQn9" target="_blank" rel="noopener noreferrer">მისამართის გახსნა Google Maps-ში ↗</a></p>
+
+      <blockquote>ღონისძიების ოფიციალური ინფორმაცია და რეგისტრაციის ბმული აღებულია GDDA EXPO 2026-ის ოფიციალური გვერდიდან: https://gdda-expo-2026-git-main-sanitarier.vercel.app/ka/</blockquote>
+    `,
+  },
+  {
+    id: 49,
+    slug: "eighteeth-e-connect-cordless-endo-motor",
+    title: "Eighteeth E-CONNECT - უსადენო ენდომოტორი, რომელიც აპექს ლოკატორს უკავშირდება",
+    excerpt:
+      "E-CONNECT არის Eighteeth-ის უსადენო ენდომოტორი 5 რეციპროკაციის რეჟიმით, 9 პროგრამირებადი მეხსიერებით, 1000 rpm მაქსიმალური სიჩქარით და Connect ფუნქციით, რომლითაც E-PEX აპექს ლოკატორის ჩვენება პირდაპირ ენდომოტორის ეკრანზე ჩანს.",
+    date: "29 ოქტომბერი, 2026",
+    image: "/images/blog/e-connect-endo-motor/e-connect-01.webp",
+    ogImage: "/images/blog/e-connect-endo-motor/e-connect-01.webp",
+    imageFit: "cover",
+    category: "ენდოდონტია",
+    tags: ["E-CONNECT", "Eighteeth", "ენდომოტორი", "E-PEX", "აპექს ლოკატორი", "რეციპროკაცია", "Medical Line Georgia"],
+    readTime: "6 წთ",
+    baseViews: 90,
+    content: `
+      <section style="margin:2rem 0; border-radius:28px; overflow:hidden; background:#0b0d12; color:white;">
+        <img src="/images/blog/e-connect-endo-motor/e-connect-01.webp" alt="Eighteeth E-CONNECT უსადენო ენდომოტორი დამტენ სადგამზე" style="width:100%; display:block;" loading="eager" />
+        <div style="padding:1.4rem 1.5rem 1.6rem;">
+          <p style="font-size:1.14rem; font-weight:700; margin:0 0 .6rem;">ერთი ხელსაწყო არხის დამუშავებისთვის და სიგრძის კონტროლისთვის</p>
+          <p style="margin:0; color:#cbd5e1;">E-CONNECT აერთიანებს უსადენო ენდომოტორის თავისუფლებას და აპექს ლოკატორთან პირდაპირ კავშირს. ექიმი ფაილის ბრუნვას და აპექსამდე დარჩენილ მანძილს ერთსა და იმავე ეკრანზე ხედავს.</p>
+        </div>
+      </section>
+
+      <h2>რატომ არის მნიშვნელოვანი ენდომოტორის და აპექს ლოკატორის კავშირი</h2>
+      <p>არხის მექანიკური დამუშავებისას ექიმი ერთდროულად აკონტროლებს ორ რამეს: ფაილის ბრუნვას (სიჩქარე, ტორკი, მიმართულება) და სამუშაო სიგრძეს. როცა ეს ინფორმაცია ორ სხვადასხვა მოწყობილობაზეა, ყურადღება გამუდმებით ეკრანებს შორის გადადის. E-CONNECT-ში ეს ორი პროცესი ერთ workflow-შია გაერთიანებული: მოტორი თავად რეაგირებს აპექსთან მიახლოებაზე.</p>
+
+      <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(210px,1fr)); gap:1rem; margin:1.5rem 0 2rem;">
+        <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:18px; padding:1.2rem;">
+          <h3 style="margin-top:0;">5 რეციპროკაციის რეჟიმი</h3>
+          <p>4 წინსვლითი და 1 უკუ რეციპროკაციის რეჟიმი (M0) როგორც უწყვეტი როტაციის, ისე რეციპროკაციული ფაილებისთვის.</p>
+        </div>
+        <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:18px; padding:1.2rem;">
+          <h3 style="margin-top:0;">M1–M9 მეხსიერება</h3>
+          <p>9 პროგრამირებადი პროგრამა საკუთარი სიჩქარით, ტორკით და ბრუნვის მიმართულებით.</p>
+        </div>
+        <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:18px; padding:1.2rem;">
+          <h3 style="margin-top:0;">Connect ფუნქცია</h3>
+          <p>E-PEX აპექს ლოკატორთან დაკავშირებისას ენდომოტორის ეკრანზე აპექს ლოკატორის ჩვენება ჩანს.</p>
+        </div>
+      </div>
+
+      <h2>5 რეციპროკაციის რეჟიმი (M0)</h2>
+      <p>E-CONNECT-ს აქვს ოთხი წინსვლითი რეციპროკაციის რეჟიმი, სადაც მოძრაობა ჯერ საათის ისრის მიმართულებით ხდება, შემდეგ საწინააღმდეგოდ: <strong>წინ 150° – უკან 30°</strong>, <strong>წინ 180° – უკან 30°</strong>, <strong>წინ 210° – უკან 30°</strong> და <strong>წინ 250° – უკან 30°</strong>. მწარმოებლის მიხედვით, ეს რეჟიმები უწყვეტი როტაციის ფაილებისთვისაა განკუთვნილი: რეციპროკაციული მოძრაობა ამცირებს ფაილზე დატვირთვას და მისი გატეხვის რისკს რთულ, მოხრილ არხებში.</p>
+      <p>მეხუთე, უკუ რეციპროკაციის რეჟიმი (<strong>წინ 30° – უკან 150°</strong>) რეციპროკაციული ფაილების სისტემებისთვისაა.</p>
+
+      <figure style="margin:2rem 0;">
+        <img src="/images/blog/e-connect-endo-motor/e-connect-02.webp" alt="E-CONNECT 5 რეციპროკაციის რეჟიმი: წინსვლითი და უკუ რეციპროკაცია" style="width:100%; border-radius:24px; display:block; background:#0b0d12;" loading="lazy" />
+      </figure>
+
+      <h2>პროგრამირებადი მეხსიერება M1–M9</h2>
+      <p>გარდა რეციპროკაციის რეჟიმებისა, ექიმს შეუძლია 9 საკუთარი პროგრამის შენახვა. თითოეულში რეგულირდება სიჩქარე (მაქსიმუმ 1000 rpm), ტორკი და ბრუნვის მიმართულება: წინ, უკან ან 360° ბრუნვა საათის ისრით. <strong>ტორკის ავტორევერსი</strong> ფაილს ავტომატურად აბრუნებს, როცა დატვირთვა დაყენებულ ზღვარს აღწევს, რაც ფაილის ჩაჭედვისა და გატეხვის რისკს ამცირებს.</p>
+      <p>პრაქტიკაში ეს ნიშნავს, რომ კლინიკაში გამოყენებული ფაილების სისტემების პარამეტრები ერთხელ ინახება, შემდეგ კი პროგრამის არჩევას რამდენიმე წამი სჭირდება.</p>
+
+      <figure style="margin:2rem 0;">
+        <img src="/images/blog/e-connect-endo-motor/e-connect-04.webp" alt="E-CONNECT პროგრამირებადი მეხსიერება M1-M9, სიჩქარის და ტორკის რეგულირება" style="width:100%; border-radius:24px; display:block; background:#0b0d12;" loading="lazy" />
+      </figure>
+
+      <h2>ერთიანი კუთხური ნაკრავი</h2>
+      <p>E-CONNECT-ის კუთხური ნაკრავი მინიატურული თავით არის დამზადებული, რაც უკეთეს ხედვას და მარტივ წვდომას იძლევა მოლარების ზონაში. ნაკრავი <strong>მოხსნადია</strong>, <strong>ავტოკლავირდება 134°C-ზე</strong> და <strong>360°-ით ბრუნავს</strong>, ასე რომ ექიმს შეუძლია მისი ნებისმიერ კბილთან და პოზიციასთან მორგება ხელის არაბუნებრივი მობრუნების გარეშე.</p>
+
+      <figure style="margin:2rem 0;">
+        <img src="/images/blog/e-connect-endo-motor/e-connect-03.webp" alt="E-CONNECT ერთიანი კუთხური ნაკრავი: ავტოკლავირებადი, მინიატურული თავი, მოხსნადი, 360° მობრუნებადი" style="width:100%; border-radius:24px; display:block; background:#0b0d12;" loading="lazy" />
+      </figure>
+
+      <h2>E-CONNECT × E-PEX: Connect ფუნქცია</h2>
+      <p>E-CONNECT-ის მთავარი უპირატესობა <a href="/catalog/e-pex">E-PEX აპექს ლოკატორთან</a> ინტეგრაციაა. კაბელით დაკავშირებისას ენდომოტორის OLED ეკრანი აპექს ლოკატორის ჩვენებას ასახავს, ხოლო მოტორი სამ ავტომატურ ფუნქციას იღებს:</p>
+      <ul>
+        <li><strong>ავტო სტარტი და სტოპი</strong> – მოტორი ავტომატურად ირთვება, როცა ფაილი არხში შედის, და ჩერდება, როცა ფაილი არხიდან გამოდის.</li>
+        <li><strong>აპიკალური რევერსი</strong> – დაყენებულ აპიკალურ ნიშნულთან მისვლისას ფაილი ავტომატურად იწყებს უკუ ბრუნვას.</li>
+        <li><strong>აპიკალური შენელება</strong> – აპექსთან მიახლოებისას სიჩქარე თანდათან კლებულობს, რაც უფრო კონტროლირებად დამუშავებას იძლევა.</li>
+      </ul>
+
+      <figure style="margin:2rem 0;">
+        <img src="/images/blog/e-connect-endo-motor/e-connect-05.webp" alt="E-CONNECT და E-PEX აპექს ლოკატორის ინტეგრაცია, Connect ფუნქცია" style="width:100%; border-radius:24px; display:block; background:#0b0d12;" loading="lazy" />
+      </figure>
+
+      <h2>დამატებითი შესაძლებლობები</h2>
+      <ul>
+        <li><strong>ტორკის კალიბრაცია</strong> – ნაკრავის კალიბრაცია ტორკის ზუსტი კონტროლისთვის.</li>
+        <li><strong>ციფრული OLED ეკრანი</strong> – კონტრასტული ჩვენება სიჩქარის, ტორკის და აპიკალური მანძილისთვის.</li>
+        <li><strong>დაბალხმაურიანი ძრავა</strong> – უფრო მშვიდი გარემო პაციენტისთვის.</li>
+        <li><strong>ეკრანი ორივე ხელისთვის</strong> – ეკრანი შეიძლება მარცხნივ ან მარჯვნივ მოტრიალდეს, ამიტომ მოწყობილობა მარცხენა ხელის ექიმისთვისაც მოსახერხებელია.</li>
+        <li><strong>1500 mAh ლითიუმის აკუმულატორი</strong> – უსადენო მუშაობა მთელი სამუშაო დღის განმავლობაში, დამუხტვა სადგამზე.</li>
+      </ul>
+
+      <h2>ძირითადი მახასიათებლები</h2>
+      <ul>
+        <li><strong>მოდელი:</strong> E-CONNECT (Eighteeth)</li>
+        <li><strong>ტიპი:</strong> უსადენო ენდომოტორი</li>
+        <li><strong>მაქსიმალური სიჩქარე:</strong> 1000 rpm</li>
+        <li><strong>რეციპროკაცია:</strong> 150°/30°, 180°/30°, 210°/30°, 250°/30° (წინსვლითი), 30°/150° (უკუ)</li>
+        <li><strong>მეხსიერება:</strong> M0 (რეციპროკაცია) + M1–M9 პროგრამირებადი</li>
+        <li><strong>ფუნქციები:</strong> ბრუნვა წინ/უკან, ტორკის ავტორევერსი, რეგულირებადი სიჩქარე და ტორკი</li>
+        <li><strong>კუთხური ნაკრავი:</strong> მინიატურული თავი, მოხსნადი, ავტოკლავირებადი 134°C, 360° მობრუნება</li>
+        <li><strong>ეკრანი:</strong> OLED, ორივე ხელისთვის</li>
+        <li><strong>აკუმულატორი:</strong> 1500 mAh ლითიუმის</li>
+        <li><strong>ინტეგრაცია:</strong> E-PEX აპექს ლოკატორი (Connect ფუნქცია)</li>
+      </ul>
+
+      <h2>ვისთვის არის კარგი არჩევანი</h2>
+      <p>E-CONNECT კარგი არჩევანია კლინიკისთვის, რომელიც სხვადასხვა ფაილის სისტემით მუშაობს და სურს, რომ სიჩქარე, ტორკი და სამუშაო სიგრძე ერთი მოწყობილობიდან აკონტროლოს. უსადენო კორპუსი, მინიატურული თავი და აპექს ლოკატორთან ინტეგრაცია განსაკუთრებით სასარგებლოა მოლარების რთულ არხებში.</p>
+
+      <h2>Medical Line Georgia-ს მხარდაჭერა</h2>
+      <p>Medical Line Georgia დაგეხმარებათ <a href="/catalog/e-connect">E-CONNECT ენდომოტორის</a> დემონსტრაციაში, თქვენი ფაილების სისტემისთვის პროგრამების დაყენებაში და E-PEX აპექს ლოკატორთან ინტეგრაციაში. დაგვიკავშირდით კონსულტაციისთვის.</p>
+
+      <blockquote>წყარო: Eighteeth-ის ოფიციალური E-CONNECT პროდუქტის გვერდი - https://www.eighteeth.com/Endo-Motor/34.html</blockquote>
+    `,
+  },
+  {
     id: 48,
     slug: "eighteeth-sidelab-p1-chairside-3d-printer",
     title: "Eighteeth SideLab P1 - გვირგვინი ერთ ვიზიტში, დაახლოებით 20 წუთში",

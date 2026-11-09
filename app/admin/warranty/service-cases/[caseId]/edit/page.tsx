@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
-import { supabase } from '@/app/lib/supabase'
+import { adminSupabase as supabase } from '@/app/lib/supabase-admin-browser'
 import type { ServiceCaseRecord } from '@/app/lib/warranty-types'
 import { AuthBlockedView, LoadingView, WarrantyAdminShell, useWarrantyAdminGate } from '../../../_components/WarrantyUi'
 import { ServiceCaseForm } from '../../../_components/ServiceCaseForm'

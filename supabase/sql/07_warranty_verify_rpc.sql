@@ -33,11 +33,16 @@ RETURNS TABLE (
   serial_number     TEXT,
   clinic_name       TEXT,
   customer_name     TEXT,
+  customer_id_number TEXT,
+  customer_address  TEXT,
   purchase_date     DATE,
   installation_date DATE,
   warranty_start    DATE,
+  warranty_months   INTEGER,
   warranty_end      DATE,
-  status            TEXT
+  status            TEXT,
+  terms_version     TEXT,
+  generated_at      TIMESTAMPTZ
 )
 LANGUAGE SQL
 STABLE
@@ -52,11 +57,16 @@ AS $$
     w.serial_number,
     w.clinic_name,
     w.customer_name,
+    w.customer_id_number,
+    w.customer_address,
     w.purchase_date,
     w.installation_date,
     w.warranty_start,
+    w.warranty_months,
     w.warranty_end,
-    w.status
+    w.status,
+    w.terms_version,
+    w.generated_at
   FROM public.warranties w
   WHERE w.verify_token = p_verify_token
     AND w.archived_at IS NULL

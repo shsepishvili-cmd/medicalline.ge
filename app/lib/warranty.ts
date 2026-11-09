@@ -51,6 +51,10 @@ export function buildWarrantyVerifyUrl(baseUrl: string, verifyToken: string) {
   return `${baseUrl.replace(/\/$/, '')}/warranty/verify/${verifyToken}`
 }
 
+export function warrantySmsText(warrantyNumber: string, documentUrl: string) {
+  return `Tqveni sagarantio dokumenti ${warrantyNumber}: ${documentUrl} Medical Line Georgia`
+}
+
 export function formatDate(value?: string | null) {
   if (!value) return '—'
   return new Date(value).toLocaleDateString('ka-GE')
@@ -90,6 +94,12 @@ export function createEmptyWarrantyForm(): WarrantyFormValues {
     soldBy: '',
     status: 'pending',
     notes: '',
+    componentTerms: '',
+    packageNotes: '',
+    handoverDeviceChecked: false,
+    handoverInstallationDone: false,
+    handoverManualGiven: false,
+    handoverTrainingDone: false,
   }
 }
 
@@ -104,6 +114,8 @@ export function createEmptyServiceCaseForm(): ServiceCaseFormValues {
     actionTaken: '',
     replacedUnit: '',
     sentToFactory: false,
+    businessTripRequired: false,
+    businessTripDetails: '',
     factorySentAt: '',
     factoryReturnedAt: '',
     closedAt: '',

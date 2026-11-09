@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { supabase } from '@/app/lib/supabase'
+import { adminSupabase as supabase } from '@/app/lib/supabase-admin-browser'
 import { createEmptyServiceCaseForm, sanitizeFileName } from '@/app/lib/warranty'
 import type { ProfileSummary, ServiceCaseFormValues, ServiceCaseRecord } from '@/app/lib/warranty-types'
 import { colors, Field, ui } from './WarrantyUi'
@@ -19,6 +19,8 @@ function mapCaseToFormValues(serviceCase: ServiceCaseRecord): ServiceCaseFormVal
     actionTaken: serviceCase.action_taken || '',
     replacedUnit: serviceCase.replaced_unit || '',
     sentToFactory: serviceCase.sent_to_factory,
+    businessTripRequired: serviceCase.business_trip_required || false,
+    businessTripDetails: serviceCase.business_trip_details || '',
     factorySentAt: serviceCase.factory_sent_at ? serviceCase.factory_sent_at.slice(0, 16) : '',
     factoryReturnedAt: serviceCase.factory_returned_at ? serviceCase.factory_returned_at.slice(0, 16) : '',
     closedAt: serviceCase.closed_at ? serviceCase.closed_at.slice(0, 16) : '',
@@ -101,6 +103,8 @@ export function ServiceCaseForm({
         action_taken: values.actionTaken.trim() || null,
         replaced_unit: values.replacedUnit.trim() || null,
         sent_to_factory: values.sentToFactory,
+        business_trip_required: values.businessTripRequired,
+        business_trip_details: values.businessTripDetails.trim() || null,
         factory_sent_at: values.factorySentAt ? new Date(values.factorySentAt).toISOString() : null,
         factory_returned_at: values.factoryReturnedAt ? new Date(values.factoryReturnedAt).toISOString() : null,
         closed_at: values.closedAt ? new Date(values.closedAt).toISOString() : null,
@@ -168,6 +172,15 @@ export function ServiceCaseForm({
             <option value="false">არა</option>
             <option value="true">კი</option>
           </select>
+        </Field>
+        <Field label="მივლინება">
+          <select value={String(values.businessTripRequired)} onChange={(event) => setValue('businessTripRequired', event.target.value === 'true')} style={ui.input}>
+            <option value="false">არა</option>
+            <option value="true">კი</option>
+          </select>
+        </Field>
+        <Field label="მივლინების დეტალი">
+          <input value={values.businessTripDetails} onChange={(event) => setValue('businessTripDetails', event.target.value)} style={ui.input} placeholder="ქალაქი, მისამართი, შეთანხმებული დრო..." />
         </Field>
         <Field label="ქარხანაში გაგზავნის დრო">
           <input type="datetime-local" value={values.factorySentAt} onChange={(event) => setValue('factorySentAt', event.target.value)} style={ui.input} />

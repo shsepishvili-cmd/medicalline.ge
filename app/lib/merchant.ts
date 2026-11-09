@@ -12,6 +12,7 @@ export const merchant = {
 } as const
 
 export const legalLinks = [
+  { href: '/warranty', label: 'გარანტია და სერვისი' },
   { href: '/terms-and-conditions', label: 'წესები და პირობები' },
   { href: '/privacy-policy', label: 'კონფიდენციალურობის პოლიტიკა' },
 ] as const

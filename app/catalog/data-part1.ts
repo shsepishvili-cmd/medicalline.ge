@@ -223,7 +223,7 @@ export const products = [
     slug: "ultramint-pro",
     name: "UltraMint / Pro პიეზო სკალერი", 
     img: "/images/ultramint.png", 
-    cat: "ჰიგიენა", 
+    cat: "ენდოდონტია", 
     description: "ულტრაბგერითი სკალერი.", 
     specs: ["სენსორული კონტროლი", "თვით-წმენდის რეჟიმი"] 
   },

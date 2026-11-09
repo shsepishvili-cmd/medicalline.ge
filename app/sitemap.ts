@@ -22,6 +22,8 @@ export default function sitemap(): MetadataRoute.Sitemap {
     '/game',
     '/rchevebi',
     '/service',
+    '/warranty',
+    '/expo2026',
   ];
 
   const staticUrls: MetadataRoute.Sitemap = staticRoutes.map((path, index) => ({

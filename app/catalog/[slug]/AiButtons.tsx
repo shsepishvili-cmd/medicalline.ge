@@ -6,14 +6,14 @@ import { trackEvent } from '@/app/lib/analytics';
 
 export default function AiButtons({ productName }: { productName: string }) {
   const handleAiAnalysis = () => {
-    const prompt = `Explain the dental product ${productName} in Georgian. Include key features, use cases, and why it is useful for dentists.`;
+    const prompt = `ქართულად ამიხსენი სტომატოლოგიური პროდუქტი "${productName}". მომეცი მოკლე აღწერა, ძირითადი ფუნქციები, გამოყენების შემთხვევები, უპირატესობები ექიმისთვის და რა კითხვები უნდა დავსვა შეძენამდე. პასუხი იყოს ქართულად.`;
     trackEvent('ai_analysis_open', { product_name: productName });
     window.open(`https://chatgpt.com/?q=${encodeURIComponent(prompt)}`, '_blank');
   };
 
   const handleGoogleSearch = () => {
     trackEvent('google_search_open', { product_name: productName });
-    window.open(`https://www.google.com/search?q=${encodeURIComponent(`${productName} dental equipment review`)}`, '_blank');
+    window.open(`https://www.google.com/search?q=${encodeURIComponent(`${productName} სტომატოლოგიური აპარატი მიმოხილვა მახასიათებლები ფასი`)}`, '_blank');
   };
 
   return (
@@ -24,7 +24,7 @@ export default function AiButtons({ productName }: { productName: string }) {
       >
         <div className="flex items-center gap-4">
           <Brain size={18} className="text-blue-500 group-hover:scale-110 transition-transform" />
-          <span className="text-[11px] font-black uppercase tracking-widest text-left">AI Analysis (GEO)</span>
+          <span className="text-[11px] font-black uppercase tracking-widest text-left">AI ანალიზი ქართულად</span>
         </div>
         <Sparkles size={14} className="text-slate-600 animate-pulse" />
       </button>
@@ -35,7 +35,7 @@ export default function AiButtons({ productName }: { productName: string }) {
       >
         <div className="flex items-center gap-4">
           <Search size={18} className="group-hover:rotate-12 transition-transform" />
-          <span className="text-[11px] font-black uppercase tracking-widest text-left">Search More</span>
+          <span className="text-[11px] font-black uppercase tracking-widest text-left">ქართული ძებნა</span>
         </div>
         <Sparkles size={14} className="animate-pulse" />
       </button>

@@ -8,7 +8,7 @@
 
 import Link from 'next/link'
 import { useEffect, useState, useMemo } from 'react'
-import { supabase } from '@/app/lib/supabase'
+import { adminSupabase as supabase } from '@/app/lib/supabase-admin-browser'
 import {
   useAcademyAdminGate,
   AcademyAdminShell,

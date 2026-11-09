@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Phone, Facebook, Instagram, Menu, X } from 'lucide-react';
+import { Phone, Facebook, Instagram, Menu, X, MessageCircle } from 'lucide-react';
 import { supabase, isSupabaseReady } from '@/app/lib/supabase';
 import { trackEvent, trackLead } from '@/app/lib/analytics';
 
@@ -20,6 +20,7 @@ const WhatsappIcon = ({ size = 28, color = "currentColor" }: { size?: number; co
 
 const socialLinks = {
   whatsapp: "https://wa.me/995514011116",
+  messenger: "https://m.me/medicalline.ge",
   facebook: "https://www.facebook.com/medicalline.ge",
   instagram: "https://www.instagram.com/medicalgeorgialtd",
   tiktok: "https://www.tiktok.com/@medicalline",
@@ -88,6 +89,9 @@ export default function SiteHeader() {
         <a href={socialLinks.whatsapp} target="_blank" rel="noopener noreferrer" onClick={() => trackLead('whatsapp', { cta_location: 'social_sidebar' })} className="w-12 h-12 bg-[#25D366] text-white flex items-center justify-center rounded-l-xl hover:w-16 transition-all shadow-lg">
           <WhatsappIcon size={24} />
         </a>
+        <a href={socialLinks.messenger} target="_blank" rel="noopener noreferrer" onClick={() => trackLead('messenger', { cta_location: 'social_sidebar' })} className="w-12 h-12 bg-[#0084FF] text-white flex items-center justify-center rounded-l-xl hover:w-16 transition-all shadow-lg">
+          <MessageCircle size={22} />
+        </a>
         <a href={socialLinks.facebook} target="_blank" rel="noopener noreferrer" onClick={() => trackEvent('social_click', { network: 'facebook', cta_location: 'social_sidebar' })} className="w-12 h-12 bg-[#1877F2] text-white flex items-center justify-center rounded-l-xl hover:w-16 transition-all shadow-lg">
           <Facebook size={22} />
         </a>
@@ -108,10 +112,11 @@ export default function SiteHeader() {
           >
             Medical Line Georgia
           </Link>
-          <div className="hidden md:flex items-center gap-8 font-black text-[11px] uppercase tracking-widest">
+          <div className="hidden md:flex items-center gap-5 font-black text-[11px] uppercase tracking-widest">
             <Link href="/" className={`${isScrolled ? 'text-slate-900' : 'text-white'} hover:text-blue-500 transition`}>მთავარი</Link>
             <Link href="#about" className={`${isScrolled ? 'text-slate-900' : 'text-white'} hover:text-blue-500 transition`}>ჩვენს შესახებ</Link>
             <Link href="#services" className={`${isScrolled ? 'text-slate-900' : 'text-white'} hover:text-blue-500 transition`}>სერვისი</Link>
+            <Link href="/warranty" className={`${isScrolled ? 'text-slate-900' : 'text-white'} hover:text-blue-500 transition`}>გარანტია</Link>
             <Link href="/catalog" className={`${isScrolled ? 'text-slate-900' : 'text-white'} hover:text-blue-500 transition`}>პროდუქცია</Link>
             <Link href="/gallery" className={`${isScrolled ? 'text-slate-900' : 'text-white'} hover:text-blue-500 transition`}>გალერეა</Link>
             <Link href="/blog" className={`${isScrolled ? 'text-slate-900' : 'text-white'} hover:text-blue-500 transition underline decoration-blue-500 underline-offset-4`}>ბლოგი</Link>
@@ -174,6 +179,7 @@ export default function SiteHeader() {
               <Link href="/" onClick={() => setShowMobileMenu(false)} className="text-slate-900 hover:text-blue-600 transition">მთავარი</Link>
               <Link href="#about" onClick={() => setShowMobileMenu(false)} className="text-slate-900 hover:text-blue-600 transition">ჩვენს შესახებ</Link>
               <Link href="#services" onClick={() => setShowMobileMenu(false)} className="text-slate-900 hover:text-blue-600 transition">სერვისი</Link>
+              <Link href="/warranty" onClick={() => setShowMobileMenu(false)} className="text-slate-900 hover:text-blue-600 transition">გარანტია</Link>
               <Link href="/catalog" onClick={() => setShowMobileMenu(false)} className="text-slate-900 hover:text-blue-600 transition">პროდუქცია</Link>
               <Link href="/gallery" onClick={() => setShowMobileMenu(false)} className="text-slate-900 hover:text-blue-600 transition">გალერეა</Link>
               <Link href="/blog" onClick={() => setShowMobileMenu(false)} className="text-slate-900 hover:text-blue-600 transition">ბლოგი</Link>

@@ -129,22 +129,37 @@ export default function BlogContent({ post }: { post: any }) {
         {/* CTA */}
         <div className="mt-16 bg-gradient-to-br from-slate-900 to-blue-900 rounded-3xl p-8 md:p-12 text-center">
           <p className="text-blue-300 text-xs font-black uppercase tracking-widest mb-3">Medical Line Georgia</p>
-          <h3 className="text-2xl md:text-3xl font-black text-white mb-4">გაინტერესებთ ეს პროდუქცია?</h3>
-          <p className="text-slate-400 mb-8 max-w-md mx-auto">დაგვიკავშირდით კონსულტაციისთვის ან ეწვიეთ ჩვენს კატალოგს</p>
+          <h3 className="text-2xl md:text-3xl font-black text-white mb-4">
+            {post.ctaTitle || 'გაინტერესებთ ეს პროდუქცია?'}
+          </h3>
+          <p className="text-slate-400 mb-8 max-w-md mx-auto">
+            {post.ctaDescription || 'დაგვიკავშირდით კონსულტაციისთვის ან ეწვიეთ ჩვენს კატალოგს'}
+          </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <a
-              href="https://wa.me/995514011116"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center justify-center gap-2 px-8 py-4 bg-[#25D366] text-white font-black rounded-2xl hover:bg-green-500 transition shadow-lg"
-            >
-              <Phone size={18} /> WhatsApp კონსულტაცია
-            </a>
+            {post.ctaUrl ? (
+              <a
+                href={post.ctaUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center justify-center gap-2 px-8 py-4 bg-blue-600 text-white font-black rounded-2xl hover:bg-blue-500 transition shadow-lg"
+              >
+                {post.ctaLabel || 'დეტალები'}
+              </a>
+            ) : (
+              <a
+                href="https://wa.me/995514011116"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center justify-center gap-2 px-8 py-4 bg-[#25D366] text-white font-black rounded-2xl hover:bg-green-500 transition shadow-lg"
+              >
+                <Phone size={18} /> WhatsApp კონსულტაცია
+              </a>
+            )}
             <Link
-              href="/catalog"
+              href={post.ctaUrl ? '/' : '/catalog'}
               className="flex items-center justify-center gap-2 px-8 py-4 bg-white/10 text-white font-black rounded-2xl hover:bg-white/20 transition border border-white/20"
             >
-              კატალოგი
+              {post.ctaUrl ? 'მთავარ გვერდზე დაბრუნება' : 'კატალოგი'}
             </Link>
           </div>
         </div>
