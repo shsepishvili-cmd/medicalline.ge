@@ -18,7 +18,7 @@ function canOptimize(src: string) {
   try { return !!STORAGE_HOST && new URL(src).host === STORAGE_HOST } catch { return false }
 }
 
-export type ExpoProduct = { id: string; name: string; brand: string; category: string; description: string; image: string | null; note?: string | null }
+export type ExpoProduct = { id: string; slug: string; name: string; brand: string; category: string; description: string; image: string | null; note?: string | null }
 
 const PENDING_KEY = 'ml-expo2026-request'
 const TIMELINES = [['now', 'ახლავე'], ['within_1_month', '1 თვის განმავლობაში'], ['within_1_3_months', '1–3 თვეში'], ['later', 'მოგვიანებით']]
@@ -100,9 +100,20 @@ export function ExpoCatalog({ products, curated = false }: { products: ExpoProdu
 
   useEffect(() => {
     const draft = readDraft()
-    if (!draft) return
-    setCart(Object.fromEntries(Object.entries(draft.cart).filter(([id]) => products.some((product) => product.id === id))))
-    setNote(draft.note); setTimeline(draft.timeline); setPayment(draft.payment)
+    const requestedSlug = new URLSearchParams(window.location.search).get('product')
+    const selectedProduct = requestedSlug ? products.find((product) => product.slug === requestedSlug) : undefined
+
+    // Preserve an existing Expo draft and preselect the product opened from
+    // its permanent catalogue/QR page. Never add a product not in Expo.
+    const nextCart: Record<string, number> = draft
+      ? Object.fromEntries(Object.entries(draft.cart).filter(([id]) => products.some((product) => product.id === id)))
+      : {}
+    if (selectedProduct) nextCart[selectedProduct.id] = Math.max(1, nextCart[selectedProduct.id] || 0)
+    if (draft || selectedProduct) setCart(nextCart)
+    if (draft) {
+      setNote(draft.note); setTimeline(draft.timeline); setPayment(draft.payment)
+    }
+    if (selectedProduct) setCartOpen(true)
   }, [products])
 
   // No background scrolling behind an open sheet (iPhone included).

@@ -56,6 +56,7 @@ async function loadProducts(): Promise<{ products: ExpoProduct[]; curated: boole
     const exact = localCatalogProducts.find((item) => item.slug === product.slug) || local
     return {
       id: product.id,
+      slug: product.slug,
       name: product.name,
       brand: product.brand || exact?.brand || '',
       category: exact?.cat || (product.category_slug ? categoryName.get(product.category_slug) || product.category_slug : '') || 'სიახლეები',

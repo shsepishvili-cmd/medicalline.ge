@@ -1,4 +1,5 @@
 import React from 'react';
+import { createClient } from '@supabase/supabase-js';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
@@ -21,6 +22,37 @@ import {
 } from 'lucide-react';
 
 const allProducts = [...part1, ...part2];
+
+// Show the exhibition offer only for active products selected for Expo 2026.
+// The QR stays on the permanent product page, while the price request is
+// handled by the Expo checkout so its EXPO2026 lead source is preserved.
+async function isExpoProduct(slug: string): Promise<boolean> {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
+  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim();
+  if (!url || !key) return false;
+
+  try {
+    const supabase = createClient(url, key, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
+    const { data: product, error: productError } = await supabase
+      .from('products')
+      .select('id')
+      .eq('slug', slug)
+      .eq('is_active', true)
+      .maybeSingle();
+    if (productError || !product) return false;
+
+    const { data: expoSelection, error: selectionError } = await supabase
+      .from('expo_catalog_items')
+      .select('product_id')
+      .eq('product_id', product.id)
+      .limit(1);
+    return !selectionError && !!expoSelection?.length;
+  } catch {
+    return false;
+  }
+}
 
 // Admin-added products are rendered on demand and refreshed every minute.
 export const revalidate = 60;
@@ -68,6 +100,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
   const { slug } = await params;
   const product = await getProduct(slug);
   if (!product) notFound();
+  const expoEligible = await isExpoProduct(product.slug);
 
   const productBrand = 'brand' in product && typeof product.brand === 'string'
     ? product.brand
@@ -141,6 +174,16 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
             </div>
 
             <OfferAdminButton slug={product.slug} />
+
+            {expoEligible ? (
+              <Link
+                href={`/expo2026?product=${encodeURIComponent(product.slug)}`}
+                className="mb-3 flex w-full items-center justify-center gap-3 rounded-[1.5rem] bg-emerald-700 px-5 py-5 text-center text-sm font-black text-white shadow-lg transition-colors hover:bg-emerald-800"
+              >
+                <Sparkles size={20} aria-hidden="true" />
+                მოითხოვე Expo-ს სპეციალური ფასი
+              </Link>
+            ) : null}
 
             <TrackedAnchor
               href={`https://wa.me/995514011116?text=${encodeURIComponent(`გამარჯობა, მაინტერესებს ${product.name}. გთხოვთ მომაწოდოთ ფასი და დეტალები.`)}`}
