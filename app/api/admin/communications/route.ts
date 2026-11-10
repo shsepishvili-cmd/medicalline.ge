@@ -1,4 +1,5 @@
 import { chatwootRequest, communicationErrorResponse, CommunicationError, requireCommunicationsAdmin } from '@/app/lib/communications-chatwoot'
+import { isSmsProviderConfigured } from '@/app/lib/sms-provider'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -13,6 +14,18 @@ export async function GET(request: Request) {
     const { client } = await requireCommunicationsAdmin(request)
     const url = new URL(request.url)
     const section = url.searchParams.get('section') || 'conversations'
+    if (section === 'setup') {
+      return Response.json({
+        ok: true,
+        config: {
+          chatwoot: Boolean(process.env.CHATWOOT_BASE_URL && process.env.CHATWOOT_ACCOUNT_ID && process.env.CHATWOOT_API_TOKEN),
+          chatwoot_webhook: Boolean(process.env.CHATWOOT_WEBHOOK_SECRET),
+          sms: isSmsProviderConfigured(),
+          telephony: Boolean(process.env.COMMUNICATION_TELEPHONY_WEBHOOK_SECRET),
+          database_sync: Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY),
+        },
+      }, { headers: { 'Cache-Control': 'no-store' } })
+    }
     if (section === 'calls') {
       const { data, error } = await client.from('communication_events')
         .select('id, event_type, phone_number, direction, duration_seconds, received_at')
