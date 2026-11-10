@@ -10,9 +10,16 @@ function positiveId(value: unknown) {
 
 export async function GET(request: Request) {
   try {
-    await requireCommunicationsAdmin(request)
+    const { client } = await requireCommunicationsAdmin(request)
     const url = new URL(request.url)
     const section = url.searchParams.get('section') || 'conversations'
+    if (section === 'calls') {
+      const { data, error } = await client.from('communication_events')
+        .select('id, event_type, phone_number, direction, duration_seconds, received_at')
+        .eq('channel', 'phone').order('received_at', { ascending: false }).limit(20)
+      if (error) throw new CommunicationError('ზარების ისტორია ჯერ არ არის გააქტიურებული.', 503)
+      return Response.json({ ok: true, data }, { headers: { 'Cache-Control': 'no-store' } })
+    }
     if (section === 'inboxes') {
       const data = await chatwootRequest('inboxes')
       return Response.json({ ok: true, data }, { headers: { 'Cache-Control': 'no-store' } })
