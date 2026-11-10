@@ -21,6 +21,9 @@ create table if not exists public.communication_events (
   contact_id uuid references public.communication_contacts(id) on delete set null,
   content text,
   channel text,
+  phone_number text,
+  direction text,
+  duration_seconds integer,
   received_at timestamptz not null default now()
 );
 
@@ -28,6 +31,8 @@ create index if not exists communication_contacts_phone_idx
   on public.communication_contacts(phone) where phone is not null;
 create index if not exists communication_events_conversation_idx
   on public.communication_events(chatwoot_conversation_id, received_at desc);
+create index if not exists communication_events_phone_idx
+  on public.communication_events(phone_number, received_at desc) where phone_number is not null;
 create index if not exists communication_events_contact_idx
   on public.communication_events(contact_id, received_at desc);
 
