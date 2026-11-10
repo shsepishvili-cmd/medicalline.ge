@@ -26,6 +26,8 @@ type ChatMessage = {
   sender?: { name?: string }
 }
 
+type CallEvent = { id: string; event_type: string; phone_number?: string; direction?: string; duration_seconds?: number; received_at: string }
+
 function items<T>(payload: any): T[] {
   const value = payload?.data?.data?.payload ?? payload?.data?.payload ?? payload?.payload ?? []
   return Array.isArray(value) ? value : []
@@ -54,6 +56,7 @@ export default function CommunicationsPage() {
   const [token, setToken] = useState('')
   const [conversations, setConversations] = useState<Conversation[]>([])
   const [inboxes, setInboxes] = useState<InboxRecord[]>([])
+  const [calls, setCalls] = useState<CallEvent[]>([])
   const [selectedId, setSelectedId] = useState<number | null>(null)
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [query, setQuery] = useState('')
@@ -90,6 +93,9 @@ export default function CommunicationsPage() {
       const threads = items<Conversation>(threadPayload)
       setConversations(threads)
       setInboxes(items<InboxRecord>(inboxPayload))
+      void api(auth, '/api/admin/communications?section=calls')
+        .then(result => setCalls(Array.isArray(result.data) ? result.data : []))
+        .catch(() => setCalls([]))
       setSelectedId(prev => prev && threads.some(c => c.id === prev) ? prev : threads[0]?.id ?? null)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'მონაცემების მიღება ვერ მოხერხდა.')
@@ -183,6 +189,25 @@ export default function CommunicationsPage() {
         {error && (
           <div role="alert" className="mb-4 flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
             <CircleAlert size={18} className="shrink-0" /> {error}
+          </div>
+        )}
+
+        {calls.length > 0 && (
+          <div className="mb-4 rounded-2xl border border-slate-200 bg-white p-4">
+            <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold"><Phone size={17} /> ბოლო ზარები</h2>
+            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+              {calls.slice(0, 4).map(call => (
+                <div key={call.id} className="rounded-xl bg-slate-50 p-3">
+                  <div className="flex items-center justify-between gap-2 text-sm font-medium">
+                    <span>{call.phone_number || 'უცნობი ნომერი'}</span>
+                    <span className={call.event_type === 'call.missed' ? 'text-red-600' : 'text-green-700'}>
+                      {call.event_type === 'call.missed' ? 'გამოტოვებული' : call.direction === 'outgoing' ? 'გამავალი' : 'შემომავალი'}
+                    </span>
+                  </div>
+                  <div className="mt-1 text-xs text-slate-500">{toTime(call.received_at)} · {call.duration_seconds || 0} წმ.</div>
+                </div>
+              ))}
+            </div>
           </div>
         )}
 
