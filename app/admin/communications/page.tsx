@@ -57,6 +57,7 @@ export default function CommunicationsPage() {
   const [conversations, setConversations] = useState<Conversation[]>([])
   const [inboxes, setInboxes] = useState<InboxRecord[]>([])
   const [calls, setCalls] = useState<CallEvent[]>([])
+  const [setup, setSetup] = useState<Record<string, boolean> | null>(null)
   const [selectedId, setSelectedId] = useState<number | null>(null)
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [query, setQuery] = useState('')
@@ -93,6 +94,9 @@ export default function CommunicationsPage() {
       const threads = items<Conversation>(threadPayload)
       setConversations(threads)
       setInboxes(items<InboxRecord>(inboxPayload))
+      void api(auth, '/api/admin/communications?section=setup')
+        .then(result => setSetup(result.config || {}))
+        .catch(() => setSetup(null))
       void api(auth, '/api/admin/communications?section=calls')
         .then(result => setCalls(Array.isArray(result.data) ? result.data : []))
         .catch(() => setCalls([]))
@@ -189,6 +193,26 @@ export default function CommunicationsPage() {
         {error && (
           <div role="alert" className="mb-4 flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
             <CircleAlert size={18} className="shrink-0" /> {error}
+          </div>
+        )}
+
+        {setup && (
+          <div className="mb-4 rounded-2xl border border-slate-200 bg-white p-4">
+            <h2 className="mb-2 text-sm font-semibold">ინტეგრაციების გამართვის სტატუსი</h2>
+            <p className="mb-3 text-xs text-slate-500">სტატუსი აჩვენებს მხოლოდ პარამეტრების არსებობას, არა რეალური კავშირის წარმატებას.</p>
+            <div className="flex flex-wrap gap-2">
+              {([
+                ['chatwoot', 'Chatwoot API'],
+                ['chatwoot_webhook', 'მიმოწერების სინქრონიზაცია'],
+                ['sms', 'GoSMS'],
+                ['telephony', 'ტელეფონია'],
+                ['database_sync', 'CRM-ის ბაზა'],
+              ] as const).map(([key,label]) => (
+                <span key={key} className={`rounded-full px-3 py-1 text-xs font-medium ${setup[key] ? 'bg-green-100 text-green-900' : 'bg-amber-100 text-amber-900'}`}>
+                  {label}: {setup[key] ? 'პარამეტრები მითითებულია' : 'დასაკავშირებელია'}
+                </span>
+              ))}
+            </div>
           </div>
         )}
 
