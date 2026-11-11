@@ -151,9 +151,18 @@ export function ExpoCatalog({ products, curated = false }: { products: ExpoProdu
   async function submit() {
     setError('')
     if (!lines.length) { setError('აირჩიეთ მინიმუმ ერთი პროდუქტი.'); return }
-    const { data } = await supabase.auth.getSession()
-    if (!data.session) {
+    // Keep the visitor's selection and show verification even if reading the
+    // locally cached auth session fails (for example, blocked browser storage).
+    let session: Awaited<ReturnType<typeof supabase.auth.getSession>>['data']['session'] = null
+    try {
+      const result = await supabase.auth.getSession()
+      session = result.data.session
+    } catch (cause) {
+      console.error('[expo2026] session read failed', cause)
+    }
+    if (!session) {
       window.sessionStorage.setItem(PENDING_KEY, JSON.stringify({ cart, note, timeline, payment }))
+      setCartOpen(false)
       setSignIn(true)
       return
     }
@@ -161,7 +170,7 @@ export function ExpoCatalog({ products, curated = false }: { products: ExpoProdu
     try {
       const response = await fetch('/api/price-requests', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${data.session.access_token}` },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
         body: JSON.stringify({ items: lines.map(([productId, quantity]) => ({ productId, quantity })), note, source: 'EXPO2026', purchaseTimeline: timeline, paymentMethod: payment }),
       })
       const payload = await response.json().catch(() => ({}))
