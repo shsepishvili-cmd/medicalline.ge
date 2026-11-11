@@ -107,6 +107,7 @@ export async function generateMetadata({ params }: { params: Promise<{ token: st
   }
 
   return {
+    robots: { index: false, follow: false, noarchive: true },
     title: `${offer.product_name} შეთავაზება | Medical Line`,
     description: offer.product_description || 'Medical Line-ის ინდივიდუალური შეთავაზება.',
   }
@@ -126,8 +127,14 @@ export default async function OfferPage({ params }: { params: Promise<{ token: s
     `გამარჯობა, მივიღე შეთავაზება ${offer.product_name}-ზე. მსურს დეტალების დაზუსტება.`,
   )
 
+  const watermark = [offer.client_name, offer.client_phone ? offer.client_phone.replace(/.(?=.{4})/g, '•') : null, 'Medical Line Georgia'].filter(Boolean).join(' · ')
+
   return (
-    <main className="min-h-screen bg-[#f7faf8] text-slate-900">
+    <main className="relative min-h-screen bg-[#f7faf8] text-slate-900">
+      <style>{`@media print { body { visibility: hidden !important; } body::after { content: "პერსონალური შეთავაზების ბეჭდვა შეზღუდულია"; visibility: visible; position: fixed; top: 40%; left: 10%; font-size: 24px; } }`}</style>
+      <div aria-hidden="true" className="pointer-events-none fixed inset-0 z-50 flex items-center justify-center overflow-hidden opacity-[0.13]">
+        <div className="-rotate-25 select-none whitespace-nowrap text-center text-base font-bold tracking-widest text-slate-800 md:text-xl">{watermark}</div>
+      </div>
       <section className="mx-auto grid min-h-screen max-w-7xl grid-cols-1 gap-0 bg-white lg:grid-cols-[1.05fr_.95fr]">
         <div className="flex min-h-[48vh] items-center justify-center bg-[#eef6f2] p-6 md:p-12">
           <div className="relative aspect-square w-full max-w-[520px] overflow-hidden rounded-2xl bg-white p-8 shadow-sm">
