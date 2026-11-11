@@ -57,6 +57,8 @@ export default function AdminOffersPage() {
   const [offers, setOffers] = useState<Offer[]>([])
   const [selectedProductKey, setSelectedProductKey] = useState('')
   const [search, setSearch] = useState('')
+  const [categoryFilter, setCategoryFilter] = useState('all')
+  const [showCatalog, setShowCatalog] = useState(true)
   const [clientName, setClientName] = useState('')
   const [clientPhone, setClientPhone] = useState('')
   const [priceGel, setPriceGel] = useState('')
@@ -82,15 +84,17 @@ export default function AdminOffersPage() {
     [products, selectedProductKey],
   )
 
+  const categories = useMemo(() => Array.from(new Set(products.map((p) => String(p.category_label || p.category_slug || 'სხვა')))).sort((a, b) => a.localeCompare(b, 'ka')), [products])
+
   const filteredProducts = useMemo(() => {
-    const query = search.trim().toLowerCase()
-    if (!query) return products
-    return products.filter((product) => (
-      product.name?.toLowerCase().includes(query) ||
-      product.slug?.toLowerCase().includes(query) ||
-      product.category_slug?.toLowerCase().includes(query)
-    ))
-  }, [products, search])
+    const normalize = (value: unknown) => String(value || '').toLocaleLowerCase().normalize('NFKC').replace(/[\\s_–—-]+/g, '')
+    const terms = search.trim().toLocaleLowerCase().split(/\\s+/).filter(Boolean).map(normalize)
+    return products.filter((product) => {
+      if (categoryFilter !== 'all' && String(product.category_label || product.category_slug || 'სხვა') !== categoryFilter) return false
+      const haystack = normalize([product.name, product.slug, product.brand, product.category_label, product.category_slug, product.sku, product.code, product.model, product.short_desc].filter(Boolean).join(' '))
+      return terms.every((term) => haystack.includes(term))
+    })
+  }, [products, search, categoryFilter])
 
   async function authHeaders() {
     const {
@@ -152,7 +156,7 @@ export default function AdminOffersPage() {
       if (requestedProduct) {
         setSelectedProductKey(requestedProduct.dbId || requestedProduct.id)
         setPriceGel(String(requestedProduct.prices?.[0]?.price_gel || ''))
-        setSearch(requestedProduct.name || requestedProductSlug)
+        setSearch('')
       } else if (!selectedProductKey && defaultProduct) {
         setSelectedProductKey(defaultProduct.dbId || defaultProduct.id)
         setPriceGel(String(defaultProduct.prices?.[0]?.price_gel || ''))
@@ -302,19 +306,35 @@ export default function AdminOffersPage() {
               </div>
             </div>
 
-            <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="პროდუქტის ძებნა..." style={{ width: '100%', boxSizing: 'border-box', padding: '10px 12px', borderRadius: 8, border: '1px solid #d0d5dd', marginBottom: 10 }} />
-            <select value={selectedProductKey} onChange={(event) => {
-              const key = event.target.value
-              setSelectedProductKey(key)
-              const product = products.find((item) => (item.dbId || item.id) === key)
-              setPriceGel(String(product?.prices?.[0]?.price_gel || ''))
-            }} style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #d0d5dd', marginBottom: 12 }}>
-              {filteredProducts.map((product) => (
-                <option key={product.dbId || product.id} value={product.dbId || product.id}>
-                  {product.name} · {money(product.prices?.[0]?.price_gel)}
-                </option>
-              ))}
-            </select>
+            <div style={{ display: 'flex', gap: 8, marginBottom: 10, flexWrap: 'wrap' }}>
+              <input aria-label="პროდუქტის ძებნა" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="მოძებნე დასახელებით, მოდელით ან ბრენდით..." style={{ flex: '1 1 220px', minWidth: 0, padding: '10px 12px', borderRadius: 8, border: '1px solid #d0d5dd' }} />
+              <button type="button" onClick={() => { setSearch(''); setCategoryFilter('all') }} style={{ border: '1px solid #d0d5dd', borderRadius: 8, background: '#fff', padding: '8px 10px', cursor: 'pointer' }}>გასუფთავება</button>
+            </div>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 10 }}>
+              <select aria-label="კატეგორია" value={categoryFilter} onChange={(event) => setCategoryFilter(event.target.value)} style={{ flex: 1, minWidth: 0, padding: '10px', borderRadius: 8, border: '1px solid #d0d5dd' }}>
+                <option value="all">ყველა კატეგორია</option>
+                {categories.map((category) => <option key={category} value={category}>{category}</option>)}
+              </select>
+              <button type="button" onClick={() => setShowCatalog((value) => !value)} style={{ border: '1px solid #d0d5dd', background: '#fff', borderRadius: 8, padding: 10, cursor: 'pointer' }}>{showCatalog ? 'სიის დამალვა' : 'კატალოგის ნახვა'}</button>
+            </div>
+            <p style={{ fontSize: 12, color: '#667085', margin: '0 0 8px' }}>ნაპოვნია {filteredProducts.length} / {products.length} პროდუქტი</p>
+            {showCatalog && <div style={{ maxHeight: 340, overflowY: 'auto', border: '1px solid #e4e7ec', borderRadius: 10, marginBottom: 12 }}>
+              {filteredProducts.length === 0 && <p style={{ padding: 12, fontSize: 13, color: '#667085' }}>პროდუქტი ვერ მოიძებნა. სცადე სხვა დასახელება ან გაასუფთავე ფილტრები.</p>}
+              {filteredProducts.map((product) => {
+                const key = product.dbId || product.id
+                const imageUrl = product.images?.[0] || product.image || product.img
+                return <button type="button" key={key} onClick={() => {
+                  setSelectedProductKey(key)
+                  setPriceGel(String(product.prices?.[0]?.price_gel || ''))
+                }} style={{ display: 'flex', width: '100%', textAlign: 'left', gap: 10, alignItems: 'center', padding: 9, cursor: 'pointer', border: 'none', borderBottom: '1px solid #eef2f0', background: selectedProductKey === key ? '#eaf5f1' : '#fff' }}>
+                  <div style={{ width: 58, height: 58, flexShrink: 0, background: '#f2f4f7', borderRadius: 8, display: 'grid', placeItems: 'center', overflow: 'hidden' }}>
+                    {imageUrl ? <img src={imageUrl} alt={product.name || 'პროდუქტი'} loading="lazy" onError={(event) => { event.currentTarget.style.display = 'none' }} style={{ width: '100%', height: '100%', objectFit: 'contain' }} /> : <span style={{ fontSize: 10, color: '#667085' }}>ფოტო არ არის</span>}
+                  </div>
+                  <span style={{ flex: 1, minWidth: 0 }}><strong style={{ display: 'block', fontSize: 13, color: '#101828' }}>{product.name}</strong><span style={{ display: 'block', fontSize: 11, color: '#667085', marginTop: 3 }}>{product.brand || ''} · {product.category_label || product.category_slug || ''}</span></span>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: '#085041' }}>{selectedProductKey === key ? '✓ არჩეულია' : 'არჩევა'}</span>
+                </button>
+              })}
+            </div>}
 
             {selectedProduct && (
               <div style={{ display: 'flex', gap: 10, alignItems: 'center', background: '#f8faf9', borderRadius: 8, padding: 10, marginBottom: 12 }}>
