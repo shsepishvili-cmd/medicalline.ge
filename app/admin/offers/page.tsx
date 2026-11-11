@@ -63,7 +63,6 @@ export default function AdminOffersPage() {
   const [clientPhone, setClientPhone] = useState('')
   const [priceGel, setPriceGel] = useState('')
   const [installmentMonths, setInstallmentMonths] = useState('12')
-  const [expiresInDays, setExpiresInDays] = useState('3')
   const [warrantyNote, setWarrantyNote] = useState('გარანტია: 12 თვე ოფიციალური სერვისით')
   const [deliveryNote, setDeliveryNote] = useState('მიწოდება/მონტაჟი შეთანხმებით')
   const [customNote, setCustomNote] = useState('')
@@ -372,7 +371,6 @@ export default function AdminOffersPage() {
               <input value={clientPhone} onChange={(event) => setClientPhone(event.target.value)} placeholder="ტელეფონი" style={{ padding: '10px 12px', borderRadius: 8, border: '1px solid #d0d5dd' }} />
               <input type="number" value={priceGel} onChange={(event) => setPriceGel(event.target.value)} placeholder="ფასი ₾" style={{ padding: '10px 12px', borderRadius: 8, border: '1px solid #d0d5dd' }} />
               <input type="number" value={installmentMonths} onChange={(event) => setInstallmentMonths(event.target.value)} placeholder="თვე" style={{ padding: '10px 12px', borderRadius: 8, border: '1px solid #d0d5dd' }} />
-              <input type="number" value={expiresInDays} onChange={(event) => setExpiresInDays(event.target.value)} placeholder="ვადა დღეებში (მაქს. 3)" min="1" max="3" style={{ padding: '10px 12px', borderRadius: 8, border: '1px solid #d0d5dd' }} />
               <input value={deliveryNote} onChange={(event) => setDeliveryNote(event.target.value)} placeholder="მიწოდება" style={{ padding: '10px 12px', borderRadius: 8, border: '1px solid #d0d5dd' }} />
             </div>
             <input value={warrantyNote} onChange={(event) => setWarrantyNote(event.target.value)} placeholder="გარანტია" style={{ width: '100%', boxSizing: 'border-box', padding: '10px 12px', borderRadius: 8, border: '1px solid #d0d5dd', marginTop: 8 }} />
