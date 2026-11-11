@@ -140,7 +140,8 @@ export async function POST(request: Request) {
   const priceGel = validNumber(body?.priceGel)
   const installmentMonths = Math.max(1, Number(body?.installmentMonths || 12))
   const installmentMonthly = priceGel !== null ? Math.round(priceGel / installmentMonths) : null
-  const expiresInDays = Number(body?.expiresInDays || 14)
+  const requestedDays = Number(body?.expiresInDays ?? 3)
+  const expiresInDays = Number.isFinite(requestedDays) ? Math.min(3, Math.max(1, requestedDays)) : 3
   const expiresAt = Number.isFinite(expiresInDays) && expiresInDays > 0
     ? new Date(Date.now() + expiresInDays * 24 * 60 * 60 * 1000).toISOString()
     : null
