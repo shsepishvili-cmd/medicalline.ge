@@ -17,7 +17,7 @@ export type LocalCatalogProduct = {
 export const localCatalogProducts = [...part1, ...part2] as LocalCatalogProduct[]
 
 export function normalizeProductText(value: string) {
-  return value.toLowerCase().replace(/[^a-z0-9]+/g, '')
+  return value.toLocaleLowerCase().normalize('NFKC').replace(/[^\\p{L}\\p{N}]+/gu, '')
 }
 
 export function mapCategoryToSlug(category: string) {
@@ -55,16 +55,13 @@ export function findCatalogProductByAny(product: { slug?: string; name?: string;
   const slugKey = normalizeProductText(product.slug || '')
   const nameKey = normalizeProductText(product.name || '')
   const imgKey = normalizeProductText(product.img || '')
-  return localCatalogProducts.find((item) => {
-    const itemSlug = normalizeProductText(item.slug)
-    const itemName = normalizeProductText(item.name)
-    const itemImg = normalizeProductText(item.img)
-    return (
-      (slugKey && (itemSlug === slugKey || itemSlug.includes(slugKey) || slugKey.includes(itemSlug))) ||
-      (nameKey && (itemName === nameKey || itemName.includes(nameKey) || nameKey.includes(itemName))) ||
-      (imgKey && itemImg.includes(imgKey))
-    )
-  })
+  // Exact matches only: partial model names (e.g. Helios 680 vs 700)
+  // must never replace an offer's image or specifications.
+  return localCatalogProducts.find((item) =>
+    (slugKey && normalizeProductText(item.slug) === slugKey) ||
+    (nameKey && normalizeProductText(item.name) === nameKey) ||
+    (imgKey && normalizeProductText(item.img) === imgKey)
+  )
 }
 
 export function findDatabaseProductMatch<T extends { slug?: string; name?: string }>(
@@ -76,10 +73,7 @@ export function findDatabaseProductMatch<T extends { slug?: string; name?: strin
   return dbProducts.find((dbProduct) => {
     const dbSlug = normalizeProductText(dbProduct.slug || '')
     const dbName = normalizeProductText(dbProduct.name || '')
-    return (
-      (productSlug && (dbSlug === productSlug || dbSlug.includes(productSlug) || productSlug.includes(dbSlug))) ||
-      (productName && (dbName === productName || dbName.includes(productName) || productName.includes(dbName)))
-    )
+    return (productSlug && dbSlug === productSlug) || (productName && dbName === productName)
   })
 }
 
