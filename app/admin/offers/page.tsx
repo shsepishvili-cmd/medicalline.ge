@@ -57,11 +57,12 @@ export default function AdminOffersPage() {
   const [offers, setOffers] = useState<Offer[]>([])
   const [selectedProductKey, setSelectedProductKey] = useState('')
   const [search, setSearch] = useState('')
+  const [categoryFilter, setCategoryFilter] = useState('all')
+  const [showCatalog, setShowCatalog] = useState(true)
   const [clientName, setClientName] = useState('')
   const [clientPhone, setClientPhone] = useState('')
   const [priceGel, setPriceGel] = useState('')
   const [installmentMonths, setInstallmentMonths] = useState('12')
-  const [expiresInDays, setExpiresInDays] = useState('14')
   const [warrantyNote, setWarrantyNote] = useState('გარანტია: 12 თვე ოფიციალური სერვისით')
   const [deliveryNote, setDeliveryNote] = useState('მიწოდება/მონტაჟი შეთანხმებით')
   const [customNote, setCustomNote] = useState('')
@@ -71,7 +72,7 @@ export default function AdminOffersPage() {
   const [saving, setSaving] = useState(false)
   const [copiedToken, setCopiedToken] = useState('')
   const [smsBusyId, setSmsBusyId] = useState('')
-  const [sendSmsOnCreate, setSendSmsOnCreate] = useState(true)
+  const [whatsAppBusyId, setWhatsAppBusyId] = useState('')
 
   useEffect(() => {
     loadData()
@@ -82,15 +83,17 @@ export default function AdminOffersPage() {
     [products, selectedProductKey],
   )
 
+  const categories = useMemo(() => Array.from(new Set(products.map((p) => String(p.category_label || p.category_slug || 'სხვა')))).sort((a, b) => a.localeCompare(b, 'ka')), [products])
+
   const filteredProducts = useMemo(() => {
-    const query = search.trim().toLowerCase()
-    if (!query) return products
-    return products.filter((product) => (
-      product.name?.toLowerCase().includes(query) ||
-      product.slug?.toLowerCase().includes(query) ||
-      product.category_slug?.toLowerCase().includes(query)
-    ))
-  }, [products, search])
+    const normalize = (value: unknown) => String(value || '').toLocaleLowerCase().normalize('NFKC').replace(/[\s_–—-]+/g, '')
+    const terms = search.trim().toLocaleLowerCase().split(/\s+/).filter(Boolean).map(normalize)
+    return products.filter((product) => {
+      if (categoryFilter !== 'all' && String(product.category_label || product.category_slug || 'სხვა') !== categoryFilter) return false
+      const haystack = normalize([product.name, product.slug, product.brand, product.category_label, product.category_slug, product.sku, product.code, product.model, product.short_desc].filter(Boolean).join(' '))
+      return terms.every((term) => haystack.includes(term))
+    })
+  }, [products, search, categoryFilter])
 
   async function authHeaders() {
     const {
@@ -152,7 +155,7 @@ export default function AdminOffersPage() {
       if (requestedProduct) {
         setSelectedProductKey(requestedProduct.dbId || requestedProduct.id)
         setPriceGel(String(requestedProduct.prices?.[0]?.price_gel || ''))
-        setSearch(requestedProduct.name || requestedProductSlug)
+        setSearch('')
       } else if (!selectedProductKey && defaultProduct) {
         setSelectedProductKey(defaultProduct.dbId || defaultProduct.id)
         setPriceGel(String(defaultProduct.prices?.[0]?.price_gel || ''))
@@ -189,7 +192,6 @@ export default function AdminOffersPage() {
           clientPhone,
           priceGel: priceGel ? Number(priceGel) : null,
           installmentMonths: Number(installmentMonths || 12),
-          expiresInDays: Number(expiresInDays || 14),
           warrantyNote,
           deliveryNote,
           customNote,
@@ -199,12 +201,8 @@ export default function AdminOffersPage() {
       if (!response.ok || !payload?.ok) throw new Error(payload?.error || 'შეთავაზება ვერ შეიქმნა.')
 
       setOffers((prev) => [payload.offer, ...prev])
-      setMessage(`შეთავაზება მზადაა: ${offerUrl(payload.offer.token)}`)
+      setMessage('შეთავაზება შენახულია. გაგზავნისთვის აირჩიე SMS ან WhatsApp.')
       setCustomNote('')
-      await copyOffer(payload.offer.token)
-      if (sendSmsOnCreate && payload.offer.client_phone) {
-        await sendOfferSms(payload.offer, { quiet: true })
-      }
     } catch (createError) {
       setError(createError instanceof Error ? createError.message : 'შენახვის შეცდომა')
     } finally {
@@ -252,7 +250,7 @@ export default function AdminOffersPage() {
 
       if (payload.smsSent) {
         setMessage(`SMS გაიგზავნა: ${offer.client_phone || ''}${payload.smsMessageId ? ` · ID ${payload.smsMessageId}` : ''}`)
-        setOffers((prev) => prev.map((item) => item.id === offer.id ? { ...item, status: item.status === 'draft' ? 'sent' : item.status } : item))
+        setOffers((prev) => prev.map((item) => item.id === offer.id ? { ...item, status: item.status === 'draft' ? 'sent' : item.status, expires_at: item.expires_at || new Date(Date.now() + 72 * 60 * 60 * 1000).toISOString() } : item))
         return
       }
 
@@ -264,6 +262,32 @@ export default function AdminOffersPage() {
       setError(sendError instanceof Error ? sendError.message : 'SMS გაგზავნის შეცდომა')
     } finally {
       setSmsBusyId('')
+    }
+  }
+
+  async function sendOfferWhatsApp(offer: Offer) {
+    if (!offer.client_phone) { setError('მიუთითე კლიენტის ტელეფონი.'); return }
+    setWhatsAppBusyId(offer.id)
+    setError('')
+    try {
+      // Open the window immediately on the click to avoid popup blockers.
+      const popup = window.open('about:blank', '_blank')
+      const headers = await authHeaders()
+      const response = await fetch('/api/admin/offers', {
+        method: 'PATCH', headers, body: JSON.stringify({ id: offer.id, action: 'send_whatsapp' }),
+      })
+      const payload = await response.json().catch(() => null)
+      if (!response.ok || !payload?.ok) throw new Error(payload?.error || 'WhatsApp-ის გაგზავნა ვერ მომზადდა.')
+      const phone = (offer.client_phone || '').replace(/\D/g, '').replace(/^0/, '995')
+      const url = `https://wa.me/${phone}?text=${messageText(offer)}`
+      if (popup) popup.location.href = url
+      else window.location.href = url
+      setOffers((prev) => prev.map((item) => item.id === offer.id ? payload.offer : item))
+      setMessage('WhatsApp გაიხსნა. შეტყობინების გაგზავნა დაადასტურე WhatsApp-ში. 72 საათი ითვლება გახსნის მომენტიდან.')
+    } catch (sendError) {
+      setError(sendError instanceof Error ? sendError.message : 'WhatsApp-ის შეცდომა')
+    } finally {
+      setWhatsAppBusyId('')
     }
   }
 
@@ -302,19 +326,35 @@ export default function AdminOffersPage() {
               </div>
             </div>
 
-            <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="პროდუქტის ძებნა..." style={{ width: '100%', boxSizing: 'border-box', padding: '10px 12px', borderRadius: 8, border: '1px solid #d0d5dd', marginBottom: 10 }} />
-            <select value={selectedProductKey} onChange={(event) => {
-              const key = event.target.value
-              setSelectedProductKey(key)
-              const product = products.find((item) => (item.dbId || item.id) === key)
-              setPriceGel(String(product?.prices?.[0]?.price_gel || ''))
-            }} style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #d0d5dd', marginBottom: 12 }}>
-              {filteredProducts.map((product) => (
-                <option key={product.dbId || product.id} value={product.dbId || product.id}>
-                  {product.name} · {money(product.prices?.[0]?.price_gel)}
-                </option>
-              ))}
-            </select>
+            <div style={{ display: 'flex', gap: 8, marginBottom: 10, flexWrap: 'wrap' }}>
+              <input aria-label="პროდუქტის ძებნა" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="მოძებნე დასახელებით, მოდელით ან ბრენდით..." style={{ flex: '1 1 220px', minWidth: 0, padding: '10px 12px', borderRadius: 8, border: '1px solid #d0d5dd' }} />
+              <button type="button" onClick={() => { setSearch(''); setCategoryFilter('all') }} style={{ border: '1px solid #d0d5dd', borderRadius: 8, background: '#fff', padding: '8px 10px', cursor: 'pointer' }}>გასუფთავება</button>
+            </div>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 10 }}>
+              <select aria-label="კატეგორია" value={categoryFilter} onChange={(event) => setCategoryFilter(event.target.value)} style={{ flex: 1, minWidth: 0, padding: '10px', borderRadius: 8, border: '1px solid #d0d5dd' }}>
+                <option value="all">ყველა კატეგორია</option>
+                {categories.map((category) => <option key={category} value={category}>{category}</option>)}
+              </select>
+              <button type="button" onClick={() => setShowCatalog((value) => !value)} style={{ border: '1px solid #d0d5dd', background: '#fff', borderRadius: 8, padding: 10, cursor: 'pointer' }}>{showCatalog ? 'სიის დამალვა' : 'კატალოგის ნახვა'}</button>
+            </div>
+            <p style={{ fontSize: 12, color: '#667085', margin: '0 0 8px' }}>ნაპოვნია {filteredProducts.length} / {products.length} პროდუქტი</p>
+            {showCatalog && <div style={{ maxHeight: 340, overflowY: 'auto', border: '1px solid #e4e7ec', borderRadius: 10, marginBottom: 12 }}>
+              {filteredProducts.length === 0 && <p style={{ padding: 12, fontSize: 13, color: '#667085' }}>პროდუქტი ვერ მოიძებნა. სცადე სხვა დასახელება ან გაასუფთავე ფილტრები.</p>}
+              {filteredProducts.map((product) => {
+                const key = product.dbId || product.id
+                const imageUrl = product.images?.[0] || product.image || product.img
+                return <button type="button" key={key} onClick={() => {
+                  setSelectedProductKey(key)
+                  setPriceGel(String(product.prices?.[0]?.price_gel || ''))
+                }} style={{ display: 'flex', width: '100%', textAlign: 'left', gap: 10, alignItems: 'center', padding: 9, cursor: 'pointer', border: 'none', borderBottom: '1px solid #eef2f0', background: selectedProductKey === key ? '#eaf5f1' : '#fff' }}>
+                  <div style={{ width: 58, height: 58, flexShrink: 0, background: '#f2f4f7', borderRadius: 8, display: 'grid', placeItems: 'center', overflow: 'hidden' }}>
+                    {imageUrl ? <img src={imageUrl} alt={product.name || 'პროდუქტი'} loading="lazy" onError={(event) => { event.currentTarget.style.display = 'none' }} style={{ width: '100%', height: '100%', objectFit: 'contain' }} /> : <span style={{ fontSize: 10, color: '#667085' }}>ფოტო არ არის</span>}
+                  </div>
+                  <span style={{ flex: 1, minWidth: 0 }}><strong style={{ display: 'block', fontSize: 13, color: '#101828' }}>{product.name}</strong><span style={{ display: 'block', fontSize: 11, color: '#667085', marginTop: 3 }}>{product.brand || ''} · {product.category_label || product.category_slug || ''}</span></span>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: '#085041' }}>{selectedProductKey === key ? '✓ არჩეულია' : 'არჩევა'}</span>
+                </button>
+              })}
+            </div>}
 
             {selectedProduct && (
               <div style={{ display: 'flex', gap: 10, alignItems: 'center', background: '#f8faf9', borderRadius: 8, padding: 10, marginBottom: 12 }}>
@@ -331,23 +371,13 @@ export default function AdminOffersPage() {
               <input value={clientPhone} onChange={(event) => setClientPhone(event.target.value)} placeholder="ტელეფონი" style={{ padding: '10px 12px', borderRadius: 8, border: '1px solid #d0d5dd' }} />
               <input type="number" value={priceGel} onChange={(event) => setPriceGel(event.target.value)} placeholder="ფასი ₾" style={{ padding: '10px 12px', borderRadius: 8, border: '1px solid #d0d5dd' }} />
               <input type="number" value={installmentMonths} onChange={(event) => setInstallmentMonths(event.target.value)} placeholder="თვე" style={{ padding: '10px 12px', borderRadius: 8, border: '1px solid #d0d5dd' }} />
-              <input type="number" value={expiresInDays} onChange={(event) => setExpiresInDays(event.target.value)} placeholder="ვადა დღეებში" style={{ padding: '10px 12px', borderRadius: 8, border: '1px solid #d0d5dd' }} />
               <input value={deliveryNote} onChange={(event) => setDeliveryNote(event.target.value)} placeholder="მიწოდება" style={{ padding: '10px 12px', borderRadius: 8, border: '1px solid #d0d5dd' }} />
             </div>
             <input value={warrantyNote} onChange={(event) => setWarrantyNote(event.target.value)} placeholder="გარანტია" style={{ width: '100%', boxSizing: 'border-box', padding: '10px 12px', borderRadius: 8, border: '1px solid #d0d5dd', marginTop: 8 }} />
             <textarea value={customNote} onChange={(event) => setCustomNote(event.target.value)} placeholder="ინდივიდუალური შენიშვნა..." rows={3} style={{ width: '100%', boxSizing: 'border-box', padding: '10px 12px', borderRadius: 8, border: '1px solid #d0d5dd', marginTop: 8, resize: 'vertical' }} />
 
-            <label style={{ marginTop: 10, display: 'flex', gap: 8, alignItems: 'center', fontSize: 12, color: '#344054', fontWeight: 700 }}>
-              <input
-                type="checkbox"
-                checked={sendSmsOnCreate}
-                onChange={(event) => setSendSmsOnCreate(event.target.checked)}
-              />
-              შექმნისთანავე GOSMS-ით SMS გაგზავნა ტელეფონზე
-            </label>
-
             <button onClick={createOffer} disabled={saving || loading} style={{ marginTop: 12, width: '100%', border: 'none', borderRadius: 8, padding: '13px 14px', background: '#085041', color: '#fff', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-              <Send size={17} /> {saving ? 'იქმნება...' : 'შეთავაზების ლინკის შექმნა'}
+              <Send size={17} /> {saving ? 'იქმნება...' : 'შეთავაზების მომზადება'}
             </button>
           </section>
 
@@ -388,10 +418,10 @@ export default function AdminOffersPage() {
                       <a title="გახსნა" href={offerUrl(offer.token)} target="_blank" rel="noreferrer" style={{ width: 34, height: 34, borderRadius: 8, border: '1px solid #d0d5dd', background: '#fff', color: '#101828', display: 'grid', placeItems: 'center' }}>
                         <ExternalLink size={16} />
                       </a>
-                      <a title="WhatsApp" href={`https://wa.me/${(offer.client_phone || '').replace(/\D/g, '')}?text=${messageText(offer)}`} target="_blank" rel="noreferrer" style={{ width: 34, height: 34, borderRadius: 8, border: '1px solid #b7ead9', background: '#ecfdf5', color: '#047857', display: 'grid', placeItems: 'center' }}>
-                        <MessageCircle size={16} />
-                      </a>
-                      <button title="GOSMS SMS" onClick={() => sendOfferSms(offer)} disabled={smsBusyId === offer.id} style={{ minHeight: 34, borderRadius: 8, border: '1px solid #d0d5dd', background: smsBusyId === offer.id ? '#f2f4f7' : '#f9fafb', color: '#344054', display: 'inline-flex', alignItems: 'center', gap: 6, padding: '0 10px', cursor: 'pointer', fontSize: 11, fontWeight: 800 }}>
+                      <button type="button" title="WhatsApp-ით გაგზავნა" onClick={() => sendOfferWhatsApp(offer)} disabled={whatsAppBusyId === offer.id || offer.status === 'archived' || offer.status === 'expired'} style={{ minHeight: 34, borderRadius: 8, border: '1px solid #b7ead9', background: '#ecfdf5', color: '#047857', display: 'inline-flex', alignItems: 'center', gap: 6, padding: '0 10px', cursor: 'pointer', fontSize: 11, fontWeight: 800 }}>
+                        <MessageCircle size={16} /> {whatsAppBusyId === offer.id ? 'მზადდება...' : 'WhatsApp გაგზავნა'}
+                      </button>
+                      <button title="GOSMS SMS" onClick={() => sendOfferSms(offer)} disabled={smsBusyId === offer.id || offer.status === 'archived' || offer.status === 'expired'} style={{ minHeight: 34, borderRadius: 8, border: '1px solid #d0d5dd', background: smsBusyId === offer.id ? '#f2f4f7' : '#f9fafb', color: '#344054', display: 'inline-flex', alignItems: 'center', gap: 6, padding: '0 10px', cursor: 'pointer', fontSize: 11, fontWeight: 800 }}>
                         <Phone size={14} /> {smsBusyId === offer.id ? 'იგზავნება...' : 'SMS გაგზავნა'}
                       </button>
                       {offer.status !== 'accepted' && (

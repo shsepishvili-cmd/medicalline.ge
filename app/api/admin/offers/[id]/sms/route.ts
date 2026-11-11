@@ -78,13 +78,16 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   const { id } = await params
   const { data: offer, error } = await auth.admin
     .from('product_offers')
-    .select('id, token, product_name, client_name, client_phone, status')
+    .select('id, token, product_name, client_name, client_phone, status, expires_at')
     .eq('id', id)
     .single()
 
   if (error || !offer) {
     return NextResponse.json({ code: 'offer_not_found', error: error?.message || 'Offer not found.' }, { status: 404 })
   }
+
+  if (offer.status === 'expired' || offer.status === 'archived') return NextResponse.json({ ok: false, error: 'შეთავაზება გაუქმებულია.' }, { status: 409 })
+  if (offer.expires_at && new Date(offer.expires_at).getTime() <= Date.now()) return NextResponse.json({ ok: false, error: 'შეთავაზების ვადა ამოიწურა.' }, { status: 409 })
 
   const smsText = buildSmsText(offer, siteOrigin(request))
   if (!offer.client_phone) {
@@ -101,12 +104,14 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   }
 
   const delivery = await sendContractSms(offer.client_phone, smsText)
+  const sentAt = new Date()
 
   await auth.admin
     .from('product_offers')
     .update({
       status: offer.status === 'draft' ? 'sent' : offer.status,
-      sms_sent_at: new Date().toISOString(),
+      expires_at: offer.status === 'draft' ? new Date(sentAt.getTime() + 72 * 60 * 60 * 1000).toISOString() : offer.expires_at,
+      sms_sent_at: sentAt.toISOString(),
       sms_provider: delivery.provider,
       sms_message_id: delivery.messageId ? String(delivery.messageId) : null,
     })
