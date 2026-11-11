@@ -73,7 +73,7 @@ export default function AdminOffersPage() {
   const [saving, setSaving] = useState(false)
   const [copiedToken, setCopiedToken] = useState('')
   const [smsBusyId, setSmsBusyId] = useState('')
-  const [sendSmsOnCreate, setSendSmsOnCreate] = useState(false)
+  const [whatsAppBusyId, setWhatsAppBusyId] = useState('')
 
   useEffect(() => {
     loadData()
@@ -193,7 +193,6 @@ export default function AdminOffersPage() {
           clientPhone,
           priceGel: priceGel ? Number(priceGel) : null,
           installmentMonths: Number(installmentMonths || 12),
-          expiresInDays: Number(expiresInDays || 14),
           warrantyNote,
           deliveryNote,
           customNote,
@@ -203,12 +202,8 @@ export default function AdminOffersPage() {
       if (!response.ok || !payload?.ok) throw new Error(payload?.error || 'შეთავაზება ვერ შეიქმნა.')
 
       setOffers((prev) => [payload.offer, ...prev])
-      setMessage(`შეთავაზება მზადაა: ${offerUrl(payload.offer.token)}`)
+      setMessage('შეთავაზება შენახულია. გაგზავნისთვის აირჩიე SMS ან WhatsApp.')
       setCustomNote('')
-      await copyOffer(payload.offer.token)
-      if (sendSmsOnCreate && payload.offer.client_phone) {
-        await sendOfferSms(payload.offer, { quiet: true })
-      }
     } catch (createError) {
       setError(createError instanceof Error ? createError.message : 'შენახვის შეცდომა')
     } finally {
@@ -256,7 +251,7 @@ export default function AdminOffersPage() {
 
       if (payload.smsSent) {
         setMessage(`SMS გაიგზავნა: ${offer.client_phone || ''}${payload.smsMessageId ? ` · ID ${payload.smsMessageId}` : ''}`)
-        setOffers((prev) => prev.map((item) => item.id === offer.id ? { ...item, status: item.status === 'draft' ? 'sent' : item.status } : item))
+        setOffers((prev) => prev.map((item) => item.id === offer.id ? { ...item, status: item.status === 'draft' ? 'sent' : item.status, expires_at: item.expires_at || new Date(Date.now() + 72 * 60 * 60 * 1000).toISOString() } : item))
         return
       }
 
@@ -268,6 +263,32 @@ export default function AdminOffersPage() {
       setError(sendError instanceof Error ? sendError.message : 'SMS გაგზავნის შეცდომა')
     } finally {
       setSmsBusyId('')
+    }
+  }
+
+  async function sendOfferWhatsApp(offer: Offer) {
+    if (!offer.client_phone) { setError('მიუთითე კლიენტის ტელეფონი.'); return }
+    setWhatsAppBusyId(offer.id)
+    setError('')
+    try {
+      // Open the window immediately on the click to avoid popup blockers.
+      const popup = window.open('about:blank', '_blank')
+      const headers = await authHeaders()
+      const response = await fetch('/api/admin/offers', {
+        method: 'PATCH', headers, body: JSON.stringify({ id: offer.id, action: 'send_whatsapp' }),
+      })
+      const payload = await response.json().catch(() => null)
+      if (!response.ok || !payload?.ok) throw new Error(payload?.error || 'WhatsApp-ის გაგზავნა ვერ მომზადდა.')
+      const phone = (offer.client_phone || '').replace(/\\D/g, '').replace(/^0/, '995')
+      const url = `https://wa.me/${phone}?text=${messageText(offer)}`
+      if (popup) popup.location.href = url
+      else window.location.href = url
+      setOffers((prev) => prev.map((item) => item.id === offer.id ? payload.offer : item))
+      setMessage('WhatsApp გაიხსნა. შეტყობინების გაგზავნა დაადასტურე WhatsApp-ში. 72 საათი ითვლება გახსნის მომენტიდან.')
+    } catch (sendError) {
+      setError(sendError instanceof Error ? sendError.message : 'WhatsApp-ის შეცდომა')
+    } finally {
+      setWhatsAppBusyId('')
     }
   }
 
@@ -357,17 +378,8 @@ export default function AdminOffersPage() {
             <input value={warrantyNote} onChange={(event) => setWarrantyNote(event.target.value)} placeholder="გარანტია" style={{ width: '100%', boxSizing: 'border-box', padding: '10px 12px', borderRadius: 8, border: '1px solid #d0d5dd', marginTop: 8 }} />
             <textarea value={customNote} onChange={(event) => setCustomNote(event.target.value)} placeholder="ინდივიდუალური შენიშვნა..." rows={3} style={{ width: '100%', boxSizing: 'border-box', padding: '10px 12px', borderRadius: 8, border: '1px solid #d0d5dd', marginTop: 8, resize: 'vertical' }} />
 
-            <label style={{ marginTop: 10, display: 'flex', gap: 8, alignItems: 'center', fontSize: 12, color: '#344054', fontWeight: 700 }}>
-              <input
-                type="checkbox"
-                checked={sendSmsOnCreate}
-                onChange={(event) => setSendSmsOnCreate(event.target.checked)}
-              />
-              შექმნისთანავე SMS-ის გაგზავნა (მხოლოდ კლიენტის თანხმობით)
-            </label>
-
             <button onClick={createOffer} disabled={saving || loading} style={{ marginTop: 12, width: '100%', border: 'none', borderRadius: 8, padding: '13px 14px', background: '#085041', color: '#fff', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-              <Send size={17} /> {saving ? 'იქმნება...' : 'შეთავაზების ლინკის შექმნა'}
+              <Send size={17} /> {saving ? 'იქმნება...' : 'შეთავაზების მომზადება'}
             </button>
           </section>
 
@@ -408,10 +420,10 @@ export default function AdminOffersPage() {
                       <a title="გახსნა" href={offerUrl(offer.token)} target="_blank" rel="noreferrer" style={{ width: 34, height: 34, borderRadius: 8, border: '1px solid #d0d5dd', background: '#fff', color: '#101828', display: 'grid', placeItems: 'center' }}>
                         <ExternalLink size={16} />
                       </a>
-                      <a title="WhatsApp" href={`https://wa.me/${(offer.client_phone || '').replace(/\D/g, '')}?text=${messageText(offer)}`} target="_blank" rel="noreferrer" style={{ width: 34, height: 34, borderRadius: 8, border: '1px solid #b7ead9', background: '#ecfdf5', color: '#047857', display: 'grid', placeItems: 'center' }}>
-                        <MessageCircle size={16} />
-                      </a>
-                      <button title="GOSMS SMS" onClick={() => sendOfferSms(offer)} disabled={smsBusyId === offer.id} style={{ minHeight: 34, borderRadius: 8, border: '1px solid #d0d5dd', background: smsBusyId === offer.id ? '#f2f4f7' : '#f9fafb', color: '#344054', display: 'inline-flex', alignItems: 'center', gap: 6, padding: '0 10px', cursor: 'pointer', fontSize: 11, fontWeight: 800 }}>
+                      <button type="button" title="WhatsApp-ით გაგზავნა" onClick={() => sendOfferWhatsApp(offer)} disabled={whatsAppBusyId === offer.id || offer.status === 'archived' || offer.status === 'expired'} style={{ minHeight: 34, borderRadius: 8, border: '1px solid #b7ead9', background: '#ecfdf5', color: '#047857', display: 'inline-flex', alignItems: 'center', gap: 6, padding: '0 10px', cursor: 'pointer', fontSize: 11, fontWeight: 800 }}>
+                        <MessageCircle size={16} /> {whatsAppBusyId === offer.id ? 'მზადდება...' : 'WhatsApp გაგზავნა'}
+                      </button>
+                      <button title="GOSMS SMS" onClick={() => sendOfferSms(offer)} disabled={smsBusyId === offer.id || offer.status === 'archived' || offer.status === 'expired'} style={{ minHeight: 34, borderRadius: 8, border: '1px solid #d0d5dd', background: smsBusyId === offer.id ? '#f2f4f7' : '#f9fafb', color: '#344054', display: 'inline-flex', alignItems: 'center', gap: 6, padding: '0 10px', cursor: 'pointer', fontSize: 11, fontWeight: 800 }}>
                         <Phone size={14} /> {smsBusyId === offer.id ? 'იგზავნება...' : 'SMS გაგზავნა'}
                       </button>
                       {offer.status !== 'accepted' && (
