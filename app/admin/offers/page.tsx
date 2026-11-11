@@ -86,8 +86,8 @@ export default function AdminOffersPage() {
   const categories = useMemo(() => Array.from(new Set(products.map((p) => String(p.category_label || p.category_slug || 'სხვა')))).sort((a, b) => a.localeCompare(b, 'ka')), [products])
 
   const filteredProducts = useMemo(() => {
-    const normalize = (value: unknown) => String(value || '').toLocaleLowerCase().normalize('NFKC').replace(/[\\s_–—-]+/g, '')
-    const terms = search.trim().toLocaleLowerCase().split(/\\s+/).filter(Boolean).map(normalize)
+    const normalize = (value: unknown) => String(value || '').toLocaleLowerCase().normalize('NFKC').replace(/[\s_–—-]+/g, '')
+    const terms = search.trim().toLocaleLowerCase().split(/\s+/).filter(Boolean).map(normalize)
     return products.filter((product) => {
       if (categoryFilter !== 'all' && String(product.category_label || product.category_slug || 'სხვა') !== categoryFilter) return false
       const haystack = normalize([product.name, product.slug, product.brand, product.category_label, product.category_slug, product.sku, product.code, product.model, product.short_desc].filter(Boolean).join(' '))
@@ -278,7 +278,7 @@ export default function AdminOffersPage() {
       })
       const payload = await response.json().catch(() => null)
       if (!response.ok || !payload?.ok) throw new Error(payload?.error || 'WhatsApp-ის გაგზავნა ვერ მომზადდა.')
-      const phone = (offer.client_phone || '').replace(/\\D/g, '').replace(/^0/, '995')
+      const phone = (offer.client_phone || '').replace(/\D/g, '').replace(/^0/, '995')
       const url = `https://wa.me/${phone}?text=${messageText(offer)}`
       if (popup) popup.location.href = url
       else window.location.href = url
