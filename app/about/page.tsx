@@ -1,8 +1,9 @@
 import { buildPageMetadata, siteConfig } from '@/app/lib/seo';
+import { merchant } from '@/app/lib/merchant';
 
 export const metadata = buildPageMetadata({
   path: '/about',
-  title: 'About Us | Medical Line',
+  title: 'ჩვენ შესახებ | Medical Line Georgia',
   description:
     'გაიგეთ მეტი Medical Line Georgia-ს შესახებ, ჩვენს მისიაზე, გამოცდილებაზე, სერვისზე და სტომატოლოგიური ტექნოლოგიების მიმართულებაზე საქართველოში.',
   keywords: ['Medical Line Georgia', 'ჩვენს შესახებ', 'სტომატოლოგიური ტექნოლოგიები'],
@@ -72,6 +73,25 @@ export default function About() {
           </div>
           <div className="absolute -top-10 -right-10 w-40 h-40 bg-blue-100 rounded-full blur-3xl opacity-50 -z-10" />
         </div>
+      </section>
+
+      <section className="max-w-7xl mx-auto px-6 pb-20 grid lg:grid-cols-[1.2fr_.8fr] gap-8">
+        <div className="rounded-3xl border border-slate-200 bg-slate-50 p-7 md:p-10">
+          <h2 className="text-2xl md:text-3xl font-black text-blue-900 mb-5">პროდუქტები და მომსახურება</h2>
+          <p className="text-slate-600 leading-8 mb-6">Medical Line Georgia მომხმარებლებს სთავაზობს დენტალურ აპარატურას, ინტრაორალურ სკანერებს, რენტგენოლოგიურ და CBCT სისტემებს, დენტალურ მიკროსკოპებს, ენდოდონტიურ და ჰიგიენის მოწყობილობებსა და სახარჯ მასალებს.</p>
+          <ul className="grid sm:grid-cols-2 gap-3 text-slate-700 font-semibold">
+            {['აპარატურის ინსტალაცია', 'მომხმარებლის ტრენინგი', 'საგარანტიო მომსახურება', 'ტექნიკური მხარდაჭერა'].map((item) => <li key={item} className="rounded-xl bg-white border border-slate-200 px-4 py-3">✓ {item}</li>)}
+          </ul>
+        </div>
+        <aside className="rounded-3xl bg-blue-950 text-white p-7 md:p-10 flex flex-col gap-3">
+          <p className="text-blue-300 text-sm font-bold uppercase tracking-widest">ოფიციალური სავაჭრო ინფორმაცია</p>
+          <h2 className="text-2xl font-black">{merchant.legalName}</h2>
+          <p>საიდენტიფიკაციო ნომერი: {merchant.identificationNumber}</p>
+          <p>მისამართი: {merchant.address}</p>
+          <a className="text-blue-300 font-bold" href={merchant.phoneHref}>{merchant.phone}</a>
+          <a className="text-blue-300 font-bold break-all" href={merchant.emailHref}>{merchant.email}</a>
+          <p>{merchant.hours}</p>
+        </aside>
       </section>
     </main>
   );

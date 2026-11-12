@@ -9,6 +9,7 @@ export type LocalCatalogProduct = {
   name: string
   img: string
   cat: string
+  brand?: string
   description: string
   specs: string[]
   aiFeatures?: LocalCatalogAiFeature[]
@@ -17,7 +18,7 @@ export type LocalCatalogProduct = {
 export const localCatalogProducts = [...part1, ...part2] as LocalCatalogProduct[]
 
 export function normalizeProductText(value: string) {
-  return value.toLocaleLowerCase().normalize('NFKC').replace(/[^\\p{L}\\p{N}]+/gu, '')
+  return value.toLocaleLowerCase().normalize('NFKC').replace(/[^\p{L}\p{N}]+/gu, '')
 }
 
 export function mapCategoryToSlug(category: string) {
@@ -28,6 +29,7 @@ export function mapCategoryToSlug(category: string) {
     'რადიოლოგია': 'radio',
     'ოპტიკა': 'optics',
     'ჰიგიენა': 'hygiene',
+    'სტერილიზაცია': 'sterilization',
     'ქირურგია': 'surgery',
     'სხვა': 'other',
     'პარტნიორი ბრენდები': 'partner',
@@ -36,7 +38,8 @@ export function mapCategoryToSlug(category: string) {
   return map[normalized] || 'other'
 }
 
-export function inferBrand(product: Pick<LocalCatalogProduct, 'slug' | 'name'>) {
+export function inferBrand(product: Pick<LocalCatalogProduct, 'slug' | 'name' | 'brand'>) {
+  if (product.brand) return product.brand
   const key = `${product.slug} ${product.name}`.toLowerCase()
   if (key.includes('hager')) return 'Hager'
   if (key.includes('finscan')) return 'LargeV'
@@ -70,10 +73,17 @@ export function findDatabaseProductMatch<T extends { slug?: string; name?: strin
 ) {
   const productSlug = normalizeProductText(product.slug || '')
   const productName = normalizeProductText(product.name || '')
+
+  // Prices and product IDs must never be paired through partial names. Slugs
+  // such as "e-connect-s" and "e-connect-s-plus" otherwise match each other.
+  const exactSlugMatch = productSlug
+    ? dbProducts.find((dbProduct) => normalizeProductText(dbProduct.slug || '') === productSlug)
+    : undefined
+  if (exactSlugMatch) return exactSlugMatch
+
   return dbProducts.find((dbProduct) => {
-    const dbSlug = normalizeProductText(dbProduct.slug || '')
     const dbName = normalizeProductText(dbProduct.name || '')
-    return (productSlug && dbSlug === productSlug) || (productName && dbName === productName)
+    return Boolean(productName && dbName === productName)
   })
 }
 

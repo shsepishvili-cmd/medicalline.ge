@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
-import { supabase } from '@/app/lib/supabase'
+import { adminSupabase as supabase } from '@/app/lib/supabase-admin-browser'
 import { CONTRACT_STATUS_LABELS, CONTRACT_STATUS_TONES } from '@/app/lib/contract-types'
 import { isActiveProfileStatus, isInternalWarrantyRole } from '@/app/lib/warranty'
 import type { ContractStatus } from '@/app/lib/contract-types'

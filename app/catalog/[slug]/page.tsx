@@ -1,4 +1,5 @@
 import React from 'react';
+import { createClient } from '@supabase/supabase-js';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
@@ -10,6 +11,8 @@ import ProductGallery from './ProductGallery';
 import ProductViewTracker from '@/app/components/ProductViewTracker';
 import TrackedAnchor from '@/app/components/TrackedAnchor';
 import { absoluteImageUrl, buildPageMetadata, siteConfig } from '@/app/lib/seo';
+import { loadQuickCatalogProduct } from '@/app/lib/quick-catalog';
+import { applyCorrection, loadCatalogCorrections } from '@/app/lib/catalog-corrections';
 import {
   ArrowLeft,
   MessageCircle,
@@ -20,9 +23,48 @@ import {
 
 const allProducts = [...part1, ...part2];
 
+// Show the exhibition offer only for active products selected for Expo 2026.
+// The QR stays on the permanent product page, while the price request is
+// handled by the Expo checkout so its EXPO2026 lead source is preserved.
+async function isExpoProduct(slug: string): Promise<boolean> {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
+  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim();
+  if (!url || !key) return false;
+
+  try {
+    const supabase = createClient(url, key, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
+    const { data: product, error: productError } = await supabase
+      .from('products')
+      .select('id')
+      .eq('slug', slug)
+      .eq('is_active', true)
+      .maybeSingle();
+    if (productError || !product) return false;
+
+    const { data: expoSelection, error: selectionError } = await supabase
+      .from('expo_catalog_items')
+      .select('product_id')
+      .eq('product_id', product.id)
+      .limit(1);
+    return !selectionError && !!expoSelection?.length;
+  } catch {
+    return false;
+  }
+}
+
+// Admin-added products are rendered on demand and refreshed every minute.
+export const revalidate = 60;
+
 async function getProduct(slug: string) {
   const decodedSlug = decodeURIComponent(slug);
-  return allProducts.find((p) => p.slug === decodedSlug) || null;
+  const builtIn = allProducts.find((p) => p.slug === decodedSlug);
+  if (!builtIn) return loadQuickCatalogProduct(decodedSlug);
+  // Admin corrections: hidden products are gone, corrected ones show the edit.
+  const correction = (await loadCatalogCorrections()).get(builtIn.slug);
+  if (correction?.hidden) return null;
+  return applyCorrection(builtIn, correction);
 }
 
 export async function generateStaticParams() {
@@ -58,8 +100,11 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
   const { slug } = await params;
   const product = await getProduct(slug);
   if (!product) notFound();
+  const expoEligible = await isExpoProduct(product.slug);
 
-  const productBrand = product.slug === 'le-ray-w' ? 'LifeDent' : 'Eighteeth';
+  const productBrand = 'brand' in product && typeof product.brand === 'string'
+    ? product.brand
+    : product.slug === 'le-ray-w' ? 'LifeDent' : 'Eighteeth';
   const productImages = 'images' in product && Array.isArray(product.images)
     ? product.images
     : [product.img];
@@ -77,16 +122,6 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
     },
     sku: String(product.id),
     url: `${siteConfig.url}/catalog/${product.slug}`,
-    offers: {
-      '@type': 'Offer',
-      availability: 'https://schema.org/InStock',
-      priceCurrency: 'GEL',
-      seller: {
-        '@type': 'Organization',
-        name: siteConfig.name,
-      },
-      url: `${siteConfig.url}/catalog/${product.slug}`,
-    },
   };
 
   return (
@@ -111,7 +146,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
             <div className="mb-8">
               <span className="text-blue-600 font-black uppercase tracking-widest text-[10px] block mb-4">{productBrand.toUpperCase()} | {product.cat}</span>
               <h1 className="text-4xl md:text-6xl font-black text-[#1E293B] mb-4 uppercase italic tracking-tighter">{product.name}</h1>
-              <p className="text-[#64748B] text-lg font-medium italic mb-10">"{product.description}"</p>
+              <p className="text-[#64748B] text-lg font-medium italic mb-10">“{product.description}”</p>
             </div>
 
             <div className="mb-10 bg-[#0F172A] rounded-[2.5rem] p-8 border border-slate-800">
@@ -139,6 +174,16 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
             </div>
 
             <OfferAdminButton slug={product.slug} />
+
+            {expoEligible ? (
+              <Link
+                href={`/expo2026?product=${encodeURIComponent(product.slug)}`}
+                className="mb-3 flex w-full items-center justify-center gap-3 rounded-[1.5rem] bg-emerald-700 px-5 py-5 text-center text-sm font-black text-white shadow-lg transition-colors hover:bg-emerald-800"
+              >
+                <Sparkles size={20} aria-hidden="true" />
+                მოითხოვე Expo-ს სპეციალური ფასი
+              </Link>
+            ) : null}
 
             <TrackedAnchor
               href={`https://wa.me/995514011116?text=${encodeURIComponent(`გამარჯობა, მაინტერესებს ${product.name}. გთხოვთ მომაწოდოთ ფასი და დეტალები.`)}`}
@@ -171,6 +216,26 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
             </TrackedAnchor>
           </div>
         </div>
+
+        <section className="mt-12 grid lg:grid-cols-2 gap-6">
+          <div className="rounded-3xl border border-slate-200 bg-slate-50 p-7 md:p-9">
+            <h2 className="text-2xl font-black text-slate-900 mb-5">ტექნიკური მახასიათებლები</h2>
+            {product.specs?.length ? <ul className="grid gap-3">{product.specs.map((spec) => <li key={spec} className="flex gap-3 text-slate-600 leading-7"><span className="text-blue-600 font-black">✓</span><span>{spec}</span></li>)}</ul> : <p className="text-slate-600 leading-7">დეტალური ტექნიკური სპეციფიკაციისა და კომპლექტაციისთვის დაგვიკავშირდით.</p>}
+          </div>
+          <div className="rounded-3xl bg-blue-950 text-white p-7 md:p-9">
+            <h2 className="text-2xl font-black mb-4">ფასი, მიწოდება და გარანტია</h2>
+            <p className="text-blue-100 leading-7 mb-5">საბოლოო ფასი, ვალუტა, დღგ-ის სტატუსი, გადახდის პირობები და მიწოდების ვადა განისაზღვრება ინდივიდუალურ კომერციულ შეთავაზებაში.</p>
+            <ul className="grid gap-3 text-sm text-blue-100">
+              <li><strong className="text-white">ხელმისაწვდომობა:</strong> დასადასტურებელია მოთხოვნის დროს</li>
+              <li><strong className="text-white">გარანტია:</strong> შეთავაზებისა და საგარანტიო დოკუმენტის შესაბამისად</li>
+              <li><strong className="text-white">გადახდა:</strong> მხოლოდ მოქმედი შეთავაზების მიღებისა და პირობების დადასტურების შემდეგ</li>
+            </ul>
+            <div className="flex flex-wrap gap-4 mt-6 text-sm font-bold">
+              <Link className="text-blue-300 underline" href="/delivery-returns">მიწოდება და დაბრუნება</Link>
+              <Link className="text-blue-300 underline" href="/terms">წესები და პირობები</Link>
+            </div>
+          </div>
+        </section>
       </div>
     </main>
   );

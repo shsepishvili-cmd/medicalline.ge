@@ -23,11 +23,31 @@ import {
 import { VIDEO_TYPE_LABELS } from '@/app/lib/academy-types'
 import type { AcademyVideo, AcademyProductRef } from '@/app/lib/academy-types'
 
+function getDeviceId() {
+  if (typeof window === 'undefined') return ''
+  const key = 'ml_academy_device_id'
+  const existing = window.localStorage.getItem(key)
+  if (existing) return existing
+  const value = `ml-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`
+  window.localStorage.setItem(key, value)
+  return value
+}
+
 // ---------------------------------------------------------------------------
 // Small reusable pieces
 // ---------------------------------------------------------------------------
 
-function VideoCard({ video }: { video: AcademyVideo }) {
+function VideoCard({
+  video,
+  likeCount,
+  liked,
+  onLike,
+}: {
+  video: AcademyVideo
+  likeCount: number
+  liked: boolean
+  onLike: (videoId: string) => void
+}) {
   const thumb =
     video.thumbnail_url ||
     (video.youtube_video_id
@@ -92,6 +112,19 @@ function VideoCard({ video }: { video: AcademyVideo }) {
             {video.description}
           </p>
         )}
+        <div className="mt-3 flex items-center justify-between">
+          <button
+            type="button"
+            onClick={(e) => {
+              e.preventDefault()
+              onLike(video.id)
+            }}
+            className={`text-xs font-bold px-2.5 py-1 rounded-full border transition ${liked ? 'bg-red-50 border-red-200 text-red-600' : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'}`}
+          >
+            {liked ? '♥ მოწონებულია' : '♡ მომწონს'}
+          </button>
+          <span className="text-xs text-slate-400">{likeCount} მოწონება</span>
+        </div>
       </div>
     </a>
   )
@@ -138,6 +171,8 @@ export default function AcademyPage() {
   const [allVideos, setAllVideos] = useState<AcademyVideo[]>([])
   const [loading, setLoading]     = useState(true)
   const [search, setSearch]       = useState('')
+  const [likes, setLikes]         = useState<Record<string, number>>({})
+  const [likedIds, setLikedIds]   = useState<Record<string, boolean>>({})
 
   useEffect(() => {
     Promise.all([
@@ -153,6 +188,55 @@ export default function AcademyPage() {
       setLoading(false)
     })
   }, [])
+
+  useEffect(() => {
+    if (allVideos.length === 0) return
+    const ids = allVideos.map((v) => v.id).join(',')
+    fetch(`/api/academy/likes?ids=${encodeURIComponent(ids)}`)
+      .then((res) => res.json())
+      .then((payload) => {
+        if (payload?.ok && payload.likes) setLikes(payload.likes as Record<string, number>)
+      })
+      .catch(() => {})
+  }, [allVideos])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const raw = window.localStorage.getItem('ml_academy_liked_ids')
+    if (!raw) return
+    try {
+      const arr = JSON.parse(raw) as string[]
+      const next: Record<string, boolean> = {}
+      for (const id of arr) next[id] = true
+      setLikedIds(next)
+    } catch {}
+  }, [])
+
+  function likeVideo(videoId: string) {
+    if (likedIds[videoId]) return
+    const deviceId = getDeviceId()
+    fetch('/api/academy/likes', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ videoId, deviceId }),
+    })
+      .then((res) => res.json())
+      .then((payload) => {
+        if (!payload?.ok) return
+        setLikedIds((prev) => {
+          const next = { ...prev, [videoId]: true }
+          if (typeof window !== 'undefined') {
+            window.localStorage.setItem('ml_academy_liked_ids', JSON.stringify(Object.keys(next).filter((id) => next[id])))
+          }
+          return next
+        })
+        setLikes((prev) => ({
+          ...prev,
+          [videoId]: typeof payload.count === 'number' ? payload.count : (prev[videoId] || 0) + 1,
+        }))
+      })
+      .catch(() => {})
+  }
 
   // Videos per product (for card counts)
   const videosPerProduct = useMemo(() => {
@@ -275,14 +359,14 @@ export default function AcademyPage() {
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 {featured.map(v => (
-                  <VideoCard key={v.id} video={v} />
+                  <VideoCard key={v.id} video={v} likeCount={likes[v.id] || 0} liked={Boolean(likedIds[v.id])} onLike={likeVideo} />
                 ))}
               </div>
             </section>
           )}
 
           {/* ── Latest / search results ── */}
-          <section className="max-w-7xl mx-auto px-6 pb-20">
+          <section className="max-w-7xl mx-auto px-6 pt-12 pb-20">
             <h2 className="text-2xl font-black text-slate-900 mb-2">
               {search ? 'ძიების შედეგები' : 'ბოლოს დამატებული მასალები'}
             </h2>
@@ -309,7 +393,7 @@ export default function AcademyPage() {
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
                 {filteredLatest.map(v => (
-                  <VideoCard key={v.id} video={v} />
+                  <VideoCard key={v.id} video={v} likeCount={likes[v.id] || 0} liked={Boolean(likedIds[v.id])} onLike={likeVideo} />
                 ))}
               </div>
             )}

@@ -356,6 +356,22 @@ export default function MedicalLineHome() {
             </Link>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <Link href="/blog/davit-mamulashvili-clinic-philden-x500-installation" className="group bg-white rounded-[2.5rem] border border-slate-100 transition-all hover:shadow-2xl overflow-hidden">
+              <div className="relative h-56 bg-slate-100">
+                <Image
+                  src="/images/blog/philden-x500-dmc/philden-x500-social-cover.jpg"
+                  alt="Philden X500 დავით მამულაშვილის კლინიკაში"
+                  fill
+                  className="object-cover group-hover:scale-105 transition-transform duration-500"
+                />
+              </div>
+              <div className="p-6">
+                <h3 className="text-2xl font-black mb-3 group-hover:text-blue-600 transition uppercase tracking-tighter italic">
+                  Philden X500 დავით მამულაშვილის კლინიკაში
+                </h3>
+                <p className="text-slate-500 font-bold text-sm italic">Medical Line Georgia-ს ჩართულობით დამონტაჟდა ინოვაციური ჰიბრიდული საღარავი სისტემა.</p>
+              </div>
+            </Link>
             <Link href="/blog/gdda-expo-2025" className="group bg-white p-6 rounded-[2.5rem] border border-slate-100 transition-all hover:shadow-2xl">
               <h3 className="text-2xl font-black mb-3 group-hover:text-blue-600 transition uppercase tracking-tighter italic">
                 GDDA EXPO 2025 - სრული მიმოხილვა

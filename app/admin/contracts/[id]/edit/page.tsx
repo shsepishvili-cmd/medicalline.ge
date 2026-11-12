@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
-import { supabase } from '@/app/lib/supabase'
+import { adminSupabase as supabase } from '@/app/lib/supabase-admin-browser'
 import type { ContractRecord } from '@/app/lib/contract-types'
 import { AuthBlockedView, ContractAdminShell, LoadingView, useContractAdminGate } from '../../_components/ContractUi'
 import { ContractForm } from '../../_components/ContractForm'

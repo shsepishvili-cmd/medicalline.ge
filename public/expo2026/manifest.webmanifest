@@ -1,0 +1,17 @@
+{
+  "name": "Medical Line · GDDA Expo 2026",
+  "short_name": "ML Expo",
+  "description": "Medical Line Georgia — GDDA Dental Expo 2026 კატალოგი და სპეციალური შეთავაზების მოთხოვნა.",
+  "lang": "ka",
+  "start_url": "/expo2026?source=homescreen",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f5f8fd",
+  "theme_color": "#0a2044",
+  "icons": [
+    { "src": "/expo2026/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/expo2026/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/expo2026/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

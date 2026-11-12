@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { useEffect, useRef, useState } from 'react'
 import { useParams, useSearchParams } from 'next/navigation'
-import { supabase } from '@/app/lib/supabase'
+import { adminSupabase as supabase } from '@/app/lib/supabase-admin-browser'
 import type { ContractAcceptanceActRecord } from '@/app/lib/acceptance-act-types'
 import type { ContractAuditLogRecord, ContractRecord, ContractStatus } from '@/app/lib/contract-types'
 import { calcVatAmount, formatCurrency } from '@/app/lib/contract'

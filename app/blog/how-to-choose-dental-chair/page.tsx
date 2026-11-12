@@ -1,7 +1,7 @@
 import React from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { ArrowLeft, Calendar, Clock, Share2, CheckCircle2, ChevronRight, Phone } from 'lucide-react';
+import { ArrowLeft, Calendar, Clock, Share2, CheckCircle2, ChevronRight, Phone, ExternalLink } from 'lucide-react';
 import { Metadata } from 'next';
 
 export const metadata: Metadata = {
@@ -135,6 +135,43 @@ export default function BlogPost() {
           </p>
 
           <hr className="my-12 border-slate-100" />
+
+          {/* Hager Configurator */}
+          <section className="my-12 not-prose overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xl">
+            <div className="border-b border-slate-200 bg-slate-950 px-5 py-6 text-white md:px-8">
+              <p className="mb-2 text-xs font-black uppercase tracking-widest text-blue-300">ინტერაქტიული კონფიგურატორი</p>
+              <h2 className="m-0 text-2xl font-black uppercase leading-tight md:text-3xl">
+                შექმენით თქვენი Hager სავარძელი
+              </h2>
+              <p className="mb-0 mt-3 max-w-2xl text-sm leading-relaxed text-slate-300 md:text-base">
+                შეარჩიეთ თქვენთვის სასურველი მოდელი, ფერი და კომპლექტაცია. კონფიგურატორი დაგეხმარებათ ვიზუალურად შეადაროთ ვარიანტები კონსულტაციამდე.
+              </p>
+            </div>
+
+            <div className="relative h-[620px] w-full bg-slate-100 md:h-[760px]">
+              <iframe
+                src="https://hagerconfiguration.netlify.app/"
+                title="Hager Dental Unit Configurator"
+                className="absolute inset-0 h-full w-full border-0"
+                loading="lazy"
+                allow="fullscreen"
+              />
+            </div>
+
+            <div className="flex flex-col gap-3 border-t border-slate-200 bg-slate-50 px-5 py-4 sm:flex-row sm:items-center sm:justify-between md:px-8">
+              <p className="m-0 text-sm font-medium text-slate-600">
+                დიდ ეკრანზე მუშაობა უფრო მოსახერხებელია.
+              </p>
+              <a
+                href="https://hagerconfiguration.netlify.app/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center justify-center gap-2 rounded-md bg-blue-600 px-5 py-3 text-xs font-black uppercase text-white no-underline transition-colors hover:bg-blue-700"
+              >
+                გახსენი სრულ ეკრანზე <ExternalLink size={16} />
+              </a>
+            </div>
+          </section>
 
           {/* Hager G4 Highlight Section */}
           <div className="bg-blue-50 p-8 md:p-12 rounded-[3rem] border border-blue-100 my-12">

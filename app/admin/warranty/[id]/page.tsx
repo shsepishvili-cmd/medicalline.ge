@@ -3,9 +3,10 @@
 import Link from 'next/link'
 import { useEffect, useMemo, useState } from 'react'
 import { useParams, useSearchParams } from 'next/navigation'
-import { supabase } from '@/app/lib/supabase'
+import { adminSupabase as supabase } from '@/app/lib/supabase-admin-browser'
 import type { ServiceCaseRecord, WarrantyAttachmentRecord, WarrantyRecord } from '@/app/lib/warranty-types'
 import { buildWarrantyVerifyUrl, formatBoolean, formatDate, formatDateTime } from '@/app/lib/warranty'
+import { HANDOVER_ITEMS } from '@/app/lib/warranty-catalog'
 import {
   AuthBlockedView,
   colors,
@@ -20,6 +21,7 @@ import {
   WarrantyStatusBadge,
   WarrantySummaryCard,
 } from '../_components/WarrantyUi'
+import { sendWarrantySmsRequest } from '../_components/warranty-sms'
 
 export default function WarrantyDetailPage() {
   const params = useParams<{ id: string }>()
@@ -30,6 +32,8 @@ export default function WarrantyDetailPage() {
   const [serviceCases, setServiceCases] = useState<ServiceCaseRecord[]>([])
   const [serviceAttachments, setServiceAttachments] = useState<Record<string, WarrantyAttachmentRecord[]>>({})
   const [working, setWorking] = useState(false)
+  const [smsNotice, setSmsNotice] = useState('')
+  const [smsError, setSmsError] = useState('')
 
   useEffect(() => {
     if (!profile || !params.id) return
@@ -120,6 +124,26 @@ export default function WarrantyDetailPage() {
     }
   }
 
+  async function sendWarrantySms() {
+    if (!accessToken || !params.id) return
+    setWorking(true)
+    setSmsNotice('')
+    setSmsError('')
+    try {
+      const result = await sendWarrantySmsRequest(accessToken, params.id)
+      if (result.smsSent) {
+        setSmsNotice(`გარანტიის დოკუმენტი SMS-ით გაიგზავნა${result.smsMessageId ? ` · ID ${result.smsMessageId}` : ''}.`)
+      } else if (result.smsText) {
+        await navigator.clipboard?.writeText(result.smsText)
+        setSmsNotice('GOSMS ჯერ არ არის ჩართული — SMS ტექსტი დაკოპირდა ხელით გასაგზავნად.')
+      }
+    } catch (cause) {
+      setSmsError(cause instanceof Error ? cause.message : 'გარანტიის SMS ვერ გაიგზავნა.')
+    } finally {
+      setWorking(false)
+    }
+  }
+
   if (loading) return <LoadingView label="გარანტიის დეტალები იტვირთება..." />
   if (error || !profile || !accessToken) return <AuthBlockedView message={error || 'წვდომა აკრძალულია.'} />
   if (!warranty) return <LoadingView label="გარანტიის ჩანაწერი ვერ მოიძებნა..." />
@@ -132,10 +156,19 @@ export default function WarrantyDetailPage() {
       actions={
         <>
           <span style={{ fontSize: 13, color: colors.muted }}>
-            {searchParams.get('pdf') ? 'PDF სერტიფიკატი წარმატებით განახლდა.' : 'მარჯვნივ არსებული მოქმედებებიდან შეგიძლია სერტიფიკატის თავიდან გენერაცია ან ახალი სერვის ქეისის დამატება.'}
+            {searchParams.get('sms') === 'sent'
+              ? 'გარანტია შეიქმნა და დოკუმენტი SMS-ით გაიგზავნა.'
+              : searchParams.get('sms') === 'failed'
+                ? 'გარანტია შეიქმნა, მაგრამ SMS ვერ გაიგზავნა — სცადე ქვემოთ მოცემული ღილაკით.'
+                : searchParams.get('sms') === 'copied'
+                  ? 'გარანტია შეიქმნა; SMS ტექსტი დაკოპირდა ხელით გასაგზავნად.'
+                  : searchParams.get('pdf')
+                    ? 'PDF სერტიფიკატი წარმატებით განახლდა.'
+                    : 'მარჯვნივ არსებული მოქმედებებიდან შეგიძლია სერტიფიკატის თავიდან გენერაცია ან ახალი სერვის ქეისის დამატება.'}
           </span>
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
             <button type="button" onClick={() => openPdf(true)} disabled={working} style={{ ...ui.primaryButton, opacity: working ? 0.7 : 1 }}>PDF სერტიფიკატი</button>
+            <button type="button" onClick={sendWarrantySms} disabled={working || !warranty.phone} title={!warranty.phone ? 'კლიენტის ტელეფონი არ არის მითითებული' : 'გარანტიის დოკუმენტის SMS-ით გაგზავნა'} style={{ ...ui.primaryButton, opacity: working || !warranty.phone ? 0.55 : 1 }}>გარანტიის SMS</button>
             <button type="button" onClick={() => openMiniContract()} disabled={working} style={{ ...ui.secondaryButton, opacity: working ? 0.7 : 1 }}>მინი კონტრაქტი</button>
             <Link href={`/admin/warranty/${warranty.id}/edit`} style={ui.secondaryButton}>რედაქტირება</Link>
             <Link href={`/admin/warranty/${warranty.id}/service/new`} style={ui.secondaryButton}>სერვის ქეისი</Link>
@@ -143,6 +176,8 @@ export default function WarrantyDetailPage() {
         </>
       }
     >
+      {smsNotice ? <div style={{ ...ui.panel, borderColor: '#A7F3D0', background: '#ECFDF5', color: '#047857' }}>{smsNotice}</div> : null}
+      {smsError ? <div style={{ ...ui.panel, borderColor: '#FECDD3', background: '#FFF1F2', color: '#9F1239' }}>{smsError}</div> : null}
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 2fr) minmax(280px, 0.85fr)', gap: 18, alignItems: 'start' }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
           <div style={{ ...ui.panel, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12 }}>
@@ -153,9 +188,26 @@ export default function WarrantyDetailPage() {
             <WarrantySummaryCard label="კლინიკა" value={warranty.clinic_name || '—'} />
             <WarrantySummaryCard label="ექიმი / მომხმარებელი" value={warranty.customer_name || '—'} />
             <WarrantySummaryCard label="პროდუქტი" value={warranty.product_name} />
-            <WarrantySummaryCard label="ბრენდი / მოდელი" value={`${warranty.brand}${warranty.model ? ` / ${warranty.model}` : ''}`} />
+            <WarrantySummaryCard label="კატეგორია" value={warranty.product_category || '—'} />
+            <WarrantySummaryCard label="მწარმოებელი / მოდელი" value={`${warranty.brand}${warranty.model ? ` / ${warranty.model}` : ''}`} />
             <WarrantySummaryCard label="ინვოისის ნომერი" value={warranty.invoice_number || '—'} />
             <WarrantySummaryCard label="გამყიდველი" value={warranty.sold_by || '—'} />
+            <WarrantySummaryCard label="გადაცემის თარიღი" value={formatDate(warranty.purchase_date)} />
+            <WarrantySummaryCard label="მონტაჟის თარიღი" value={formatDate(warranty.installation_date)} />
+            <WarrantySummaryCard label="დამატებითი კომპონენტები" value={warranty.component_terms || '—'} />
+            <WarrantySummaryCard label="კომპლექტაცია" value={warranty.package_notes || '—'} />
+            <WarrantySummaryCard
+              label="მიღება-ჩაბარება"
+              value={
+                <span style={{ display: 'flex', flexDirection: 'column', gap: 3, fontWeight: 500 }}>
+                  {HANDOVER_ITEMS.map((item) => (
+                    <span key={item.column} style={{ color: warranty[item.column] ? colors.text : colors.muted }}>
+                      {warranty[item.column] ? '✓' : '○'} {item.label}
+                    </span>
+                  ))}
+                </span>
+              }
+            />
           </div>
 
           <div style={{ ...ui.panel, display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -232,6 +284,7 @@ export default function WarrantyDetailPage() {
                       <WarrantySummaryCard label="ინსპექტირება" value={serviceCase.inspection_result || '—'} />
                       <WarrantySummaryCard label="მექანიკური დაზიანება" value={formatBoolean(serviceCase.is_mechanical_damage)} />
                       <WarrantySummaryCard label="გარანტიაში შედის" value={formatBoolean(serviceCase.is_under_warranty)} />
+                      <WarrantySummaryCard label="მივლინება" value={serviceCase.business_trip_required ? (serviceCase.business_trip_details || 'კი') : 'არა'} />
                       <WarrantySummaryCard label="გატარებული ქმედება" value={serviceCase.action_taken || '—'} />
                     </div>
                     {(serviceAttachments[serviceCase.id] || []).length > 0 ? (
@@ -258,7 +311,7 @@ export default function WarrantyDetailPage() {
             <WarrantySummaryCard label="მომხმარებელი" value={warranty.customer_name || '—'} />
             <WarrantySummaryCard label="ტელეფონი" value={warranty.phone || '—'} />
             <WarrantySummaryCard label="ელფოსტა" value={warranty.email || '—'} />
-            <WarrantySummaryCard label="შენიშვნები" value={warranty.notes || '—'} />
+            <WarrantySummaryCard label="შიდა შენიშვნები" value={warranty.notes || '—'} />
           </div>
         </div>
       </div>

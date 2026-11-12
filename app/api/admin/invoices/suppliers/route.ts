@@ -3,7 +3,6 @@ import { z } from 'zod'
 import { requireWarrantySession } from '@/app/lib/supabase-server'
 
 const itemSchema = z.object({
-  erp_product_id: z.string().uuid().nullable().optional(),
   product_name: z.string().trim().min(1).max(300),
   sku: z.string().trim().max(100).nullable().optional(),
   unit: z.string().trim().min(1).max(40).default('pcs'),
@@ -12,6 +11,7 @@ const itemSchema = z.object({
 })
 
 const supplierInvoiceSchema = z.object({
+  document_type: z.enum(['supplier_invoice', 'business_trip']).default('supplier_invoice'),
   manufacturer_id: z.string().uuid().nullable().optional(),
   manufacturer_name: z.string().trim().min(1).max(200),
   invoice_number: z.string().trim().max(100).nullable().optional(),
@@ -21,7 +21,15 @@ const supplierInvoiceSchema = z.object({
   storage_path: z.string().trim().max(1000).nullable().optional(),
   original_filename: z.string().trim().max(300).nullable().optional(),
   notes: z.string().trim().max(4000).nullable().optional(),
-  items: z.array(itemSchema).min(1).max(500),
+  items: z.array(itemSchema).max(500).default([]),
+}).superRefine((input, context) => {
+  if (input.document_type === 'supplier_invoice' && input.items.length < 1) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['items'],
+      message: 'მომწოდებლის ინვოისს მინიმუმ ერთი პროდუქტის ხაზი სჭირდება.',
+    })
+  }
 })
 
 async function requireAdmin(request: NextRequest) {
@@ -76,6 +84,7 @@ export async function POST(request: NextRequest) {
       .insert({
         manufacturer_id: manufacturerId,
         manufacturer_name: input.manufacturer_name,
+        document_type: input.document_type,
         invoice_number: input.invoice_number || null,
         invoice_date: input.invoice_date,
         currency: input.currency,
@@ -90,63 +99,24 @@ export async function POST(request: NextRequest) {
       .single()
     if (invoiceError || !invoice) throw new Error(invoiceError?.message || 'მომწოდებლის ინვოისი ვერ შეიქმნა.')
 
-    const { data: company } = await tokenClient.from('erp_companies').select('id').limit(1).maybeSingle()
-    const itemRows = []
-    try {
-      for (const item of input.items) {
-        let productId = item.erp_product_id || null
-        if (!productId) {
-          const term = (item.sku || item.product_name).replace(/[%_,()]/g, ' ').trim()
-          let lookup = tokenClient.from('erp_products').select('id').eq('is_active', true)
-          lookup = item.sku ? lookup.eq('code', item.sku) : lookup.ilike('name', item.product_name)
-          const { data: existing } = await lookup.limit(1).maybeSingle()
-          productId = existing?.id || null
-          if (!productId && company?.id) {
-            const { data: created, error: createError } = await tokenClient
-              .from('erp_products')
-              .insert({
-                company_id: company.id,
-                code: item.sku || `SUP-${Date.now()}`,
-                name: item.product_name,
-                category: input.manufacturer_name,
-                unit: item.unit,
-                default_cost: item.unit_price,
-                default_price: 0,
-                vat_rate: 18,
-                requires_serial: false,
-                is_active: true,
-                source: 'supplier_invoice',
-              })
-              .select('id')
-              .single()
-            if (createError) throw createError
-            productId = created.id
-          }
-          void term
-        }
-        if (productId) {
-          const { error: updateError } = await tokenClient
-            .from('erp_products')
-            .update({ default_cost: item.unit_price, unit: item.unit, updated_at: new Date().toISOString() })
-            .eq('id', productId)
-          if (updateError) throw updateError
-        }
-        itemRows.push({
-          supplier_invoice_id: invoice.id,
-          erp_product_id: productId,
-          product_name: item.product_name,
-          sku: item.sku || null,
-          unit: item.unit,
-          quantity: item.quantity,
-          unit_price: item.unit_price,
-          currency: input.currency,
-        })
+    const itemRows = input.items.map((item) => ({
+      supplier_invoice_id: invoice.id,
+      product_name: item.product_name,
+      sku: item.sku || null,
+      unit: item.unit,
+      quantity: item.quantity,
+      unit_price: item.unit_price,
+      currency: input.currency,
+    }))
+
+    if (itemRows.length) {
+      try {
+        const { error: itemsError } = await tokenClient.from('supplier_invoice_items').insert(itemRows)
+        if (itemsError) throw itemsError
+      } catch (cause) {
+        await tokenClient.from('supplier_invoices').delete().eq('id', invoice.id)
+        throw cause
       }
-      const { error: itemsError } = await tokenClient.from('supplier_invoice_items').insert(itemRows)
-      if (itemsError) throw itemsError
-    } catch (cause) {
-      await tokenClient.from('supplier_invoices').delete().eq('id', invoice.id)
-      throw cause
     }
 
     return NextResponse.json({ ok: true, invoice: { ...invoice, supplier_invoice_items: itemRows } }, { status: 201 })

@@ -1,6 +1,19 @@
 import type { NextConfig } from "next";
 
+// Photos uploaded from the admin panel are served from Supabase Storage.
+function supabaseStorageHost() {
+  try {
+    const url = new URL(process.env.NEXT_PUBLIC_SUPABASE_URL || '')
+    const protocol = url.protocol === 'http:' ? 'http' as const : 'https' as const
+    return url.hostname ? [{ protocol, hostname: url.hostname, port: url.port, pathname: '/storage/v1/object/public/**' }] : []
+  } catch {
+    return []
+  }
+}
+
+
 const nextConfig: NextConfig = {
+  serverExternalPackages: ['pdf-parse', 'sharp'],
   compiler: {
     styledComponents: true,
   },
@@ -29,6 +42,7 @@ const nextConfig: NextConfig = {
   images: {
     remotePatterns: [
       { protocol: 'https', hostname: 'cdn.sanity.io' },
+      ...supabaseStorageHost(),
     ],
   },
   typescript: {

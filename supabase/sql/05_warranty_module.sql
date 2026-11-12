@@ -22,6 +22,8 @@ create table if not exists public.warranties (
   serial_number text not null unique,
   clinic_name text,
   customer_name text,
+  customer_id_number text,
+  customer_address text,
   phone text,
   email text,
   purchase_date date,
@@ -32,11 +34,13 @@ create table if not exists public.warranties (
   invoice_number text,
   sold_by text,
   status text not null default 'pending' check (status in ('pending', 'active', 'expired', 'void', 'replaced')),
+  terms_version text not null default '1.0',
   notes text,
   created_by uuid references public.profiles(id) on delete set null,
   pdf_path text,
   qr_url text,
   verify_token uuid not null default gen_random_uuid(),
+  generated_at timestamptz,
   archived_at timestamptz
 );
 
@@ -120,11 +124,16 @@ returns table (
   serial_number text,
   clinic_name text,
   customer_name text,
+  customer_id_number text,
+  customer_address text,
   purchase_date date,
   installation_date date,
   warranty_start date,
+  warranty_months integer,
   warranty_end date,
-  status text
+  status text,
+  terms_version text,
+  generated_at timestamptz
 )
 language sql
 stable
@@ -139,11 +148,16 @@ as $$
     w.serial_number,
     w.clinic_name,
     w.customer_name,
+    w.customer_id_number,
+    w.customer_address,
     w.purchase_date,
     w.installation_date,
     w.warranty_start,
+    w.warranty_months,
     w.warranty_end,
-    w.status
+    w.status,
+    w.terms_version,
+    w.generated_at
   from public.warranties w
   where w.verify_token = p_verify_token
     and w.archived_at is null

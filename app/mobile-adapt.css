@@ -1,0 +1,90 @@
+/* =============================================================================
+   Admin and doctor portal on phones. Most admin modules use inline styles and
+   fixed desktop layouts; these rules adapt them on narrow screens without
+   touching the desktop view. Pages are wrapped in .ml-mobile (admin and clinic
+   layouts). Inline styles appear in two spellings: React's server HTML
+   ("display:flex", "repeat(4,1fr)") and the browser's own after client
+   rendering ("display: flex", "repeat(4, 1fr)"), so selectors list both.
+   ============================================================================= */
+
+@media (max-width: 820px) {
+  .ml-mobile { overflow-x: clip; }
+
+  /* Wide tables scroll sideways inside their own box instead of the page */
+  .ml-mobile table { display: block; max-width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .ml-mobile th, .ml-mobile td { white-space: nowrap; }
+
+  /* Nothing wider than the screen */
+  .ml-mobile div, .ml-mobile section, .ml-mobile form, .ml-mobile aside, .ml-mobile main,
+  .ml-mobile header, .ml-mobile nav, .ml-mobile article, .ml-mobile fieldset, .ml-mobile label,
+  .ml-mobile img, .ml-mobile video, .ml-mobile iframe, .ml-mobile canvas, .ml-mobile pre { max-width: 100%; }
+  .ml-mobile [style*="min-width"]:not(table):not(th):not(td):not(button) { min-width: 0 !important; }
+  .ml-mobile pre { overflow-x: auto; white-space: pre-wrap; word-break: break-word; }
+
+  /* Fixed multi-column grids (stat tiles, form rows): as many columns as fit,
+     two on a phone, one inside narrow cards. Table-like grids with fixed pixel
+     columns are left alone. */
+  .ml-mobile [style*="grid-template-columns:repeat("]:not([style*="repeat(auto-"]),
+  .ml-mobile [style*="grid-template-columns: repeat("]:not([style*="repeat(auto-"]),
+  .ml-mobile [style*="grid-template-columns:1fr 1fr"],
+  .ml-mobile [style*="grid-template-columns: 1fr 1fr"],
+  .ml-mobile [style*="grid-template-columns:1.2fr 1fr 1fr"],
+  .ml-mobile [style*="grid-template-columns: 1.2fr 1fr 1fr"] {
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr)) !important;
+  }
+  .ml-mobile [style*="repeat(auto-fit"], .ml-mobile [style*="repeat(auto-fill"] {
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr)) !important;
+  }
+  /* Two-pane layouts (list + detail, sidebar + content) stack */
+  .ml-mobile [style*="grid-template-columns:minmax("], .ml-mobile [style*="grid-template-columns: minmax("],
+  .ml-mobile [style*="grid-template-columns:295px"], .ml-mobile [style*="grid-template-columns: 295px"],
+  .ml-mobile [style*="grid-template-columns:1.2fr .8fr"], .ml-mobile [style*="grid-template-columns: 1.2fr 0.8fr"],
+  .ml-mobile [style*="grid-template-columns:2fr 1fr"], .ml-mobile [style*="grid-template-columns: 2fr 1fr"],
+  .ml-mobile [style*="grid-template-columns:220px 180px"], .ml-mobile [style*="grid-template-columns: 220px 180px"] {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+  .ml-mobile [style*="grid-column"] { grid-column: auto !important; }
+  .ml-mobile .grid[class*="grid-cols-"]:not([class*="sm:grid-cols"]):not([class*="md:grid-cols"]):not([class*="lg:grid-cols"]) {
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr));
+  }
+
+  /* Rows of buttons, filters and fields wrap instead of overflowing */
+  .ml-mobile [style*="display:flex"]:not([style*="flex-direction:column"]):not([style*="nowrap"]),
+  .ml-mobile [style*="display: flex"]:not([style*="flex-direction: column"]):not([style*="nowrap"]) { flex-wrap: wrap; }
+  .ml-mobile [style*="display:flex"] > *, .ml-mobile [style*="display: flex"] > * { min-width: 0; }
+
+  /* Big desktop paddings */
+  .ml-mobile [style*="padding:40px"], .ml-mobile [style*="padding: 40px"],
+  .ml-mobile [style*="padding:48px"], .ml-mobile [style*="padding: 48px"],
+  .ml-mobile [style*="padding:36px"], .ml-mobile [style*="padding: 36px"],
+  .ml-mobile [style*="padding:32px"], .ml-mobile [style*="padding: 32px"],
+  .ml-mobile [style*="padding:28px 32px"], .ml-mobile [style*="padding: 28px 32px"],
+  .ml-mobile [style*="padding:24px 32px"], .ml-mobile [style*="padding: 24px 32px"],
+  .ml-mobile [style*="padding:24px 28px"], .ml-mobile [style*="padding: 24px 28px"] { padding: 16px !important; }
+
+  /* iPhone zooms into fields under 16px */
+  .ml-mobile input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]),
+  .ml-mobile select, .ml-mobile textarea { font-size: 16px !important; max-width: 100%; }
+
+  /* Pop-up windows fit the screen and scroll inside */
+  .ml-mobile [style*="position:fixed"][style*="inset:0"], .ml-mobile [style*="position: fixed"][style*="inset: 0"] { padding: 10px !important; }
+  .ml-mobile [style*="position:fixed"][style*="inset:0"] > div, .ml-mobile [style*="position: fixed"][style*="inset: 0"] > div { max-width: 100% !important; max-height: 92vh; overflow-y: auto; }
+
+  /* Long words, links and ids wrap instead of pushing the layout */
+  .ml-mobile p, .ml-mobile span, .ml-mobile a, .ml-mobile li, .ml-mobile h1, .ml-mobile h2, .ml-mobile h3, .ml-mobile dd { overflow-wrap: anywhere; }
+
+  /* ---- Main admin (/admin): sidebar becomes a slide-out menu ---- */
+  .ml-mobile .mla-shell { display: block !important; }
+  .ml-mobile .mla-topbar { display: flex !important; }
+  .ml-mobile .mla-sidebar {
+    position: fixed !important; top: 0; bottom: 0; left: 0; z-index: 1000; width: min(82vw, 300px) !important;
+    overflow-y: auto; transform: translateX(-105%); transition: transform .22s ease; box-shadow: 8px 0 30px rgba(0,0,0,.25);
+    padding-top: calc(16px + env(safe-area-inset-top)) !important; padding-bottom: calc(16px + env(safe-area-inset-bottom)) !important;
+  }
+  .ml-mobile .mla-sidebar[data-open="true"] { transform: none; }
+  .ml-mobile .mla-sidebar button { min-height: 44px; font-size: 15px !important; }
+  .ml-mobile .mla-backdrop[data-open="true"] { display: block !important; }
+}
+
+.ml-mobile .mla-topbar { display: none; }
+.ml-mobile .mla-backdrop { display: none; position: fixed; inset: 0; z-index: 999; background: rgba(4, 30, 25, .55); }

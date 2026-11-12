@@ -1,182 +1,139 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
-import { supabase } from '../../lib/supabase'
+import { useEffect, useState } from 'react'
+import Link from 'next/link'
+import { adminSupabase as supabase } from '@/app/lib/supabase-admin-browser'
+import { AuthBlockedView, LoadingView, useWarrantyAdminGate } from '@/app/admin/warranty/_components/WarrantyUi'
 
-type CallMode = 'exact_message' | 'dialog'
-type Purpose = 'notification' | 'debt_reminder' | 'sales' | 'service' | 'follow_up' | 'other'
+const purposes = [
+  ['notification', 'შეტყობინება'],
+  ['debt_reminder', 'დავალიანება'],
+  ['sales', 'გაყიდვა'],
+  ['engineering_service', 'საინჟინრო სერვისი'],
+  ['follow_up', 'Follow-up'],
+  ['other', 'სხვა'],
+] as const
 
-const purposeLabels: Record<Purpose, string> = {
-  notification: 'შეტყობინება',
-  debt_reminder: 'დავალიანების შეხსენება',
-  sales: 'შეთავაზება / გაყიდვები',
-  service: 'სერვისი / საინჟინრო',
-  follow_up: 'შემდგომი დაკავშირება',
-  other: 'სხვა',
+const statuses = ['queued', 'dialing', 'ringing', 'answered', 'completed', 'no_answer', 'busy', 'failed', 'cancelled']
+const outcomes = ['გადაიხდის კონკრეტულ თარიღში', 'უკვე გადაიხადა — გადასამოწმებელია', 'თანხას არ ეთანხმება', 'ბუღალტერთან დაკავშირება სჭირდება', 'მოგვიანებით გადარეკვა', 'არ უპასუხა', 'უარი თქვა საუბარზე']
+
+const labelMap: Record<string, string> = Object.fromEntries(purposes)
+
+type CallJob = Record<string, any>
+
+function formatDate(value?: string | null) {
+  return value ? new Date(value).toLocaleString('ka-GE') : '-'
+}
+
+function formatTranscript(value: unknown) {
+  if (!value) return '-'
+  if (typeof value === 'string') return value
+  try { return JSON.stringify(value, null, 2) } catch { return String(value) }
+}
+
+const styles = {
+  page: { minHeight: '100vh', background: '#F5F5F0', padding: '24px 18px 48px' },
+  wrap: { maxWidth: 1240, margin: '0 auto' },
+  card: { background: '#fff', border: '1px solid rgba(8,80,65,.12)', borderRadius: 16, padding: 20, boxShadow: '0 16px 40px rgba(8,80,65,.05)' },
+  input: { width: '100%', boxSizing: 'border-box' as const, border: '1px solid rgba(15,23,42,.16)', borderRadius: 10, padding: '10px 11px', fontSize: 14 },
+  label: { display: 'block', color: '#52606D', fontSize: 12, fontWeight: 600, marginBottom: 6 },
 }
 
 export default function AiCallsPage() {
+  const { loading, error, profile } = useWarrantyAdminGate()
+  const [jobs, setJobs] = useState<CallJob[]>([])
+  const [campaigns, setCampaigns] = useState<Record<string, any>[]>([])
+  const [campaignId, setCampaignId] = useState('')
   const [phone, setPhone] = useState('')
   const [customerName, setCustomerName] = useState('')
-  const [mode, setMode] = useState<CallMode>('exact_message')
-  const [purpose, setPurpose] = useState<Purpose>('notification')
-  const [script, setScript] = useState('')
-  const [maxSeconds, setMaxSeconds] = useState(60)
+  const [purpose, setPurpose] = useState('notification')
+  const [mode, setMode] = useState<'exact_message' | 'dialog'>('exact_message')
+  const [scriptText, setScriptText] = useState('')
+  const [callerId, setCallerId] = useState('+995322453821')
+  const [maxSeconds, setMaxSeconds] = useState('180')
   const [smsAfter, setSmsAfter] = useState(false)
   const [smsText, setSmsText] = useState('')
-  const [jobs, setJobs] = useState<any[]>([])
-  const [busy, setBusy] = useState(false)
-  const [message, setMessage] = useState('')
-
-  useEffect(() => {
-    loadJobs()
-    const channel = supabase
-      .channel('ai-call-jobs-live')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'ai_call_jobs' }, loadJobs)
-      .subscribe()
-    return () => { supabase.removeChannel(channel) }
-  }, [])
+  const [debtAmount, setDebtAmount] = useState('')
+  const [debtDueDate, setDebtDueDate] = useState('')
+  const [debtDocument, setDebtDocument] = useState('')
+  const [debtNote, setDebtNote] = useState('')
+  const [saving, setSaving] = useState(false)
+  const [notice, setNotice] = useState('')
+  const [loadError, setLoadError] = useState('')
 
   async function loadJobs() {
-    const { data } = await supabase.from('ai_call_jobs').select('*').order('created_at', { ascending: false }).limit(100)
-    if (data) setJobs(data)
+    const { data, error: dbError } = await supabase.from('ai_call_jobs').select('*').order('created_at', { ascending: false }).limit(100)
+    if (dbError) setLoadError(dbError.message)
+    else setJobs(data || [])
   }
 
-  const exactModeNote = useMemo(() => mode === 'exact_message'
-    ? 'აგენტი კითხულობს მხოლოდ შენს ტექსტს. სხვა თემაზე არ გადადის და ახალ ფაქტს არ ამატებს.'
-    : 'აგენტს შეუძლია დიალოგის გაგრძელება, მაგრამ მხოლოდ შენ მიერ მითითებული თემისა და მიზნის ფარგლებში.'
-  , [mode])
-
-  async function createCall() {
-    setMessage('')
-    const digits = phone.replace(/\D/g, '').replace(/^995/, '')
-    if (!/^5\d{8}$/.test(digits)) {
-      setMessage('ტელეფონის ნომერი სწორად ჩაწერე — 5XXXXXXXX')
-      return
-    }
-    if (!script.trim()) {
-      setMessage('ზარის ტექსტი აუცილებელია.')
-      return
-    }
-    setBusy(true)
-    const { data: { session } } = await supabase.auth.getSession()
-    const { error } = await supabase.from('ai_call_jobs').insert({
-      phone: digits,
-      customer_name: customerName.trim() || null,
-      mode,
-      purpose,
-      script_text: script.trim(),
-      caller_id: '+995322453821',
-      max_seconds: maxSeconds,
-      status: 'queued',
-      sms_after: smsAfter,
-      sms_text: smsAfter ? (smsText.trim() || script.trim()) : null,
-      created_by: session?.user?.id || null,
-    })
-    setBusy(false)
-    if (error) {
-      setMessage(error.message)
-      return
-    }
-    setMessage('ზარი რიგში დაემატა. VPS აიღებს დავალებას და დარეკავს.')
-    setPhone('')
-    setCustomerName('')
-    setScript('')
-    setSmsText('')
-    setSmsAfter(false)
-    loadJobs()
+  async function loadCampaigns() {
+    const { data, error: dbError } = await supabase.from('ai_campaigns').select('id, name, purpose, max_seconds').eq('active', true).order('name')
+    if (dbError) setLoadError(dbError.message)
+    else setCampaigns(data || [])
   }
 
-  const statusLabel = (s: string) => ({
-    queued: 'რიგშია', dialing: 'რეკავს', ringing: 'რინგავს', answered: 'უპასუხა', completed: 'დასრულდა',
-    no_answer: 'არ უპასუხა', busy: 'დაკავებულია', failed: 'შეცდომა', cancelled: 'გაუქმდა'
-  } as Record<string,string>)[s] || s
+  useEffect(() => {
+    if (!profile || profile.role !== 'admin') return
+    void loadJobs()
+    void loadCampaigns()
+    const channel = supabase.channel('ai-call-jobs-admin-live').on('postgres_changes', { event: '*', schema: 'public', table: 'ai_call_jobs' }, () => void loadJobs()).subscribe()
+    const poll = window.setInterval(() => void loadJobs(), 5000)
+    return () => { window.clearInterval(poll); supabase.removeChannel(channel) }
+  }, [profile])
 
-  return (
-    <div style={{ minHeight: '100vh', background: '#f5f5f0', padding: 24, fontFamily: 'sans-serif' }}>
-      <div style={{ maxWidth: 1180, margin: '0 auto' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-          <div>
-            <h1 style={{ margin: 0, fontSize: 24, color: '#085041' }}>AI ზარები</h1>
-            <p style={{ margin: '5px 0 0', color: '#777', fontSize: 13 }}>Medical Line · ნომერი + ტექსტი + ზარის ისტორია</p>
-          </div>
-          <div style={{ display: 'flex', gap: 8 }}>
-            <button onClick={() => location.href='/admin/ai-orders'} style={{ padding: '9px 12px', borderRadius: 9, border: '1px solid #d7e3df', background: '#fff', cursor: 'pointer' }}>AI Agent შეკვეთები</button>
-            <button onClick={() => location.href='/admin'} style={{ padding: '9px 12px', borderRadius: 9, border: 0, background: '#085041', color: '#fff', cursor: 'pointer' }}>← Admin</button>
-          </div>
-        </div>
+  async function createJob(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    setNotice('')
+    setLoadError('')
+    if (!profile?.id || !phone.trim() || !scriptText.trim()) { setLoadError('მიუთითეთ ტელეფონი და დავალების ტექსტი.'); return }
+    if (mode === 'dialog' && !campaignId) { setLoadError('AI dialog რეჟიმისთვის აირჩიეთ აქტიური Campaign.'); return }
+    if (Number(maxSeconds) < 10 || Number(maxSeconds) > 3600) { setLoadError('მაქსიმალური დრო უნდა იყოს 10-დან 3600 წამამდე.'); return }
+    setSaving(true)
+    const structuredDebt = purpose === 'debt_reminder' ? { amount: debtAmount || null, due_date: debtDueDate || null, document_number: debtDocument || null, note: debtNote || null } : null
+    const selectedCampaign = campaigns.find(campaign => campaign.id === campaignId)
+    const jobPayload = {
+      phone: phone.trim(), customer_name: customerName.trim() || null, campaign_id: campaignId || null, purpose, mode, script_text: scriptText.trim(), caller_id: callerId.trim() || '+995322453821', max_seconds: Number(maxSeconds) || selectedCampaign?.max_seconds || 180, sms_after: smsAfter, sms_text: smsAfter ? smsText.trim() || null : null, created_by: profile.id, status: 'queued', ...(structuredDebt ? { debt_details: structuredDebt } : {}),
+    }
+    let { error: dbError } = await supabase.from('ai_call_jobs').insert(jobPayload)
+    if (dbError && /campaign_id|column .* does not exist/i.test(dbError.message)) {
+      const { campaign_id: _campaignId, ...legacyPayload } = jobPayload
+      const retry = await supabase.from('ai_call_jobs').insert(legacyPayload)
+      dbError = retry.error
+    }
+    setSaving(false)
+    if (dbError) { setLoadError(dbError.message); return }
+    setNotice('ზარის დავალება შეიქმნა და queued სტატუსით ელოდება worker-ს. ზარი ჯერ არ განხორციელებულა.')
+    setPhone(''); setCustomerName(''); setScriptText(''); setSmsText(''); setDebtAmount(''); setDebtDueDate(''); setDebtDocument(''); setDebtNote(''); setCampaignId('')
+    void loadJobs()
+  }
 
-        <div style={{ display: 'grid', gridTemplateColumns: '420px 1fr', gap: 16, alignItems: 'start' }}>
-          <div style={{ background: '#fff', padding: 18, borderRadius: 14, border: '1px solid #e6e6e0' }}>
-            <h2 style={{ fontSize: 16, margin: '0 0 14px' }}>ახალი AI ზარი</h2>
+  if (loading) return <LoadingView label="AI ზარები იტვირთება..." />
+  if (error || !profile || profile.role !== 'admin') return <AuthBlockedView message={error || 'AI ზარებზე წვდომა მხოლოდ admin-ს აქვს.'} />
 
-            <label style={{ fontSize: 12, color: '#666' }}>ნომერი</label>
-            <input value={phone} onChange={e=>setPhone(e.target.value)} placeholder="5XXXXXXXX" style={{ width:'100%', boxSizing:'border-box', padding:10, borderRadius:9, border:'1px solid #ddd', margin:'5px 0 12px' }} />
-
-            <label style={{ fontSize: 12, color: '#666' }}>სახელი / კლინიკა (სურვილისამებრ)</label>
-            <input value={customerName} onChange={e=>setCustomerName(e.target.value)} placeholder="მაგ: დენტალ ლუქსი" style={{ width:'100%', boxSizing:'border-box', padding:10, borderRadius:9, border:'1px solid #ddd', margin:'5px 0 12px' }} />
-
-            <label style={{ fontSize: 12, color: '#666' }}>რეჟიმი</label>
-            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:8, margin:'6px 0 6px' }}>
-              <button onClick={()=>setMode('exact_message')} style={{ padding:10, borderRadius:9, border:0, cursor:'pointer', background:mode==='exact_message'?'#085041':'#eef3f1', color:mode==='exact_message'?'#fff':'#085041' }}>ზუსტი ტექსტი</button>
-              <button onClick={()=>setMode('dialog')} style={{ padding:10, borderRadius:9, border:0, cursor:'pointer', background:mode==='dialog'?'#085041':'#eef3f1', color:mode==='dialog'?'#fff':'#085041' }}>დიალოგი</button>
-            </div>
-            <p style={{ fontSize:11, color:'#777', margin:'0 0 12px' }}>{exactModeNote}</p>
-
-            <label style={{ fontSize: 12, color: '#666' }}>მიზანი</label>
-            <select value={purpose} onChange={e=>setPurpose(e.target.value as Purpose)} style={{ width:'100%', padding:10, borderRadius:9, border:'1px solid #ddd', margin:'5px 0 12px', background:'#fff' }}>
-              {(Object.keys(purposeLabels) as Purpose[]).map(k=><option key={k} value={k}>{purposeLabels[k]}</option>)}
-            </select>
-
-            <label style={{ fontSize: 12, color: '#666' }}>რას ეტყვის აგენტი</label>
-            <textarea value={script} onChange={e=>setScript(e.target.value)} rows={8} placeholder="მაგ: გამარჯობა, Medical Line Georgia-დან გიკავშირდებით..." style={{ width:'100%', boxSizing:'border-box', padding:10, borderRadius:9, border:'1px solid #ddd', margin:'5px 0 12px', resize:'vertical' }} />
-
-            <label style={{ fontSize:12, color:'#666' }}>მაქს. საუბრის დრო — {maxSeconds} წმ</label>
-            <input type="range" min={30} max={300} step={30} value={maxSeconds} onChange={e=>setMaxSeconds(Number(e.target.value))} style={{ width:'100%', margin:'6px 0 12px' }} />
-
-            <label style={{ display:'flex', gap:8, alignItems:'center', fontSize:12, marginBottom:8 }}>
-              <input type="checkbox" checked={smsAfter} onChange={e=>setSmsAfter(e.target.checked)} />
-              ზარის შემდეგ SMS-ის მომზადება
-            </label>
-            {smsAfter && <textarea value={smsText} onChange={e=>setSmsText(e.target.value)} rows={3} placeholder="SMS ტექსტი" style={{ width:'100%', boxSizing:'border-box', padding:10, borderRadius:9, border:'1px solid #ddd', marginBottom:12 }} />}
-
-            <div style={{ fontSize:11, background:'#fff8e8', border:'1px solid #f2dfae', padding:10, borderRadius:9, marginBottom:12 }}>
-              დავალიანებაზე: გამოიყენე „ზუსტი ტექსტი“. თუ ტექსტში წერ კონკრეტულ თანხას ან სხვა კონფიდენციალურ დეტალს, პირველივე წინადადებაში ჯობს პირის იდენტობა გადაამოწმო.
-            </div>
-
-            <button disabled={busy} onClick={createCall} style={{ width:'100%', padding:12, borderRadius:10, border:0, background:'#085041', color:'#fff', fontWeight:700, cursor:'pointer', opacity:busy?.6:1 }}>
-              {busy ? 'ვაგზავნი…' : '📞 ზარის რიგში დამატება'}
-            </button>
-            {message && <p style={{ fontSize:12, color:message.includes('რიგში')?'#08765e':'#a33', marginBottom:0 }}>{message}</p>}
-          </div>
-
-          <div style={{ background:'#fff', borderRadius:14, border:'1px solid #e6e6e0', overflow:'hidden' }}>
-            <div style={{ padding:'14px 16px', borderBottom:'1px solid #eee', display:'flex', justifyContent:'space-between' }}>
-              <strong style={{ fontSize:14 }}>ზარების ისტორია</strong>
-              <button onClick={loadJobs} style={{ border:0, background:'transparent', color:'#085041', cursor:'pointer' }}>განახლება</button>
-            </div>
-            <div style={{ overflowX:'auto' }}>
-              <table style={{ width:'100%', borderCollapse:'collapse', fontSize:12 }}>
-                <thead><tr style={{ background:'#fafaf8' }}>
-                  {['ნომერი','რეჟიმი','მიზანი','სტატუსი','დრო','შედეგი','თარიღი'].map(h=><th key={h} style={{ textAlign:'left', padding:'9px 10px', color:'#777' }}>{h}</th>)}
-                </tr></thead>
-                <tbody>
-                  {jobs.map(j=><tr key={j.id} style={{ borderTop:'1px solid #f0f0ec' }}>
-                    <td style={{ padding:'9px 10px', fontWeight:600 }}>{j.phone}</td>
-                    <td style={{ padding:'9px 10px' }}>{j.mode==='exact_message'?'ზუსტი':'დიალოგი'}</td>
-                    <td style={{ padding:'9px 10px' }}>{purposeLabels[j.purpose as Purpose] || j.purpose}</td>
-                    <td style={{ padding:'9px 10px' }}>{statusLabel(j.status)}</td>
-                    <td style={{ padding:'9px 10px' }}>{j.duration_seconds ? `${j.duration_seconds} წმ` : '—'}</td>
-                    <td style={{ padding:'9px 10px', maxWidth:220 }}>{j.outcome || j.summary || '—'}</td>
-                    <td style={{ padding:'9px 10px', color:'#888' }}>{new Date(j.created_at).toLocaleString('ka-GE')}</td>
-                  </tr>)}
-                  {!jobs.length && <tr><td colSpan={7} style={{ padding:24, textAlign:'center', color:'#aaa' }}>ზარები ჯერ არ არის</td></tr>}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
+  return <main style={styles.page}><div style={styles.wrap}>
+    <header style={{ display: 'flex', justifyContent: 'space-between', gap: 16, alignItems: 'center', marginBottom: 18, flexWrap: 'wrap' }}>
+      <div><Link href="/admin/ai" style={{ color: '#085041', fontSize: 13 }}>← AI Operator</Link><h1 style={{ color: '#18212F', margin: '8px 0 4px', fontSize: 28 }}>📞 AI ზარები</h1><p style={{ color: '#6B7280', margin: 0 }}>ერთი universal dynamic bridge ასრულებს Admin-ის მიერ შექმნილ task-ს. ბრაუზერი ზარს არ ახორციელებს.</p></div>
+    </header>
+    <form onSubmit={createJob} style={{ ...styles.card, display: 'grid', gap: 16, marginBottom: 18 }}>
+      <h2 style={{ margin: 0, color: '#18212F', fontSize: 18 }}>ახალი ზარის დავალება</h2>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 14 }}>
+        <label style={styles.label}>ტელეფონის ნომერი<input required value={phone} onChange={e => setPhone(e.target.value)} style={styles.input} placeholder="+995..." /></label>
+        <label style={styles.label}>კლიენტის/კლინიკის სახელი — optional<input value={customerName} onChange={e => setCustomerName(e.target.value)} style={styles.input} /></label>
+        <label style={styles.label}>ზარის მიზანი<select value={purpose} onChange={e => setPurpose(e.target.value)} style={styles.input}>{purposes.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
+        <label style={styles.label}>რეჟიმი<select value={mode} onChange={e => setMode(e.target.value as typeof mode)} style={styles.input}><option value="exact_message">ზუსტი ტექსტი</option><option value="dialog">AI დიალოგი</option></select></label>
+        <label style={styles.label}>Campaign<select value={campaignId} onChange={e => setCampaignId(e.target.value)} style={styles.input}><option value="">Campaign-ის გარეშე</option>{campaigns.map(campaign => <option key={campaign.id} value={campaign.id}>{campaign.name} · {campaign.purpose}</option>)}</select></label>
+        <label style={styles.label}>Caller ID<input value={callerId} onChange={e => setCallerId(e.target.value)} style={styles.input} /></label>
+        <label style={styles.label}>საუბრის მაქსიმალური დრო (წამი)<input type="number" min="10" max="3600" value={maxSeconds} onChange={e => setMaxSeconds(e.target.value)} style={styles.input} /></label>
       </div>
-    </div>
-  )
+      {mode === 'exact_message' ? <div style={{ padding: 12, borderRadius: 10, background: '#E1F5EE', color: '#085041', fontWeight: 600, fontSize: 13 }}>აგენტს არ აქვს უფლება შეცვალოს ან დაამატოს ტექსტი.</div> : null}
+      <label style={styles.label}>ტექსტი / ინსტრუქცია<textarea required value={scriptText} onChange={e => setScriptText(e.target.value)} style={{ ...styles.input, minHeight: 120, resize: 'vertical' }} /></label>
+      {purpose === 'debt_reminder' ? <fieldset style={{ border: '1px solid rgba(8,80,65,.14)', borderRadius: 12, padding: 14, display: 'grid', gap: 12 }}><legend style={{ color: '#085041', fontWeight: 700, padding: '0 6px' }}>დავალიანების დეტალები</legend><div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12 }}><label style={styles.label}>დავალიანების თანხა<input value={debtAmount} onChange={e => setDebtAmount(e.target.value)} style={styles.input} /></label><label style={styles.label}>ვადა<input type="date" value={debtDueDate} onChange={e => setDebtDueDate(e.target.value)} style={styles.input} /></label><label style={styles.label}>ინვოისის/დოკუმენტის ნომერი<input value={debtDocument} onChange={e => setDebtDocument(e.target.value)} style={styles.input} /></label></div><label style={styles.label}>შენიშვნა<textarea value={debtNote} onChange={e => setDebtNote(e.target.value)} style={{ ...styles.input, minHeight: 70 }} /></label><p style={{ margin: 0, color: '#8A4B08', fontSize: 12 }}>აგენტმა არ უნდა დაემუქროს, მოახდინოს ზეწოლა ან მოიგონოს ფინანსური ინფორმაცია.</p></fieldset> : null}
+      <label style={{ display: 'flex', gap: 10, alignItems: 'center', color: '#18212F', fontSize: 14 }}><input type="checkbox" checked={smsAfter} onChange={e => setSmsAfter(e.target.checked)} /> SMS-ის გაგზავნა ზარის შემდეგ</label>
+      {smsAfter ? <label style={styles.label}>SMS ტექსტი<textarea value={smsText} onChange={e => setSmsText(e.target.value)} style={{ ...styles.input, minHeight: 70 }} /></label> : null}
+      <button type="submit" disabled={saving} style={{ justifySelf: 'start', border: 0, borderRadius: 10, padding: '12px 18px', background: saving ? '#9CA3AF' : '#085041', color: '#fff', fontWeight: 700, cursor: saving ? 'wait' : 'pointer' }}>{saving ? 'იქმნება...' : 'ზარის დავალების შექმნა'}</button>
+      {notice ? <p style={{ margin: 0, color: '#085041', fontSize: 13 }}>{notice}</p> : null}{loadError ? <p style={{ margin: 0, color: '#B42318', fontSize: 13 }}>{loadError}</p> : null}
+    </form>
+    <section style={styles.card}><div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, marginBottom: 14 }}><h2 style={{ margin: 0, color: '#18212F', fontSize: 18 }}>ზარების ისტორია</h2><span style={{ color: '#6B7280', fontSize: 12 }}>ბოლო {jobs.length} · განახლება ყოველ 5 წამში</span></div><div style={{ display: 'grid', gap: 10 }}>{jobs.length === 0 ? <p style={{ color: '#6B7280' }}>ზარის ისტორია ჯერ ცარიელია.</p> : jobs.map(job => <details key={job.id} style={{ border: '1px solid rgba(15,23,42,.1)', borderRadius: 10, padding: 12 }}><summary style={{ cursor: 'pointer', color: '#18212F' }}><strong>{job.phone || '-'}</strong> · {job.customer_name || 'კლიენტი'} · {labelMap[job.purpose] || job.purpose || '-'} · {job.mode === 'exact_message' ? 'ზუსტი ტექსტი' : 'AI დიალოგი'} · <b style={{ color: ['completed', 'answered'].includes(job.status) ? '#085041' : job.status === 'failed' ? '#B42318' : '#8A4B08' }}>{job.status || '-'}</b></summary><div style={{ overflowX: 'auto', marginTop: 10, color: '#52606D', fontSize: 13 }}><table style={{ width: '100%', minWidth: 760, borderCollapse: 'collapse' }}><tbody><tr><td>თარიღი</td><td>{formatDate(job.created_at)}</td><td>ხანგრძლივობა</td><td>{job.duration_seconds ?? job.duration ?? '-'} წამი</td><td>შედეგი</td><td>{outcomes.includes(job.outcome) ? job.outcome : job.outcome || '-'}</td></tr><tr><td>Answered</td><td>{formatDate(job.answered_at)}</td><td>Ended</td><td>{formatDate(job.ended_at)}</td><td>Error</td><td>{job.error_message || '-'}</td></tr><tr><td>Summary</td><td colSpan={5}>{job.summary || '-'}</td></tr><tr><td>Follow-up date</td><td colSpan={5}>{formatDate(job.follow_up_date)}</td></tr>{job.transcript ? <tr><td>Transcript</td><td colSpan={5}><pre style={{ whiteSpace: 'pre-wrap', margin: 0, maxHeight: 360, overflow: 'auto' }}>{formatTranscript(job.transcript)}</pre></td></tr> : null}</tbody></table></div></details>)}</div></section>
+  </div></main>
 }

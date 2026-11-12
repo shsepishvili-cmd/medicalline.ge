@@ -14,6 +14,7 @@ import {
   XCircle,
 } from "lucide-react";
 import { buildDicomValidation, buildStrictDecision } from "./qaDecision.mjs";
+import { decodeJpegLosslessFrame } from "./jpegLosslessDecoder.mjs";
 
 const MODES = {
   ACCEPTANCE: "acceptance",
@@ -84,6 +85,13 @@ const SUPPORTED_TRANSFER_SYNTAXES = new Set([
   "1.2.840.10008.1.2.2",
 ]);
 
+// JPEG Lossless, Non-Hierarchical (First-Order Prediction) - the format FinScan F350 (and many
+// other CBCT/CT scanners) actually export by default. Decoded client-side via jpegLosslessDecoder.mjs.
+const JPEG_LOSSLESS_TRANSFER_SYNTAXES = new Set([
+  "1.2.840.10008.1.2.4.57",
+  "1.2.840.10008.1.2.4.70",
+]);
+
 const METADATA_FIELDS = [
   { key: "rows", label: "Rows / რიგები" },
   { key: "columns", label: "Columns / სვეტები" },
@@ -105,6 +113,13 @@ const METADATA_FIELDS = [
   { key: "fov", label: "FOV" },
   { key: "voxelSize", label: "Voxel Size" },
 ];
+
+// Subset of METADATA_FIELDS that actually blocks ROI/geometry computation when missing.
+// Everything else (manufacturer, model, serial, protocol, dose index, software version, ...)
+// is routinely blank on real CBCT exports and is entered manually instead of flagged here.
+const CRITICAL_METADATA_FIELDS = METADATA_FIELDS.filter((field) =>
+  ["rows", "columns", "bitsAllocated", "bitsStored", "pixelSpacing"].includes(field.key),
+);
 
 const AGENCY_METADATA_FIELDS = [
   { key: "institutionName", label: "Institution" },
@@ -218,7 +233,7 @@ const DICOM_VALIDATION_LABEL_BY_KEY = {
 const FINSCAN_F350_PROTOCOLS = {
   CBCT: {
     title: "FinScan F350 CBCT Imaging Performance",
-    document: "FQC-F-02-001 A.4 sections 4.1.3.1 / 4.3.3.1",
+    document: "FQC-F-02-001.02 Rev. A.2 (eff. 2025-05-06) sections 4.3.3.1",
     method: "CBCT phantom / QUART DVTtec workflow",
     criteria: [
       ["X-ray field vs image receptor", "Excess radiation <= 12 mm in one direction and <= 18 mm in both directions", "RaySafe DXR+ / manual"],
@@ -234,7 +249,7 @@ const FINSCAN_F350_PROTOCOLS = {
       ["Length measurement", "Error within +/-5%", "Phantom marker measurement"],
       ["Angle measurement", "Error within +/-2%", "Phantom marker measurement"],
       ["Artefacts", "No visible artefacts in air image", "Visual"],
-      ["Reconstruction time", "General <= 45 s; Fast <= 30 s", "Timer / manual"],
+      ["Reconstruction time", "Actual reconstruction time within 5 s of the prescribed time (General 12 s / Fast 9 s)", "Timer / manual"],
       ["FOV accuracy", "FOV error within +/-10%", "DICOM/phantom measurement"],
     ],
     doseRows: [
@@ -246,7 +261,7 @@ const FINSCAN_F350_PROTOCOLS = {
   },
   PANORAMIC: {
     title: "FinScan F350 Panoramic Imaging Performance",
-    document: "FQC-F-02-001 A.4 sections 4.1.3.2 / 4.3.3.2",
+    document: "FQC-F-02-001.02 Rev. A.2 (eff. 2025-05-06) sections 4.3.3.2",
     method: "Panoramic dental arch phantom",
     criteria: [
       ["Total filtration", ">= 2.8 mm Al", "Quality detector / manual"],
@@ -258,7 +273,7 @@ const FINSCAN_F350_PROTOCOLS = {
       ["Image homogeneity", "H <= 5%", "ROI calculation / manual"],
       ["Panoramic layer", "No unacceptable curve patterns", "Visual"],
       ["Dose indication", "DAP indicated vs measured deviation within +/-50%", "DAP meter / manual"],
-      ["Reconstruction time", "Arch <= 60 s; TMJ <= 10 s", "Timer / manual"],
+      ["Reconstruction time", "Actual reconstruction time within 5 s of the prescribed time (Arch 14 s / TMJ 6 s)", "Timer / manual"],
     ],
     doseRows: [
       ["Arch Adult", "14 s", "90 kV", "8 mA", "7.834 mGy", "153.4 mGy*cm2"],
@@ -269,7 +284,7 @@ const FINSCAN_F350_PROTOCOLS = {
   },
   CEPHALOMETRIC: {
     title: "FinScan F350 Cephalometric Imaging Performance",
-    document: "FQC-F-02-001 A.4 sections 4.1.3.3 / 4.3.3.3",
+    document: "FQC-F-02-001.02 Rev. A.2 (eff. 2025-05-06) sections 4.3.3.3",
     method: "Cephalometric phantom / 3-in-1 devices only",
     criteria: [
       ["Total filtration", ">= 2.8 mm Al", "Quality detector / manual"],
@@ -282,7 +297,7 @@ const FINSCAN_F350_PROTOCOLS = {
       ["Angle measurement", "90 degree angle error within +/-2 degrees", "Image measurement"],
       ["Dose indication", "DAP indicated vs measured deviation within +/-50%", "DAP meter / manual"],
       ["Focal spot to skin distance", ">= 15 cm", "Manual measurement"],
-      ["Reconstruction time", "Lateral <= 15 s; Frontal <= 15 s; Carpus <= 10 s", "Timer / manual"],
+      ["Reconstruction time", "Actual reconstruction time within 5 s of the prescribed time (Lateral 8 s / Frontal 8 s / Carpus 6 s)", "Timer / manual"],
     ],
     doseRows: [
       ["Lateral Adult", "8 s", "90 kV", "8 mA", "0.441 mGy", "47.4 mGy*cm2"],
@@ -432,17 +447,47 @@ function finScanAutoRows(image) {
   ];
 }
 
+function decodeJpegLosslessPixelData(dataSet, pixelElement, metadata) {
+  // Many single-frame CBCT/CT exports write an empty Basic Offset Table (valid per DICOM PS3.5),
+  // which readEncapsulatedImageFrame() rejects outright. Fall back to treating every fragment as
+  // one frame in that case - the same fallback dicom-parser's own deprecated
+  // readEncapsulatedPixelData() uses.
+  const frameBytes =
+    pixelElement.basicOffsetTable && pixelElement.basicOffsetTable.length !== 0
+      ? dicomParser.readEncapsulatedImageFrame(dataSet, pixelElement, 0)
+      : dicomParser.readEncapsulatedPixelDataFromFragments(dataSet, pixelElement, 0, pixelElement.fragments.length);
+  const decoded = decodeJpegLosslessFrame(frameBytes);
+
+  if (decoded.width !== metadata.columns || decoded.height !== metadata.rows) {
+    throw new Error(
+      `Decoded JPEG Lossless frame size (${decoded.width}x${decoded.height}) does not match DICOM rows/columns (${metadata.columns}x${metadata.rows}).`,
+    );
+  }
+
+  const pixelCount = decoded.width * decoded.height;
+  const values = new Float32Array(pixelCount);
+  const signed = metadata.pixelRepresentation === 1;
+  const signBit = 1 << (decoded.precision - 1);
+  const signExtend = 1 << decoded.precision;
+  let min = Infinity;
+  let max = -Infinity;
+
+  for (let index = 0; index < pixelCount; index += 1) {
+    let value = decoded.pixelData[index];
+    if (signed && value & signBit) value -= signExtend;
+    values[index] = value;
+    if (value < min) min = value;
+    if (value > max) max = value;
+  }
+
+  return { values, min, max };
+}
+
 function extractPixelData(dataSet, metadata) {
   const pixelElement = dataSet.elements.x7fe00010;
 
   if (!pixelElement) {
     throw new Error("No pixel data found in this DICOM file.");
-  }
-
-  if (!SUPPORTED_TRANSFER_SYNTAXES.has(metadata.transferSyntax)) {
-    throw new Error(
-      `DICOM pixel data is compressed or unsupported for this MVP. Transfer Syntax: ${metadata.transferSyntax}`,
-    );
   }
 
   if (!metadata.rows || !metadata.columns) {
@@ -455,6 +500,16 @@ function extractPixelData(dataSet, metadata) {
 
   if (metadata.bitsAllocated !== 8 && metadata.bitsAllocated !== 16) {
     throw new Error(`Unsupported Bits Allocated value: ${metadata.bitsAllocated || "missing"}.`);
+  }
+
+  if (JPEG_LOSSLESS_TRANSFER_SYNTAXES.has(metadata.transferSyntax)) {
+    return decodeJpegLosslessPixelData(dataSet, pixelElement, metadata);
+  }
+
+  if (!SUPPORTED_TRANSFER_SYNTAXES.has(metadata.transferSyntax)) {
+    throw new Error(
+      `DICOM pixel data is compressed or unsupported for this MVP. Transfer Syntax: ${metadata.transferSyntax}`,
+    );
   }
 
   const pixelCount = metadata.rows * metadata.columns;
@@ -769,14 +824,31 @@ function agencyProtocolRows({ image, rois, measurements, acceptanceForm, status,
           .filter(Boolean)
           .join(" / ")
       : "";
+  const FORM_FALLBACK_BY_KEY = {
+    manufacturerModelName: acceptanceForm.deviceModel,
+    deviceSerialNumber: acceptanceForm.serialNumber,
+    kvp: acceptanceForm.kv,
+    tubeCurrent: acceptanceForm.ma,
+    exposureTime: acceptanceForm.exposureTime,
+    fov: acceptanceForm.fov,
+    voxelSize: acceptanceForm.voxelSize,
+  };
   const rows = AGENCY_METADATA_FIELDS.map((field) => {
-    const formValue =
-      field.key === "manufacturerModelName"
-        ? acceptanceForm.deviceModel
-        : field.key === "deviceSerialNumber"
-          ? acceptanceForm.serialNumber
-          : "";
-    const value = metadata[field.key] || formValue || "";
+    const dicomValue = metadata[field.key];
+    const formValue = FORM_FALLBACK_BY_KEY[field.key] || "";
+    const value = dicomValue || formValue || "";
+
+    // A value entered in the Acceptance Test Fields is just as valid as one read from DICOM -
+    // it should read as READY here rather than repeating the raw DICOM "missing/invalid" state.
+    if (value) {
+      return {
+        label: field.label,
+        value,
+        source: dicomValue ? "DICOM" : "Acceptance form (manual)",
+        status: "READY",
+      };
+    }
+
     const validation = validationByLabel.get(DICOM_VALIDATION_LABEL_BY_KEY[field.key]);
     if (validation && validation.status !== "READY" && validation.status !== "OPTIONAL") {
       return {
@@ -788,9 +860,9 @@ function agencyProtocolRows({ image, rois, measurements, acceptanceForm, status,
     }
     return {
       label: field.label,
-      value: value || "N/A",
-      source: value ? "DICOM / form" : "Manual",
-      status: value ? "READY" : "MISSING",
+      value: "N/A",
+      source: "Manual",
+      status: "MISSING",
     };
   });
 
@@ -840,6 +912,8 @@ function createRowsForCsv({
   geometryRows,
   strictDecision,
   dicomValidation,
+  manualMtf,
+  manualValidationFlags,
 }) {
   const metadataRows = METADATA_FIELDS.map((field) => [field.label, image?.metadata?.[field.key] || "N/A"]);
   const agencyRows = agencyProtocolRows({
@@ -965,22 +1039,21 @@ function createRowsForCsv({
       ...ACCEPTANCE_FIELDS.map((field) => [field.label, acceptanceForm[field.key] || "N/A"]),
       [],
       ["Calculated parameters"],
-      ["Patient/Phantom Positioning Accuracy", MANUAL],
-      ["Homogeneity / Image Uniformity", metricText(measurements?.uniformityPercent, "%")],
+      ["Homogeneity / Image Uniformity (browser ROI estimate)", metricText(measurements?.uniformityPercent, "%")],
       ["Contrast-to-Noise Ratio / CNR Air vs PMMA", metricText(measurements?.cnrAirPmma)],
       ["Contrast-to-Noise Ratio / CNR PVC/Bone vs PMMA", metricText(measurements?.cnrPvcPmma)],
       ["Noise", metricText(measurements?.noise)],
       ["Noise %", metricText(measurements?.noisePercent, "%")],
       ["SNR", metricText(measurements?.snr)],
-      ["Nyquist Frequency / NF", PLANNED],
-      ["MTF at 10%", PLANNED],
-      ["MTF at 50%", PLANNED],
-      ["Artefacts / Image Flaws", MANUAL],
+      ["MTF at 10% (QUART DVT, manual)", Number.isFinite(numberOrNull(manualMtf?.mtf10)) ? `${manualMtf.mtf10} lp/mm` : MANUAL],
+      ["MTF at 50% (QUART DVT, manual)", Number.isFinite(numberOrNull(manualMtf?.mtf50)) ? `${manualMtf.mtf50} lp/mm` : MANUAL],
+      ["Acceptance Index confirmed", manualValidationFlags?.acceptanceIndexValidated ? "Yes" : "Pending"],
+      ["Dose compliance confirmed", manualValidationFlags?.doseVerified ? "Yes" : "Pending"],
+      ["Reconstruction time confirmed", manualValidationFlags?.reconstructionTimeChecked ? "Yes" : "Pending"],
       [
-        "Demo Acceptance Indicator / Figure of Merit",
+        "Overall acceptance status",
         imageType === IMAGE_TYPES.PHANTOM ? status.label : "Not applicable for patient DICOM",
       ],
-      ["Provisional status", imageType === IMAGE_TYPES.PHANTOM ? status.label : "Not applicable for patient DICOM"],
       [],
       ["Signature fields"],
       ["Engineer / operator", acceptanceForm.engineerSignature || ""],
@@ -1020,6 +1093,227 @@ function createRowsForCsv({
       ? ["Technical note", "Technical preview only - patient DICOM cannot be used for phantom-based QA scoring."]
       : [],
   ];
+}
+
+function checklistStatus(checked) {
+  return checked ? "OK" : "PENDING";
+}
+
+function buildAcceptanceCertificate({
+  acceptanceForm,
+  measurements,
+  manualMtf,
+  manualValidationFlags,
+  agencyManualValues,
+  geometryRows,
+  strictDecision,
+  fileName,
+}) {
+  const mtf10 = numberOrNull(manualMtf?.mtf10);
+  const mtf50 = numberOrNull(manualMtf?.mtf50);
+  const cnr = measurements?.cnrAirPmma ?? measurements?.cnrPvcPmma;
+  const maxGeoError = maxGeometryError(geometryRows || []);
+
+  const device = [
+    ["Clinic", acceptanceForm.clinicName],
+    ["Device model", acceptanceForm.deviceModel],
+    ["Serial number", acceptanceForm.serialNumber],
+    ["Manufacturer", acceptanceForm.manufacturer],
+    ["Software version", acceptanceForm.softwareVersion],
+    ["Phantom type", acceptanceForm.phantomType],
+    ["Standard / protocol", acceptanceForm.standardProtocol],
+    ["Test date", acceptanceForm.testDate],
+    ["Engineer / operator", acceptanceForm.operator],
+    ["FOV", acceptanceForm.fov],
+    ["Voxel size", acceptanceForm.voxelSize],
+    [
+      "kV / mA / exposure",
+      [acceptanceForm.kv && `${acceptanceForm.kv} kV`, acceptanceForm.ma && `${acceptanceForm.ma} mA`, acceptanceForm.exposureTime && `${acceptanceForm.exposureTime} ms`]
+        .filter(Boolean)
+        .join(" / "),
+    ],
+  ].map(([label, value]) => [label, valueText(value)]);
+
+  const results = [
+    ["Noise % (browser ROI estimate)", metricText(measurements?.noisePercent, "%"), "Reference only", "-"],
+    ["Uniformity % (browser ROI estimate)", metricText(measurements?.uniformityPercent, "%"), "Reference only", "-"],
+    ["SNR (browser ROI estimate)", metricText(measurements?.snr), "Reference only", "-"],
+    ["CNR", metricText(cnr), ">= 2", Number.isFinite(cnr) ? (cnr >= 2 ? "OK" : "FAIL") : "PENDING"],
+    ["MTF at 10% (QUART DVT)", Number.isFinite(mtf10) ? `${fixed(mtf10)} lp/mm` : "N/A", ">= 1.0 lp/mm", Number.isFinite(mtf10) ? (mtf10 >= 1.0 ? "OK" : "FAIL") : "PENDING"],
+    ["MTF at 50% (QUART DVT)", Number.isFinite(mtf50) ? `${fixed(mtf50)} lp/mm` : "N/A", ">= 0.5 lp/mm", Number.isFinite(mtf50) ? (mtf50 >= 0.5 ? "OK" : "FAIL") : "PENDING"],
+    ["Geometric error (max, marker pairs)", metricText(maxGeoError, "%"), "<= 50%", Number.isFinite(maxGeoError) ? (maxGeoError <= 50 ? "OK" : "FAIL") : "PENDING"],
+    ["Acceptance Index (AI) confirmed", manualValidationFlags?.acceptanceIndexValidated ? "Yes" : "Pending", ">= 100 (mGy*cm2)^-1", checklistStatus(manualValidationFlags?.acceptanceIndexValidated)],
+    ["Dose compliance confirmed", manualValidationFlags?.doseVerified ? "Yes" : "Pending", "Per FQC-F-02-001.02", checklistStatus(manualValidationFlags?.doseVerified)],
+    ["Reconstruction time confirmed", manualValidationFlags?.reconstructionTimeChecked ? "Yes" : "Pending", "Within 5 s of prescribed value", checklistStatus(manualValidationFlags?.reconstructionTimeChecked)],
+    ["Artefact review", valueText(agencyManualValues?.artefact_review), "No unacceptable artefacts", agencyManualValues?.artefact_review ? "OK" : "PENDING"],
+    ["Positioning accuracy", valueText(agencyManualValues?.laser_positioning_accuracy), "Accurate", agencyManualValues?.laser_positioning_accuracy ? "OK" : "PENDING"],
+    ["Final physicist conclusion", valueText(agencyManualValues?.final_physicist_conclusion), "Explicit pass", agencyManualValues?.final_physicist_conclusion ? "OK" : "PENDING"],
+  ];
+
+  return {
+    title: "CBCT Acceptance Test Certificate",
+    subtitle: "Medical Line Georgia - Eighteeth / FinScan F350 official representative in Georgia",
+    docRef: "FQC-F-02-001.02 Rev. A.2 (eff. 2025-05-06)",
+    fileName,
+    generatedAt: new Date().toLocaleString(),
+    device,
+    results,
+    decision: {
+      label: strictDecision?.label || "INCOMPLETE",
+      tone: strictDecision?.tone || "amber",
+      failures: strictDecision?.failures || [],
+      incomplete: strictDecision?.incomplete || [],
+    },
+    comments: acceptanceForm.comments || "",
+    signatures: {
+      engineer: acceptanceForm.engineerSignature || "",
+      clinic: acceptanceForm.clinicSignature || "",
+    },
+  };
+}
+
+function renderAcceptanceCertificatePdf(doc, certificate) {
+  const marginX = 40;
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
+  const contentWidth = pageWidth - marginX * 2;
+  let y = 44;
+
+  const toneColors = {
+    emerald: [16, 122, 87],
+    rose: [180, 35, 45],
+    amber: [176, 116, 15],
+    slate: [71, 85, 105],
+  };
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(15);
+  doc.text(certificate.title, marginX, y);
+  y += 16;
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(9);
+  doc.text(certificate.subtitle, marginX, y);
+  y += 12;
+  doc.text(`${certificate.docRef}  |  File: ${certificate.fileName || "N/A"}  |  Generated: ${certificate.generatedAt}`, marginX, y);
+  y += 10;
+  doc.setDrawColor(200, 200, 200);
+  doc.line(marginX, y, pageWidth - marginX, y);
+  y += 16;
+
+  // Device / clinic identity grid, two columns per row.
+  doc.setFontSize(9);
+  const colWidth = contentWidth / 2;
+  certificate.device.forEach((pair, index) => {
+    const col = index % 2;
+    if (col === 0 && index > 0) y += 14;
+    const x = marginX + col * colWidth;
+    doc.setFont("helvetica", "bold");
+    doc.text(`${pair[0]}:`, x, y);
+    doc.setFont("helvetica", "normal");
+    doc.text(String(pair[1]), x + 92, y, { maxWidth: colWidth - 96 });
+  });
+  y += 22;
+  doc.setDrawColor(200, 200, 200);
+  doc.line(marginX, y, pageWidth - marginX, y);
+  y += 16;
+
+  // Results table.
+  const columns = [
+    { label: "Parameter", width: contentWidth * 0.34 },
+    { label: "Result", width: contentWidth * 0.28 },
+    { label: "Requirement", width: contentWidth * 0.24 },
+    { label: "Status", width: contentWidth * 0.14 },
+  ];
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(9);
+  let x = marginX;
+  columns.forEach((column) => {
+    doc.text(column.label, x, y);
+    x += column.width;
+  });
+  y += 6;
+  doc.line(marginX, y, pageWidth - marginX, y);
+  y += 10;
+
+  doc.setFont("helvetica", "normal");
+  certificate.results.forEach((row) => {
+    if (y > pageHeight - 170) {
+      doc.addPage();
+      y = 44;
+    }
+    x = marginX;
+    const cellLines = row.map((cell, idx) => doc.splitTextToSize(String(cell), columns[idx].width - 6));
+    const rowHeight = Math.max(...cellLines.map((lines) => lines.length)) * 11;
+    row.forEach((cell, idx) => {
+      if (idx === 3) {
+        const tone = cell === "OK" ? "emerald" : cell === "FAIL" ? "rose" : "amber";
+        doc.setTextColor(...toneColors[tone]);
+      } else {
+        doc.setTextColor(15, 23, 42);
+      }
+      doc.text(cellLines[idx], x, y);
+      x += columns[idx].width;
+    });
+    y += rowHeight + 4;
+  });
+  doc.setTextColor(15, 23, 42);
+  y += 4;
+  doc.setDrawColor(200, 200, 200);
+  doc.line(marginX, y, pageWidth - marginX, y);
+  y += 18;
+
+  // Final decision box.
+  const decisionTone = toneColors[certificate.decision.tone] || toneColors.amber;
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(12);
+  doc.setTextColor(...decisionTone);
+  doc.text(`Final decision: ${certificate.decision.label}`, marginX, y);
+  doc.setTextColor(15, 23, 42);
+  y += 14;
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(8.5);
+  const outstanding = [...certificate.decision.failures, ...certificate.decision.incomplete];
+  if (outstanding.length) {
+    const shown = outstanding.slice(0, 5);
+    shown.forEach((item) => {
+      const wrapped = doc.splitTextToSize(`- ${item}`, contentWidth);
+      doc.text(wrapped, marginX, y);
+      y += wrapped.length * 11;
+    });
+    if (outstanding.length > shown.length) {
+      doc.text(`+ ${outstanding.length - shown.length} more item(s) - see the full checklist in the CBCT QA tool.`, marginX, y);
+      y += 11;
+    }
+  } else {
+    doc.text("All automated and manual acceptance checks are complete.", marginX, y);
+    y += 11;
+  }
+  y += 10;
+
+  if (certificate.comments) {
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(9);
+    doc.text("Comments:", marginX, y);
+    y += 12;
+    doc.setFont("helvetica", "normal");
+    const wrapped = doc.splitTextToSize(certificate.comments, contentWidth);
+    doc.text(wrapped, marginX, y);
+    y += wrapped.length * 11 + 8;
+  }
+
+  // Signature lines pinned near the bottom of the page.
+  const signatureY = Math.max(y + 20, pageHeight - 90);
+  doc.setDrawColor(120, 120, 120);
+  doc.line(marginX, signatureY, marginX + contentWidth * 0.42, signatureY);
+  doc.line(marginX + contentWidth * 0.58, signatureY, pageWidth - marginX, signatureY);
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(9);
+  doc.text(`Engineer / operator: ${certificate.signatures.engineer || "________________"}`, marginX, signatureY + 12);
+  doc.text(`Clinic representative: ${certificate.signatures.clinic || "________________"}`, marginX + contentWidth * 0.58, signatureY + 12);
+
+  doc.setFontSize(7.5);
+  doc.setTextColor(100, 116, 139);
+  doc.text(DISCLAIMER, marginX, pageHeight - 30, { maxWidth: contentWidth });
 }
 
 function TextField({ field, value, onChange }) {
@@ -1096,6 +1390,12 @@ export default function CbctQaPage() {
   const [agencyManualValues, setAgencyManualValues] = useState(
     Object.fromEntries(AGENCY_MANUAL_FIELDS.map((field) => [field.key, ""])),
   );
+  const [manualMtf, setManualMtf] = useState({ mtf10: "", mtf50: "" });
+  const [manualValidationFlags, setManualValidationFlags] = useState({
+    acceptanceIndexValidated: false,
+    doseVerified: false,
+    reconstructionTimeChecked: false,
+  });
   const isFinScanCalibration = preset === PRESETS.FINSCAN_CALIBRATION || (preset === PRESETS.FINSCAN && finscanSubmode === FINSCAN_SUBMODES.UNIFORMITY);
   const isFinScanGeometric = preset === PRESETS.FINSCAN_GEOMETRIC || (preset === PRESETS.FINSCAN && finscanSubmode === FINSCAN_SUBMODES.GEOMETRIC);
   const isPatientPreset = preset === PRESETS.PATIENT || mode === MODES.PREVIEW;
@@ -1167,8 +1467,21 @@ export default function CbctQaPage() {
         geometryRows,
         acceptanceForm,
         manualValues: agencyManualValues,
+        mtf: { mtf10: numberOrNull(manualMtf.mtf10), mtf50: numberOrNull(manualMtf.mtf50) },
+        validationFlags: manualValidationFlags,
       }),
-    [acceptanceForm, agencyManualValues, geometryRows, image, imageType, measurements, mode, preset],
+    [
+      acceptanceForm,
+      agencyManualValues,
+      geometryRows,
+      image,
+      imageType,
+      manualMtf,
+      manualValidationFlags,
+      measurements,
+      mode,
+      preset,
+    ],
   );
   const activeStatus =
     image ? strictDecision : mode === MODES.QC ? qc : acceptance;
@@ -1207,7 +1520,11 @@ export default function CbctQaPage() {
 
   const missingMetadata = useMemo(() => {
     if (!image) return [];
-    return METADATA_FIELDS.filter((field) => {
+    // Only flag metadata that actually blocks ROI/geometry computation here. Fields such as
+    // manufacturer, model, serial, protocol name, software version, or dose index are routinely
+    // blank on real dental CBCT exports and are filled manually in the Acceptance Test Fields
+    // instead - they show as neutral "N/A" in the metadata table without alarming the user.
+    return CRITICAL_METADATA_FIELDS.filter((field) => {
       const value = image.metadata[field.key];
       return value === "" || value === null || value === undefined;
     }).map((field) => field.label);
@@ -1254,7 +1571,7 @@ export default function CbctQaPage() {
     const context = canvas.getContext("2d");
     const imageData = context.createImageData(columns, rows);
     const range = image.max - image.min || 1;
-    const invert = photometricInterpretation.toUpperCase() === "MONOCHROME1";
+    const invert = String(photometricInterpretation || "").toUpperCase() === "MONOCHROME1";
 
     canvas.width = columns;
     canvas.height = rows;
@@ -1332,8 +1649,10 @@ export default function CbctQaPage() {
       if (!metadata.bitsAllocated || !metadata.bitsStored) nextWarnings.push("Bit depth metadata is incomplete.");
       if (!metadata.pixelSpacing) nextWarnings.push("Pixel Spacing is missing.");
       if (metadata.pixelSpacing && !metadata.sliceThickness) nextWarnings.push("Voxel size incomplete - slice thickness missing.");
+      // Only genuinely invalid (out-of-range/garbled) DICOM values are surfaced as warnings here.
+      // Missing tags (kVp, mA, model, serial, study date) are routine for many CBCT export
+      // pipelines and are filled manually in the Acceptance Test Fields instead of alarming here.
       validation.invalid.forEach((check) => nextWarnings.push(check.reason));
-      validation.missing.forEach((check) => nextWarnings.push(check.reason));
       if (
         String(metadata.manufacturer || "").toLowerCase().includes("varian") ||
         String(metadata.seriesDescription || "").toLowerCase().includes("pelvis") ||
@@ -1398,6 +1717,8 @@ export default function CbctQaPage() {
       geometryRows,
       strictDecision,
       dicomValidation,
+      manualMtf,
+      manualValidationFlags,
     });
 
     const csv = rows.map((row) => row.map(csvEscape).join(",")).join("\n");
@@ -1416,10 +1737,46 @@ export default function CbctQaPage() {
     link.click();
     link.remove();
     URL.revokeObjectURL(url);
-  }, [acceptanceForm, activeStatus, agencyManualValues, baseline, dicomValidation, fileName, finscanSubmode, geometryRows, image, imageType, measurements, mode, preset, qcRows, rois, strictDecision]);
+  }, [
+    acceptanceForm,
+    activeStatus,
+    agencyManualValues,
+    baseline,
+    dicomValidation,
+    fileName,
+    finscanSubmode,
+    geometryRows,
+    image,
+    imageType,
+    manualMtf,
+    manualValidationFlags,
+    measurements,
+    mode,
+    preset,
+    qcRows,
+    rois,
+    strictDecision,
+  ]);
 
   const downloadPdf = useCallback(() => {
     if (!image) return;
+
+    if (mode === MODES.ACCEPTANCE) {
+      const certificate = buildAcceptanceCertificate({
+        acceptanceForm,
+        measurements,
+        manualMtf,
+        manualValidationFlags,
+        agencyManualValues,
+        geometryRows,
+        strictDecision,
+        fileName,
+      });
+      const certDoc = new jsPDF({ unit: "pt", format: "a4" });
+      renderAcceptanceCertificatePdf(certDoc, certificate);
+      certDoc.save(`cbct-qa-acceptance-certificate-${fileName || "report"}.pdf`.replace(/[^\w.-]+/g, "-"));
+      return;
+    }
 
     const rows = createRowsForCsv({
       mode,
@@ -1498,7 +1855,26 @@ export default function CbctQaPage() {
           ? "quality-control"
           : "technical-preview";
     doc.save(`cbct-qa-${modeName}-${fileName || "report"}.pdf`.replace(/[^\w.-]+/g, "-"));
-  }, [acceptanceForm, activeStatus, agencyManualValues, baseline, dicomValidation, fileName, finscanSubmode, geometryRows, image, imageType, measurements, mode, preset, qcRows, rois, strictDecision]);
+  }, [
+    acceptanceForm,
+    activeStatus,
+    agencyManualValues,
+    baseline,
+    dicomValidation,
+    fileName,
+    finscanSubmode,
+    geometryRows,
+    image,
+    imageType,
+    manualMtf,
+    manualValidationFlags,
+    measurements,
+    mode,
+    preset,
+    qcRows,
+    rois,
+    strictDecision,
+  ]);
 
   const updateRoiCenter = useCallback(
     (name, axis, rawValue) => {
@@ -1573,6 +1949,9 @@ export default function CbctQaPage() {
               <h1 className="text-3xl font-semibold tracking-tight text-slate-950 sm:text-4xl">
                 Medical Line Georgia CBCT QA Analyzer
               </h1>
+              <p className="mt-2 text-sm font-medium text-cyan-800">
+                Medical Line Georgia — Eighteeth / FinScan F350 official representative in Georgia
+              </p>
               <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-600 sm:text-base">
                 Browser-based phantom QA screening, ROI measurement and report generator for CBCT workflows.
               </p>
@@ -2185,6 +2564,10 @@ export default function CbctQaPage() {
               rois={rois}
               isDemoImage={isDemoImage}
               imageType={imageType}
+              manualMtf={manualMtf}
+              setManualMtf={setManualMtf}
+              manualValidationFlags={manualValidationFlags}
+              setManualValidationFlags={setManualValidationFlags}
             />
           ) : mode === MODES.QC ? (
             <QcPanel
@@ -2337,7 +2720,7 @@ function FinScanF350ProtocolPanel({ protocol, protocolKey, autoRows, image }) {
     <div className="rounded-md border border-slate-200 bg-white p-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-cyan-700">FinScan F350 protocol reader</p>
+          <p className="text-xs font-semibold uppercase tracking-wide text-cyan-700">Eighteeth FinScan F350 protocol reader</p>
           <h2 className="mt-1 text-lg font-semibold text-slate-950">{protocol.title}</h2>
           <p className="mt-1 text-sm leading-6 text-slate-600">
             {protocol.document}. Detected mode: <span className="font-semibold text-slate-900">{protocolKey}</span>.
@@ -2435,24 +2818,31 @@ function SummaryMetric({ label, value }) {
   );
 }
 
-function AcceptancePanel({ acceptanceForm, updateAcceptanceField, measurements, status, rois, isDemoImage, imageType }) {
+function AcceptancePanel({
+  acceptanceForm,
+  updateAcceptanceField,
+  measurements,
+  status,
+  rois,
+  isDemoImage,
+  imageType,
+  manualMtf,
+  setManualMtf,
+  manualValidationFlags,
+  setManualValidationFlags,
+}) {
   const center = rois.find((roi) => roi.name === "Center");
   const left = rois.find((roi) => roi.name === "Left");
   const right = rois.find((roi) => roi.name === "Right");
   const calculatedRows = [
-    ["Patient/Phantom Positioning Accuracy", MANUAL],
     ["Homogeneity / Image Uniformity", metricText(measurements?.uniformityPercent, "%")],
     ["Contrast-to-Noise Ratio / CNR Air vs PMMA", metricText(measurements?.cnrAirPmma)],
     ["Contrast-to-Noise Ratio / CNR PVC/Bone vs PMMA", metricText(measurements?.cnrPvcPmma)],
     ["Noise", metricText(measurements?.noise)],
     ["Noise %", metricText(measurements?.noisePercent, "%")],
     ["SNR", metricText(measurements?.snr)],
-    ["Nyquist Frequency / NF", PLANNED],
-    ["MTF at 10%", PLANNED],
-    ["MTF at 50%", PLANNED],
-    ["Artefacts / Image Flaws", MANUAL],
     [
-      "Demo Acceptance Indicator / Figure of Merit",
+      "Overall acceptance status",
       imageType === IMAGE_TYPES.PHANTOM ? status.label : "Not applicable for patient DICOM",
     ],
   ];
@@ -2472,8 +2862,10 @@ function AcceptancePanel({ acceptanceForm, updateAcceptanceField, measurements, 
         )}
       </div>
       <p className="mt-2 text-sm leading-6 text-slate-600">
-        Phantom preset: {PHANTOM_PRESETS.quartDvtap.label}. NF, MTF, artefacts, and positioning are
-        not automatically scored in this MVP without validated phantom-specific algorithms.
+        Phantom preset: {PHANTOM_PRESETS.quartDvtap.label}. Noise/uniformity/CNR/SNR are computed
+        automatically from the uploaded ROI. MTF, Acceptance Index, dose, and reconstruction time
+        come from the QUART DVT software and calibrated instruments per FQC-F-02-001.02 — enter and
+        confirm them below once measured.
       </p>
 
       <div className="mt-5 grid gap-4 md:grid-cols-2">
@@ -2487,12 +2879,78 @@ function AcceptancePanel({ acceptanceForm, updateAcceptanceField, measurements, 
         ))}
       </div>
 
+      <div className="mt-6 rounded-md border border-slate-200 bg-slate-50 p-4">
+        <h3 className="text-sm font-semibold text-slate-950">MTF / QUART DVT phantom software readout</h3>
+        <p className="mt-1 text-xs leading-5 text-slate-600">
+          Enter the MTF10%/MTF50% values reported by the QUART DVT phantom software (FQC-F-02-001.02
+          §4.3.3.1.4). Required: MTF10% &gt;= 1.0 lp/mm, MTF50% &gt;= 0.5 lp/mm.
+        </p>
+        <div className="mt-3 grid gap-4 sm:grid-cols-2">
+          <label>
+            <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">MTF at 10% (lp/mm)</span>
+            <input
+              value={manualMtf.mtf10}
+              onChange={(event) => setManualMtf((current) => ({ ...current, mtf10: event.target.value }))}
+              placeholder="e.g. 2.04"
+              className="mt-1 h-10 w-full rounded-md border border-slate-200 px-3 text-sm outline-none transition focus:border-cyan-500 focus:ring-2 focus:ring-cyan-100"
+            />
+          </label>
+          <label>
+            <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">MTF at 50% (lp/mm)</span>
+            <input
+              value={manualMtf.mtf50}
+              onChange={(event) => setManualMtf((current) => ({ ...current, mtf50: event.target.value }))}
+              placeholder="e.g. 0.89"
+              className="mt-1 h-10 w-full rounded-md border border-slate-200 px-3 text-sm outline-none transition focus:border-cyan-500 focus:ring-2 focus:ring-cyan-100"
+            />
+          </label>
+        </div>
+
+        <h3 className="mt-5 text-sm font-semibold text-slate-950">Manual sign-off checklist</h3>
+        <p className="mt-1 text-xs leading-5 text-slate-600">
+          Tick each box only after the engineer has personally verified it with the relevant
+          instrument, per the equipment list on page 1 of FQC-F-02-001.02.
+        </p>
+        <div className="mt-3 space-y-2 text-sm text-slate-800">
+          <label className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              checked={manualValidationFlags.acceptanceIndexValidated}
+              onChange={(event) =>
+                setManualValidationFlags((current) => ({ ...current, acceptanceIndexValidated: event.target.checked }))
+              }
+            />
+            Acceptance Index (AI) computed via QUART DVT software and meets AI &gt;= 100 (mGy·cm²)⁻¹
+          </label>
+          <label className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              checked={manualValidationFlags.doseVerified}
+              onChange={(event) =>
+                setManualValidationFlags((current) => ({ ...current, doseVerified: event.target.checked }))
+              }
+            />
+            Dose compliance confirmed with the X-ray multi-function QA meter / external dosimeter
+          </label>
+          <label className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              checked={manualValidationFlags.reconstructionTimeChecked}
+              onChange={(event) =>
+                setManualValidationFlags((current) => ({ ...current, reconstructionTimeChecked: event.target.checked }))
+              }
+            />
+            Reconstruction time measured with a stopwatch and within 5 s of the prescribed value
+          </label>
+        </div>
+      </div>
+
       <div className="mt-6 overflow-x-auto">
         <table className="min-w-full divide-y divide-slate-200 text-sm">
           <thead className="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
             <tr>
               <th className="px-3 py-3">Acceptance parameter</th>
-              <th className="px-3 py-3">MVP value / interpretation</th>
+              <th className="px-3 py-3">Computed value</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">

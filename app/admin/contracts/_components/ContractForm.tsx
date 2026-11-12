@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { supabase } from '@/app/lib/supabase'
+import { adminSupabase as supabase } from '@/app/lib/supabase-admin-browser'
 import { createEmptyContractForm, calcVatAmount, formatCurrency } from '@/app/lib/contract'
 import {
   buildContractIntro,

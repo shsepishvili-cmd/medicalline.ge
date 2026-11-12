@@ -1,5 +1,5 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
-import { isInternalWarrantyRole } from './warranty'
+import { isActiveProfileStatus, isInternalWarrantyRole } from './warranty'
 import type { ProfileSummary } from './warranty-types'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim() ?? ''
@@ -10,6 +10,8 @@ export function createSupabaseTokenClient(accessToken: string) {
     throw new Error('Supabase public keys are not configured.')
   }
 
+  // Keep the global header: callers use client.auth.getUser(token), which
+  // supabase-js forbids when the client is built with the accessToken option.
   return createClient(supabaseUrl, supabaseAnonKey, {
     auth: { persistSession: false, autoRefreshToken: false },
     global: {
@@ -41,7 +43,7 @@ export async function requireWarrantySession(accessToken: string) {
     throw new Error('Profile not found')
   }
 
-  if (profile.status !== 'active' || !isInternalWarrantyRole(profile.role)) {
+  if (!isActiveProfileStatus(profile.status) || !isInternalWarrantyRole(profile.role)) {
     throw new Error('Forbidden')
   }
 

@@ -5,7 +5,7 @@ import { calculateInvoice } from './ai-invoice-money'
 
 const AI_SYSTEM_PROMPT = `You extract invoice drafts from Georgian or English text.
 Return JSON only. Never invent customer, tax, bank, product, price, VAT, or date data.
-Schema: {"customer_query":"","customer_name":"","customer_tax_id":"","customer_address":"","customer_email":"","customer_phone":"","invoice_date":"YYYY-MM-DD","delivery_date":null,"due_date":null,"currency":"GEL|USD|EUR","vat_mode":"without_vat|vat_included|vat_excluded_add_vat|unknown","items":[{"product_query":"","product_name":"","description":"","product_code":null,"unit":"ცალი","quantity":1,"unit_price":0,"discount":0,"line_total":0}],"notes":"","payment_terms":"","requested_scanned_version":false,"stamp_applied":false,"signature_applied":false,"warnings":[],"questions":[]}.
+Schema: {"invoice_number":null,"customer_query":"","customer_name":"","customer_tax_id":"","customer_address":"","customer_email":"","customer_phone":"","invoice_date":"YYYY-MM-DD","delivery_date":null,"due_date":null,"currency":"GEL|USD|EUR","vat_mode":"without_vat|vat_included|vat_excluded_add_vat|unknown","items":[{"product_query":"","product_name":"","description":"","product_code":null,"unit":"ცალი","quantity":1,"unit_price":0,"discount":0,"line_total":0}],"notes":"","payment_terms":"","requested_scanned_version":false,"stamp_applied":false,"signature_applied":false,"warnings":[],"questions":[]}.
 If VAT is unclear use unknown and add a Georgian clarification question.`
 
 function isoToday() {
@@ -23,6 +23,85 @@ function parseNumber(value: string) {
   return Number(value.replace(/\s/g, '').replace(',', '.'))
 }
 
+function cleanText(value: string) {
+  return value.replace(/\r/g, '').replace(/\s+/g, ' ').trim()
+}
+
+function stripCustomerSuffix(value: string) {
+  return value
+    .replace(/\s*(ზე|სთვის|ისთვის|ზეა)$/i, '')
+    .replace(/[.,;:!?\s]+$/g, '')
+    .trim()
+}
+
+function extractCustomerText(prompt: string) {
+  const text = cleanText(prompt)
+  const patterns = [
+    /(?:ინვოისი|ინვოისის)\s+(?:გაუკეთე|გამიკეთე|შექმენი|ააწყე)?\s*([ა-ჰA-Za-z0-9 .,&'"-]{2,120}?)(?:ზე|სთვის|ისთვის)(?=\s|$)/i,
+    /(?:კლიენტი|customer)\s*[:\-]\s*([^.,;\n]+)/i,
+    /(?:for)\s+([^.,;\n]+)/i,
+  ]
+  for (const pattern of patterns) {
+    const match = text.match(pattern)
+    if (match?.[1]) return stripCustomerSuffix(match[1])
+  }
+  return ''
+}
+
+function removeInvoiceIntro(prompt: string, customer: string) {
+  let text = cleanText(prompt)
+  if (customer) {
+    const escaped = customer.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    text = text.replace(new RegExp(`^.*?(?:${escaped})(?:ზე|სთვის|ისთვის)?\\s*`, 'i'), '')
+  } else {
+    text = text.replace(/^(?:გთხოვ|გთხოვთ|შექმენი|ააწყე|გამიკეთე|გაუკეთე)?\s*(?:ინვოისი|ინვოისის)?\s*/i, '')
+  }
+  return text.trim()
+}
+
+function splitItemClauses(value: string) {
+  return value
+    .split(/[\n,;!]+/)
+    .map((item) => item.trim())
+    .filter((item) => item.length > 2)
+}
+
+function normalizeUnit(value?: string) {
+  const unit = (value || '').trim()
+  if (!unit) return 'ცალი'
+  if (/pcs?|pieces?/i.test(unit)) return 'ცალი'
+  return unit
+}
+
+function parseInvoiceItemClause(clause: string): InvoiceDraftItem | null {
+  const normalized = clause
+    .replace(/[“”„"]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+
+  const withQty = normalized.match(/^(.+?)(\d+(?:[.,]\d+)?)\s*(ცალი|ერთეული|კომპლექტი|პაკეტი|pcs?|sets?)\s+(\d+(?:[.,]\d+)?)\s*(?:ლარი|₾|GEL|USD|EUR|დოლარი|ევრო)?(?:\s*(?:ცალი|ერთეული|pcs?))?$/i)
+  const withoutQty = normalized.match(/^(.+?)\s+(\d+(?:[.,]\d+)?)\s*(?:ლარი|₾|GEL|USD|EUR|დოლარი|ევრო)$/i)
+  const match = withQty
+  const name = (match?.[1] || withoutQty?.[1] || '').replace(/[—\-:,;]+$/g, '').trim()
+  const quantity = match ? parseNumber(match[2]) : 1
+  const unit = normalizeUnit(match?.[3])
+  const unitPrice = match ? parseNumber(match[4]) : withoutQty ? parseNumber(withoutQty[2]) : NaN
+
+  if (!name || !Number.isFinite(quantity) || !Number.isFinite(unitPrice)) return null
+
+  return {
+    product_query: name,
+    product_name: name,
+    description: '',
+    product_code: null,
+    unit,
+    quantity,
+    unit_price: unitPrice,
+    discount: 0,
+    line_total: 0,
+  }
+}
+
 function deterministicParse(prompt: string): InvoiceDraft {
   const compact = prompt.replace(/\r/g, '').trim()
   const dateMatch = compact.match(/(?:თარიღი|date)\s*[:\-]?\s*(\d{1,2}[./-]\d{1,2}[./-]\d{4})/i)
@@ -38,9 +117,15 @@ function deterministicParse(prompt: string): InvoiceDraft {
         ? 'vat_excluded_add_vat'
         : 'unknown'
 
-  const itemLines = compact.split('\n').map((line) => line.trim()).filter(Boolean)
+  const explicitCustomer = extractCustomerText(compact)
+  const itemLines = splitItemClauses(removeInvoiceIntro(compact, explicitCustomer))
   const items: InvoiceDraftItem[] = []
   for (const line of itemLines) {
+    const parsed = parseInvoiceItemClause(line)
+    if (parsed) {
+      items.push(parsed)
+      continue
+    }
     if (/ინვოის|თარიღ|დღგ|შენიშვნ|payment|customer/i.test(line)) continue
     const match = line.match(/^(.+?)\s*(?:—|-|:)?\s*(\d+(?:[.,]\d+)?)\s*(ცალი|ანაწყობი|კომპლექტი|პაკეტი|ერთეული|pcs?|sets?)?[\s,;]*(?:თითო\s*)?(\d+(?:[.,]\d+)?)\s*(ლარი|₾|GEL|USD|EUR|დოლარი|ევრო)?/i)
     if (!match) continue
@@ -62,14 +147,26 @@ function deterministicParse(prompt: string): InvoiceDraft {
   }
 
   const customer = customerMatch?.[1]?.replace(/^(გთხოვ[,\s]*)/i, '').trim() || 'დასაზუსტებელი კლიენტი'
+  const parsedCustomer = explicitCustomer || customer
   const questions: string[] = []
   if (vatMode === 'unknown') questions.push('აირჩიეთ დღგ-ის რეჟიმი: დღგ-ის გარეშე, დღგ-ის ჩათვლით თუ დღგ-ის დამატებით?')
   if (!customerMatch) questions.push('რომელი კლიენტისთვის იქმნება ინვოისი?')
   if (!items.length) questions.push('მიუთითეთ მინიმუმ ერთი პროდუქტი, რაოდენობა და ფასი.')
 
+  if (explicitCustomer) {
+    const keptQuestions: string[] = []
+    if (vatMode === 'unknown') keptQuestions.push('აირჩიეთ დღგ-ის რეჟიმი: დღგ-ის გარეშე, დღგ-ის ჩათვლით თუ დღგ-ის დამატებით?')
+    if (!items.length) keptQuestions.push('მიუთითეთ მინიმუმ ერთი პროდუქტი, რაოდენობა და ფასი.')
+    questions.splice(0, questions.length, ...keptQuestions)
+  }
+
+  const invoiceNumMatch = compact.match(/(?:ინვოისის?\s*(?:№|#|ნომერი|no\.?|num\.?)?\s*[:№#\s]*)([A-Za-z0-9\-_/]{2,40})/i)
+  const parsedInvoiceNumber = invoiceNumMatch?.[1]?.trim() || null
+
   return invoiceDraftSchema.parse({
-    customer_query: customer,
-    customer_name: customer,
+    invoice_number: parsedInvoiceNumber,
+    customer_query: parsedCustomer,
+    customer_name: parsedCustomer,
     invoice_date: normalizeDate(dateMatch?.[1]),
     currency,
     vat_mode: vatMode,
@@ -242,6 +339,8 @@ export async function enrichInvoiceDraft(draft: InvoiceDraft, client: SupabaseCl
 export async function parseInvoicePrompt(prompt: string, client: SupabaseClient) {
   const cleanPrompt = prompt.trim()
   if (cleanPrompt.length < 10 || cleanPrompt.length > 20_000) throw new Error('Prompt must contain 10–20,000 characters.')
+  const draft = deterministicParse(cleanPrompt)
+  /*
   let draft: InvoiceDraft
   try {
     draft = (await providerParse(cleanPrompt)) || deterministicParse(cleanPrompt)
@@ -249,6 +348,7 @@ export async function parseInvoicePrompt(prompt: string, client: SupabaseClient)
     draft = deterministicParse(cleanPrompt)
     draft.warnings.push(error instanceof Error ? `AI provider: ${error.message} გამოყენებულია უსაფრთხო parser.` : 'გამოყენებულია უსაფრთხო parser.')
   }
+  */
   const enriched = await enrichInvoiceDraft(draft, client)
   const computed = enriched.vat_mode === 'unknown' ? null : calculateInvoice(enriched.items, enriched.vat_mode)
   if (computed) enriched.items = computed.items

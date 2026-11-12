@@ -4,9 +4,15 @@ import React, { useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import Script from 'next/script';
-import { ChevronRight, Clock, Calendar, ArrowLeft } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Clock, Calendar, ArrowLeft } from 'lucide-react';
 
-export default function BlogClient({ blogArticles }: { blogArticles: any[] }) {
+type BlogClientProps = {
+  blogArticles: any[];
+  currentPage: number;
+  totalPages: number;
+};
+
+export default function BlogClient({ blogArticles, currentPage, totalPages }: BlogClientProps) {
   useEffect(() => {
     if (typeof window !== "undefined" && (window as any).FB) {
       (window as any).FB.XFBML.parse();
@@ -68,6 +74,62 @@ export default function BlogClient({ blogArticles }: { blogArticles: any[] }) {
             </Link>
           ))}
         </div>
+
+        {totalPages > 1 && (
+          <nav
+            aria-label="ბლოგის გვერდები"
+            className="max-w-7xl mx-auto mt-12 flex flex-col items-center gap-4"
+          >
+            <p className="text-sm font-semibold text-slate-500">
+              გვერდი {currentPage} / {totalPages}
+            </p>
+            <div className="flex flex-wrap items-center justify-center gap-2">
+              {currentPage > 1 ? (
+                <Link
+                  href={currentPage === 2 ? '/blog' : `/blog?page=${currentPage - 1}`}
+                  aria-label="წინა გვერდი"
+                  className="inline-flex h-11 items-center gap-1 rounded-md border border-slate-300 bg-white px-4 text-sm font-bold text-slate-700 transition-colors hover:border-blue-600 hover:text-blue-600"
+                >
+                  <ChevronLeft size={18} /> წინა
+                </Link>
+              ) : (
+                <span className="inline-flex h-11 cursor-not-allowed items-center gap-1 rounded-md border border-slate-200 bg-slate-100 px-4 text-sm font-bold text-slate-400">
+                  <ChevronLeft size={18} /> წინა
+                </span>
+              )}
+
+              {Array.from({ length: totalPages }, (_, index) => index + 1).map((page) => (
+                <Link
+                  key={page}
+                  href={page === 1 ? '/blog' : `/blog?page=${page}`}
+                  aria-label={`გვერდი ${page}`}
+                  aria-current={page === currentPage ? 'page' : undefined}
+                  className={`inline-flex h-11 min-w-11 items-center justify-center rounded-md border px-3 text-sm font-bold transition-colors ${
+                    page === currentPage
+                      ? 'border-blue-600 bg-blue-600 text-white'
+                      : 'border-slate-300 bg-white text-slate-700 hover:border-blue-600 hover:text-blue-600'
+                  }`}
+                >
+                  {page}
+                </Link>
+              ))}
+
+              {currentPage < totalPages ? (
+                <Link
+                  href={`/blog?page=${currentPage + 1}`}
+                  aria-label="შემდეგი გვერდი"
+                  className="inline-flex h-11 items-center gap-1 rounded-md border border-slate-300 bg-white px-4 text-sm font-bold text-slate-700 transition-colors hover:border-blue-600 hover:text-blue-600"
+                >
+                  შემდეგი <ChevronRight size={18} />
+                </Link>
+              ) : (
+                <span className="inline-flex h-11 cursor-not-allowed items-center gap-1 rounded-md border border-slate-200 bg-slate-100 px-4 text-sm font-bold text-slate-400">
+                  შემდეგი <ChevronRight size={18} />
+                </span>
+              )}
+            </div>
+          </nav>
+        )}
       </section>
 
       <section className="py-24 bg-slate-50 px-6 border-t border-slate-200 mt-16">

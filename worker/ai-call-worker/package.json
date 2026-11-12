@@ -1,0 +1,8 @@
+{
+  "name": "medical-line-ai-call-worker",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node index.mjs"
+  }
+}

@@ -3,6 +3,7 @@
 import React from 'react';
 import { Settings, Wrench, GraduationCap, ShieldCheck, CheckCircle2 } from 'lucide-react';
 import Image from 'next/image';
+import Link from 'next/link';
 
 export default function ServicePage() {
   const services = [
@@ -39,6 +40,9 @@ export default function ServicePage() {
             <button className="bg-blue-600 px-8 py-4 rounded-xl font-black uppercase text-[11px] tracking-widest hover:bg-white hover:text-blue-900 transition-all">
               დაგვიკავშირდით სერვისისთვის
             </button>
+            <Link href="/warranty" className="ml-3 inline-block border border-white/30 px-8 py-4 rounded-xl font-black uppercase text-[11px] tracking-widest hover:bg-white hover:text-blue-900 transition-all">
+              გარანტია და პირობები
+            </Link>
           </div>
           {/* ფონური დეკორაცია */}
           <div className="absolute top-0 right-0 w-1/2 h-full bg-blue-600/10 blur-[100px] rounded-full"></div>

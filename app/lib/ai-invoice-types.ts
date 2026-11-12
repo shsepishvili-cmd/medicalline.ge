@@ -19,6 +19,7 @@ export const invoiceDraftItemSchema = z.object({
 })
 
 export const invoiceDraftSchema = z.object({
+  invoice_number: z.string().trim().max(100).nullable().optional(),
   customer_id: z.string().uuid().nullable().optional(),
   customer_query: z.string().trim().min(1).max(300),
   customer_name: z.string().trim().min(1).max(300),

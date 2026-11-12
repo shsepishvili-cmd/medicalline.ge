@@ -1,33 +1,30 @@
 import Link from 'next/link'
-import { ArrowRight, Gamepad2, Sparkles, Trophy, Wrench } from 'lucide-react'
+import { ArrowRight, Gamepad2, Sparkles, Trophy } from 'lucide-react'
 
 const gameCards = [
   {
     slug: 'endo-rescue',
     title: 'Endo Rescue',
     status: 'ხელმისაწვდომია',
-    description: 'ამოიღე ჩატეხილი ფრაგმენტი, დაიცავი არხის კედლები და დააგროვე ქულები.',
+    description: 'კლინიკური სიმულატორი: მიკროსკოპის ქვეშ ულტრაბგერითი ტრეფინაციით ამოიღე ჩატეხილი NiTi ფრაგმენტი, ისე რომ არ გადახურდეს ფესვი და არ მოხდეს პერფორაცია.',
     accent: 'from-cyan-400 via-sky-400 to-blue-500',
     cta: 'თამაშის დაწყება',
-    live: true,
   },
   {
     slug: 'scanner-rush',
     title: 'Helios700 Scan Hero',
     status: 'ხელმისაწვდომია',
-    description: 'Helios700 უკაბელო სკანერით სრული არკის მხიარული, სწრაფი და ზუსტი სკან-მისიები.',
+    description: 'სკანირების სიმულატორი: ააწყე ციფრული მოდელი ოკლუზიური, ლინგვალური და ბუკალური გავლით, არ დაკარგო ტრეკინგი და დაარეგისტრირე თანკბილვა.',
     accent: 'from-violet-400 via-fuchsia-400 to-pink-500',
     cta: 'თამაშის დაწყება',
-    live: true,
   },
   {
     slug: 'xray-alignment',
-    title: 'X-Ray Alignment',
-    status: 'მალე',
-    description: 'დააყენე სწორი პოზიცია, მოარგე კუთხე და მიიღე იდეალური გამოსახულება მინიმალური შეცდომით.',
+    title: 'HyperLight ზუსტი კადრი',
+    status: 'ახალი',
+    description: 'მოარგე HyperLight-ის beam, აირჩიე NanoPix 1 ან 2 და დააყენე სწორი exposure დიაგნოსტიკური კადრისთვის.',
     accent: 'from-emerald-400 via-teal-400 to-cyan-500',
-    cta: 'მალე დაემატება',
-    live: false,
+    cta: 'თამაშის დაწყება',
   },
 ]
 
@@ -39,17 +36,17 @@ export default function GameLoungePage() {
           <div className="max-w-4xl">
             <div className="inline-flex items-center gap-2 rounded-full border border-cyan-400/30 bg-cyan-400/10 px-4 py-2 text-[10px] font-black uppercase tracking-[0.35em] text-cyan-200">
               <Sparkles size={14} />
-              ML Game Lounge
+              ML თამაშები
             </div>
             <h1 className="mt-5 text-4xl font-black uppercase tracking-tight md:text-6xl">
               სტომატოლოგიური
-              <span className="block text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 via-sky-300 to-blue-500">
-                Game Zone
+              <span className="block bg-gradient-to-r from-cyan-300 via-sky-300 to-blue-500 bg-clip-text text-transparent">
+                თამაშების ზონა
               </span>
             </h1>
             <p className="mt-5 max-w-3xl text-sm font-bold leading-7 text-slate-300 md:text-lg">
-              აქედან დაიწყება ყველა მომავალი თამაში. `/game` უკვე ჰაბია, ხოლო თითოეულ თამაშს ექნება საკუთარი route,
-              თავისი ბრენდინგი და ცალკე გამოცდილება.
+              თითოეულ თამაშს თავისი route, თავისი პროდუქტის თემა და თავისი განსხვავებული gameplay აქვს. ახლა მესამე
+              მისიაც დაემატა HyperLight და NanoPix კონცეფციით.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
               <Link
@@ -63,22 +60,22 @@ export default function GameLoungePage() {
                 href="/"
                 className="inline-flex items-center gap-3 rounded-2xl border border-white/15 bg-white/5 px-7 py-4 text-[11px] font-black uppercase tracking-[0.24em] text-white transition hover:bg-white/10"
               >
-                მთავარ გვერდზე დაბრუნება
+                მთავარზე დაბრუნება
               </Link>
             </div>
           </div>
         </div>
 
         <section className="mt-10 grid gap-6 md:grid-cols-3">
-          {gameCards.map((game) => {
-            const card = (
+          {gameCards.map((game) => (
+            <Link key={game.slug} href={`/game/${game.slug}`} className="block h-full">
               <div className="group relative h-full overflow-hidden rounded-[2.4rem] border border-white/80 bg-white p-6 shadow-[0_22px_60px_-30px_rgba(15,23,42,0.35)]">
                 <div className={`absolute inset-x-0 top-0 h-1 bg-gradient-to-r ${game.accent}`} />
                 <div className="mb-6 flex items-center justify-between">
-                  <span className={`inline-flex rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-[0.24em] ${game.live ? 'bg-cyan-100 text-cyan-700' : 'bg-slate-100 text-slate-500'}`}>
+                  <span className="inline-flex rounded-full bg-cyan-100 px-3 py-1 text-[10px] font-black uppercase tracking-[0.24em] text-cyan-700">
                     {game.status}
                   </span>
-                  {game.live ? <Trophy size={18} className="text-cyan-500" /> : <Wrench size={18} className="text-slate-400" />}
+                  <Trophy size={18} className="text-cyan-500" />
                 </div>
                 <h2 className="text-2xl font-black uppercase tracking-tight text-slate-950">{game.title}</h2>
                 <p className="mt-3 text-sm font-bold leading-6 text-slate-600">{game.description}</p>
@@ -88,7 +85,7 @@ export default function GameLoungePage() {
                       <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-[1.4rem] border border-white/15 bg-white/10">
                         <Gamepad2 size={28} className="text-cyan-300" />
                       </div>
-                      <p className="mt-3 text-[10px] font-black uppercase tracking-[0.28em] text-slate-300">ML Lounge</p>
+                      <p className="mt-3 text-[10px] font-black uppercase tracking-[0.28em] text-slate-300">ML თამაშები</p>
                     </div>
                   </div>
                 </div>
@@ -97,18 +94,8 @@ export default function GameLoungePage() {
                   <ArrowRight size={15} className="transition group-hover:translate-x-1" />
                 </div>
               </div>
-            )
-
-            return game.live ? (
-              <Link key={game.slug} href={`/game/${game.slug}`} className="block h-full">
-                {card}
-              </Link>
-            ) : (
-              <div key={game.slug} className="h-full cursor-default opacity-95">
-                {card}
-              </div>
-            )
-          })}
+            </Link>
+          ))}
         </section>
       </div>
     </main>

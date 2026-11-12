@@ -1,9 +1,10 @@
 'use client'
 import { useEffect, useState } from 'react'
-import { supabase } from '../lib/supabase'
+import { adminSupabase as supabase } from '../lib/supabase-admin-browser'
+import { supabase as sharedSupabase } from '../lib/supabase'
 import { collapseDatabaseProducts, findCatalogProductByAny, findDatabaseProductMatch, inferBrand, localCatalogProducts, mapCategoryToSlug, specsArrayToRecord } from '../lib/catalogSync'
 
-type Tab = 'dashboard' | 'analytics' | 'users' | 'prices' | 'requests' | 'service' | 'engineering'
+type Tab = 'dashboard' | 'analytics' | 'users' | 'communications' | 'prices' | 'requests' | 'service' | 'engineering'
 
 function dedupeProductList<T extends { slug?: string; name?: string }>(list: T[]) {
   const seen = new Set<string>()
@@ -35,20 +36,24 @@ function resolveRequestPrice(request: any, productList: any[]) {
 }
 
 export default function AdminPage() {
-  const [auth, setAuth] = useState(() => {
-    try {
-      return sessionStorage.getItem('ml_admin_auth') === '1'
-    } catch {
-      return false
-    }
-  })
+  // Never trust a sessionStorage flag as proof of admin access. Clinic and
+  // admin use the same Supabase browser session, so the active user/role must
+  // be verified again whenever this page opens.
+  const [auth, setAuth] = useState(false)
   const [adminEmail, setAdminEmail] = useState('')
   const [adminPassword, setAdminPassword] = useState('')
   const [authError, setAuthError] = useState('')
+  const [authNotice, setAuthNotice] = useState('')
+  const [authLoading, setAuthLoading] = useState(false)
   const [tab, setTab] = useState<Tab>('dashboard')
+  const [menuOpen, setMenuOpen] = useState(false)
   const [users, setUsers] = useState<any[]>([])
   const [products, setProducts] = useState<any[]>([])
   const [requests, setRequests] = useState<any[]>([])
+  const [cartInvoiceRequests, setCartInvoiceRequests] = useState<any[]>([])
+  const [cartInvoicePriceDrafts, setCartInvoicePriceDrafts] = useState<Record<string, Record<string, string>>>({})
+  const [cartInvoiceBusyId, setCartInvoiceBusyId] = useState<string | null>(null)
+  const [cartInvoiceNotice, setCartInvoiceNotice] = useState<string | null>(null)
   const [serviceTickets, setServiceTickets] = useState<any[]>([])
   const [analyticsSummary, setAnalyticsSummary] = useState<any>({ pages: [], blogs: [], totals: {} })
   const [manualItems, setManualItems] = useState<any[]>([])
@@ -65,6 +70,12 @@ export default function AdminPage() {
   const [priceDrafts, setPriceDrafts] = useState<Record<string, string>>({})
   const [requestFilter, setRequestFilter] = useState<'all' | 'new' | 'inprogress' | 'done'>('all')
   const [requestSearch, setRequestSearch] = useState('')
+  const [userActionId, setUserActionId] = useState<string | null>(null)
+  const [selectedUserIds, setSelectedUserIds] = useState<string[]>([])
+  const [messageAudience, setMessageAudience] = useState<'active' | 'all' | 'doctor' | 'engineer' | 'selected'>('active')
+  const [smsMessage, setSmsMessage] = useState('')
+  const [smsSending, setSmsSending] = useState(false)
+  const [smsResult, setSmsResult] = useState<string | null>(null)
 
   useEffect(() => {
     if (!auth) return
@@ -77,6 +88,9 @@ export default function AdminPage() {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'requests' }, () => {
         loadAll()
       })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'cart_invoice_requests' }, () => {
+        loadAll()
+      })
       .subscribe()
 
     return () => {
@@ -85,10 +99,23 @@ export default function AdminPage() {
   }, [auth])
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (session?.user?.id) {
-        loadAdminProfile(session.user.id)
+        void loadAdminProfile(session.user.id)
+        return
       }
+      // One-time migration for browsers that logged into admin before the
+      // dedicated admin storage key was introduced.
+      const legacySession = (await sharedSupabase.auth.getSession()).data.session
+      if (legacySession?.user?.id && legacySession.refresh_token) {
+        const { data: legacyProfile } = await sharedSupabase.from('profiles').select('role, status').eq('id', legacySession.user.id).single()
+        if (legacyProfile?.role === 'admin' && legacyProfile.status === 'active') {
+          const { data: migrated } = await supabase.auth.setSession({ access_token: legacySession.access_token, refresh_token: legacySession.refresh_token })
+          if (migrated.session?.user?.id) { void loadAdminProfile(migrated.session.user.id); return }
+        }
+      }
+      setAuth(false)
+      try { sessionStorage.removeItem('ml_admin_auth') } catch {}
     })
   }, [])
 
@@ -105,7 +132,8 @@ export default function AdminPage() {
       } = await supabase.auth.getSession()
 
       if (!session?.access_token) {
-        if (!auth) setAuth(false)
+        setAuth(false)
+        try { sessionStorage.removeItem('ml_admin_auth') } catch {}
         setAuthError('Admin session could not be loaded.')
         return
       }
@@ -131,10 +159,12 @@ export default function AdminPage() {
         return
       }
 
-      if (!auth) setAuth(false)
+      setAuth(false)
+      try { sessionStorage.removeItem('ml_admin_auth') } catch {}
       setAuthError(payload?.error || error?.message || 'Admin profile could not be loaded.')
     } catch (error) {
-      if (!auth) setAuth(false)
+      setAuth(false)
+      try { sessionStorage.removeItem('ml_admin_auth') } catch {}
       setAuthError(error instanceof Error ? error.message : 'Admin profile could not be loaded.')
     }
   }
@@ -192,17 +222,52 @@ export default function AdminPage() {
     if (s.data) setServiceTickets(s.data)
     if (a.data) setManualItems(a.data)
     if (analytics?.ok) setAnalyticsSummary(analytics)
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (session?.access_token) {
+        const response = await fetch('/api/admin/cart-invoice-requests', {
+          headers: { Authorization: `Bearer ${session.access_token}` },
+          cache: 'no-store',
+        })
+        const payload = await response.json().catch(() => null)
+        if (response.ok && payload?.ok) setCartInvoiceRequests(payload.requests || [])
+      }
+    } catch {}
   }
 
   async function loginAsAdmin() {
     setAuthError('')
+    setAuthNotice('')
+    if (!adminEmail.trim() || !adminPassword) {
+      setAuthError('შეიყვანეთ ადმინის ელფოსტა და პაროლი.')
+      return
+    }
+    setAuthLoading(true)
     const { data, error } = await supabase.auth.signInWithPassword({ email: adminEmail, password: adminPassword })
     if (error || !data.user) {
-      setAuthError(error?.message || 'Admin login failed.')
+      setAuthLoading(false)
+      setAuthError(error?.message === 'Invalid login credentials' ? 'ელფოსტა ან პაროლი არასწორია.' : error?.message || 'ადმინში შესვლა ვერ მოხერხდა.')
       return
     }
 
     await loadAdminProfile(data.user.id)
+    setAuthLoading(false)
+  }
+
+  async function resetAdminPassword() {
+    setAuthError('')
+    setAuthNotice('')
+    if (!adminEmail.trim() || !/^\S+@\S+\.\S+$/.test(adminEmail.trim())) {
+      setAuthError('ჯერ მიუთითეთ სწორი ადმინის ელფოსტა.')
+      return
+    }
+    setAuthLoading(true)
+    const { error } = await supabase.auth.resetPasswordForEmail(adminEmail.trim(), {
+      redirectTo: `${window.location.origin}/admin/reset-password`,
+    })
+    setAuthLoading(false)
+    if (error) { setAuthError(error.message); return }
+    setAuthNotice('თუ ეს ანგარიში არსებობს, პაროლის აღდგენის ბმული ელფოსტაზე გაიგზავნა. შეამოწმეთ Inbox და Spam.')
   }
 
   async function logoutAdmin() {
@@ -349,9 +414,297 @@ export default function AdminPage() {
     loadAll()
   }
 
+  async function manageUser(id: string, action: 'reset-password' | 'delete') {
+    const user = users.find((item) => item.id === id)
+    const label = user?.full_name || user?.clinic_name || 'მომხმარებელი'
+    if (action === 'delete' && !window.confirm(`ნამდვილად გსურთ „${label}“-ის ანგარიშის წაშლა? ეს მოქმედება შეუქცევადია.`)) return
+    if (action === 'reset-password' && !window.confirm(`გაიგზავნოს პაროლის აღდგენის ბმული მომხმარებელთან „${label}“?`)) return
+
+    setUserActionId(id)
+    setSaveError(null)
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session?.access_token) throw new Error('ადმინისტრატორის სესია ვერ მოიძებნა.')
+      const response = await fetch(`/api/admin/users/${id}`, {
+        method: action === 'delete' ? 'DELETE' : 'POST',
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json',
+        },
+        body: action === 'delete' ? undefined : JSON.stringify({ action }),
+      })
+      const payload = await response.json().catch(() => null)
+      if (!response.ok) throw new Error(payload?.error || 'მოქმედება ვერ შესრულდა.')
+      alert(action === 'delete' ? 'მომხმარებლის ანგარიში წაიშალა.' : (payload?.message || 'პაროლის აღდგენის ბმული გაიგზავნა.'))
+      await loadAll()
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'მოქმედება ვერ შესრულდა.'
+      setSaveError(message)
+      alert(message)
+    } finally {
+      setUserActionId(null)
+    }
+  }
+
+  function recipientsForAudience() {
+    const withPhone = users.filter((user) => Boolean(user.phone?.trim()) && user.status !== 'blocked')
+    if (messageAudience === 'selected') return withPhone.filter((user) => selectedUserIds.includes(user.id))
+    if (messageAudience === 'all') return withPhone
+    if (messageAudience === 'active') return withPhone.filter((user) => user.status === 'active')
+    return withPhone.filter((user) => user.role === messageAudience && user.status === 'active')
+  }
+
+  async function sendUserSms(userIds?: string[]) {
+    const recipients = userIds
+      ? users.filter((user) => userIds.includes(user.id) && Boolean(user.phone?.trim()) && user.status !== 'blocked')
+      : recipientsForAudience()
+    const message = smsMessage.trim()
+    if (!message) { setSaveError('შეიყვანეთ SMS შეტყობინების ტექსტი.'); return }
+    if (recipients.length === 0) { setSaveError('SMS-ის მისაღებად მომხმარებელი არ არის არჩეული.'); return }
+    if (!window.confirm(`გაიგზავნოს SMS ${recipients.length} მომხმარებელთან?`)) return
+
+    setSmsSending(true)
+    setSmsResult(null)
+    setSaveError(null)
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session?.access_token) throw new Error('ადმინისტრატორის სესია ვერ მოიძებნა.')
+      const response = await fetch('/api/admin/notifications', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${session.access_token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userIds: recipients.map((user) => user.id), message }),
+      })
+      const payload = await response.json().catch(() => null)
+      if (!response.ok) throw new Error(payload?.error || 'SMS დაგზავნა ვერ შესრულდა.')
+      setSmsResult(`გაიგზავნა: ${payload.sent} · ვერ გაიგზავნა: ${payload.failed}`)
+    } catch (error) {
+      setSaveError(error instanceof Error ? error.message : 'SMS დაგზავნა ვერ შესრულდა.')
+    } finally {
+      setSmsSending(false)
+      setUserActionId(null)
+    }
+  }
+
+  async function sendSmsToUser(user: any) {
+    const message = window.prompt(`${user.full_name || user.clinic_name || 'მომხმარებელი'} — SMS ტექსტი:`)
+    if (!message?.trim()) return
+    setSmsMessage(message.trim())
+    setUserActionId(user.id)
+    const previousMessage = smsMessage
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session?.access_token) throw new Error('ადმინისტრატორის სესია ვერ მოიძებნა.')
+      const response = await fetch('/api/admin/notifications', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${session.access_token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userIds: [user.id], message: message.trim() }),
+      })
+      const payload = await response.json().catch(() => null)
+      if (!response.ok) throw new Error(payload?.error || 'SMS ვერ გაიგზავნა.')
+      alert('SMS წარმატებით გაიგზავნა.')
+    } catch (error) {
+      alert(error instanceof Error ? error.message : 'SMS ვერ გაიგზავნა.')
+    } finally {
+      setSmsMessage(previousMessage)
+      setUserActionId(null)
+    }
+  }
+
   async function updateRequestStatus(id: string, status: string) {
     await supabase.from('requests').update({ status }).eq('id', id)
     loadAll()
+  }
+
+  async function updateCartInvoiceRequestStatus(id: string, status: string) {
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session?.access_token) throw new Error('ადმინისტრატორის სესია ვერ მოიძებნა.')
+      const response = await fetch('/api/admin/cart-invoice-requests', {
+        method: 'PATCH',
+        headers: { Authorization: `Bearer ${session.access_token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, status }),
+      })
+      const payload = await response.json().catch(() => null)
+      if (!response.ok) throw new Error(payload?.error || 'სტატუსი ვერ შეიცვალა.')
+      loadAll()
+    } catch (error) {
+      setSaveError(error instanceof Error ? error.message : 'სტატუსი ვერ შეიცვალა.')
+    }
+  }
+
+  function cartItemKey(item: any) {
+    return String(item?.id || item?.product_slug || item?.product_name || '')
+  }
+
+  function suggestedCartItemPrice(item: any) {
+    const slug = String(item?.product_slug || '').trim().toLowerCase()
+    const name = String(item?.product_name || '').trim().toLowerCase()
+    const matched = products.find((product: any) => {
+      const productSlug = String(product?.slug || '').trim().toLowerCase()
+      const productName = String(product?.name || '').trim().toLowerCase()
+      return (slug && productSlug === slug) || (name && productName === name)
+    })
+    const price = matched?.prices?.[0]?.price_gel
+    return price ? String(price) : ''
+  }
+
+  function cartInvoicePriceValue(requestId: string, item: any) {
+    const key = cartItemKey(item)
+    const draftValue = cartInvoicePriceDrafts[requestId]?.[key]
+    return draftValue !== undefined ? draftValue : suggestedCartItemPrice(item)
+  }
+
+  function updateCartInvoicePrice(requestId: string, item: any, value: string) {
+    const key = cartItemKey(item)
+    setCartInvoicePriceDrafts((prev) => ({
+      ...prev,
+      [requestId]: {
+        ...(prev[requestId] || {}),
+        [key]: value,
+      },
+    }))
+  }
+
+  function parsePrice(value: string) {
+    const normalized = value.replace(',', '.').replace(/[^\d.]/g, '')
+    const parsed = Number(normalized)
+    return Number.isFinite(parsed) ? parsed : 0
+  }
+
+  function money(value: number, currency = 'GEL') {
+    return `${Number(value || 0).toLocaleString('ka-GE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${currency}`
+  }
+
+  function addDaysIso(days: number) {
+    const date = new Date()
+    date.setDate(date.getDate() + days)
+    return date.toISOString().slice(0, 10)
+  }
+
+  function cartInvoiceTotal(request: any) {
+    return (request.items || []).reduce((sum: number, item: any) => {
+      const quantity = Math.max(1, Number(item.quantity) || 1)
+      return sum + parsePrice(cartInvoicePriceValue(request.id, item)) * quantity
+    }, 0)
+  }
+
+  async function createInvoiceFromCartRequest(request: any, channel: 'email' | 'sms' | 'whatsapp' | 'link' = 'email') {
+    setSaveError(null)
+    setCartInvoiceNotice(null)
+    const items = (request.items || []).map((item: any) => {
+      const quantity = Math.max(1, Number(item.quantity) || 1)
+      const unitPrice = parsePrice(cartInvoicePriceValue(request.id, item))
+      return {
+        item,
+        quantity,
+        unitPrice,
+        lineTotal: quantity * unitPrice,
+      }
+    })
+
+    if (!items.length) {
+      setSaveError('ამ მოთხოვნაში პროდუქტი არ ჩანს.')
+      return
+    }
+    if (items.some((row: any) => row.unitPrice <= 0)) {
+      setSaveError('ჯერ ყველა პროდუქტს ჩაუწერე ფასი.')
+      return
+    }
+
+    setCartInvoiceBusyId(request.id)
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session?.access_token) throw new Error('ადმინისტრატორის სესია ვერ მოიძებნა.')
+
+      const today = new Date().toISOString().slice(0, 10)
+      const draftItems = items.map((row: any) => ({
+        product_id: null,
+        product_query: row.item.product_slug || row.item.product_name,
+        product_name: row.item.product_name,
+        description: row.item.product_category || '',
+        product_code: row.item.product_slug || null,
+        unit: 'ცალი',
+        quantity: row.quantity,
+        unit_price: row.unitPrice,
+        discount: 0,
+        line_total: row.lineTotal,
+        standard_price: null,
+        match_warning: null,
+      }))
+
+      const draft = {
+        customer_id: null,
+        customer_query: request.clinic_name || request.full_name,
+        customer_name: request.clinic_name || request.full_name,
+        customer_tax_id: request.tax_id || '',
+        customer_address: request.city || '',
+        customer_email: request.email || '',
+        customer_phone: request.phone || '',
+        invoice_date: today,
+        delivery_date: null,
+        due_date: addDaysIso(7),
+        currency: 'GEL',
+        vat_mode: 'vat_included',
+        items: draftItems,
+        notes: [
+          `კალათის მოთხოვნა: ${request.id}`,
+          request.comment ? `კომენტარი: ${request.comment}` : '',
+          `კონტაქტი: ${request.full_name}, ${request.phone}, ${request.email}`,
+        ].filter(Boolean).join('\n'),
+        payment_terms: 'გადახდა ხორციელდება ინვოისის საფუძველზე. მიწოდების პირობები შეთანხმდება კლიენტთან.',
+        requested_scanned_version: false,
+        stamp_applied: true,
+        signature_applied: true,
+        warnings: [],
+        questions: [],
+      }
+
+      const invoiceResponse = await fetch('/api/admin/invoices', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${session.access_token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          draft,
+          source_type: 'prompt',
+          prompt: `კალათის ინვოისის მოთხოვნა ${request.id}`,
+        }),
+      })
+      const invoicePayload = await invoiceResponse.json().catch(() => null)
+      if (!invoiceResponse.ok || !invoicePayload?.ok) throw new Error(invoicePayload?.error || 'ინვოისი ვერ შეიქმნა.')
+
+      const invoice = invoicePayload.invoice
+      const shareResponse = await fetch(`/api/admin/invoices/${invoice.id}/share`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${session.access_token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ channel: channel === 'sms' ? 'sms' : 'link' }),
+      })
+      const sharePayload = await shareResponse.json().catch(() => null)
+      if (!shareResponse.ok || !sharePayload?.ok) throw new Error(sharePayload?.error || 'გასაზიარებელი ლინკი ვერ შეიქმნა.')
+
+      await fetch('/api/admin/cart-invoice-requests', {
+        method: 'PATCH',
+        headers: { Authorization: `Bearer ${session.access_token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: request.id, status: 'invoice_sent' }),
+      })
+
+      if (sharePayload.shareUrl && navigator?.clipboard?.writeText) {
+        await navigator.clipboard.writeText(sharePayload.shareUrl).catch(() => undefined)
+      }
+      if (channel === 'email') {
+        window.location.href = sharePayload.mailtoUrl
+      } else if (channel === 'whatsapp') {
+        window.open(sharePayload.whatsappUrl, '_blank', 'noopener,noreferrer')
+      } else if (channel === 'link') {
+        window.open(sharePayload.shareUrl, '_blank', 'noopener,noreferrer')
+      }
+
+      const channelLabel = channel === 'sms' ? 'SMS გაიგზავნა' : channel === 'whatsapp' ? 'WhatsApp ტექსტი გაიხსნა' : channel === 'link' ? 'ლინკი გაიხსნა და დაკოპირდა' : 'Email draft მომზადდა'
+      setCartInvoiceNotice(`ინვოისი ${invoice.invoice_number} შეიქმნა. მოკლე ლინკი: ${sharePayload.shareUrl}. ${channelLabel}.`)
+      await loadAll()
+    } catch (error) {
+      setSaveError(error instanceof Error ? error.message : 'ინვოისის შექმნა ვერ მოხერხდა.')
+    } finally {
+      setCartInvoiceBusyId(null)
+    }
   }
 
   async function updateServiceTicket(id: string, patch: Record<string, unknown>) {
@@ -421,6 +774,7 @@ export default function AdminPage() {
   const pendingUsers = users.filter(u => u.status === 'pending').length
   const blockedUsers = users.filter(u => u.status === 'blocked').length
   const newServiceTickets = serviceTickets.filter(ticket => ticket.status === 'new').length
+  const newCartInvoiceRequests = cartInvoiceRequests.filter(request => request.status === 'new').length
   const engineerUsers = users.filter(user => user.role === 'engineer' || user.role === 'dealer')
   const engineeringDivision = users.filter(user => user.role === 'engineer' || user.role === 'dealer')
   const filteredRequests = requests.filter(r => {
@@ -456,20 +810,29 @@ export default function AdminPage() {
         />
         <button
           onClick={loginAsAdmin}
+          disabled={authLoading}
           style={{ width: '100%', background: '#085041', color: '#fff', border: 'none', borderRadius: 10, padding: '11px', fontSize: 14, cursor: 'pointer', fontWeight: 500 }}>
-          Admin Login
+          {authLoading ? 'მოწმდება...' : 'Admin Login'}
         </button>
+        <button type="button" onClick={resetAdminPassword} disabled={authLoading} style={{ width: '100%', border: 0, background: 'transparent', color: '#2563eb', padding: '11px 4px 0', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>დაგავიწყდა პაროლი?</button>
         {authError && <p style={{ fontSize: 12, color: '#9f1239', textAlign: 'center', marginTop: 10 }}>{authError}</p>}
+        {authNotice && <p style={{ fontSize: 12, lineHeight: 1.5, color: '#166534', background: '#dcfce7', borderRadius: 9, padding: 10, textAlign: 'center', marginTop: 10 }}>{authNotice}</p>}
       </div>
     </div>
   )
 
-  const newReqs = requests.filter(r => r.status === 'new').length
+  const newReqs = requests.filter(r => r.status === 'new').length + newCartInvoiceRequests
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', fontFamily: 'sans-serif' }}>
+    <div className="mla-shell" style={{ display: 'flex', minHeight: '100vh', fontFamily: 'sans-serif' }}>
+      {/* PHONE TOP BAR: opens the menu below as a slide-out drawer */}
+      <div className="mla-topbar" style={{ position: 'sticky', top: 0, zIndex: 900, alignItems: 'center', gap: 12, background: '#085041', color: '#fff', padding: 'calc(10px + env(safe-area-inset-top)) 14px 10px' }}>
+        <button type="button" aria-label="მენიუ" onClick={() => setMenuOpen(true)} style={{ border: 0, background: 'rgba(255,255,255,0.12)', color: '#fff', borderRadius: 10, width: 42, height: 42, fontSize: 20, cursor: 'pointer' }}>☰</button>
+        <strong style={{ fontSize: 15, fontWeight: 600 }}>MedLine Admin</strong>
+      </div>
+      <div className="mla-backdrop" data-open={menuOpen} onClick={() => setMenuOpen(false)} />
       {/* SIDEBAR */}
-      <div style={{ width: 200, background: '#085041', display: 'flex', flexDirection: 'column', padding: '20px 0' }}>
+      <div className="mla-sidebar" data-open={menuOpen} onClickCapture={(event) => { if ((event.target as HTMLElement).closest('button')) setMenuOpen(false) }} style={{ width: 200, background: '#085041', display: 'flex', flexDirection: 'column', padding: '20px 0' }}>
         <div style={{ padding: '0 16px 20px', borderBottom: '0.5px solid rgba(255,255,255,0.1)' }}>
           <p style={{ color: '#fff', fontWeight: 500, fontSize: 14 }}>MedLine Admin</p>
           <p style={{ color: '#9FE1CB', fontSize: 11, marginTop: 2 }}>medicalline.ge</p>
@@ -478,8 +841,9 @@ export default function AdminPage() {
           { id: 'dashboard', label: '📊 Dashboard' },
           { id: 'analytics', label: '📈 Analytics' },
           { id: 'users', label: '👥 მომხმარებლები' },
+          { id: 'communications', label: '💬 კომუნიკაციები' },
           { id: 'prices', label: '💰 ფასები' },
-          { id: 'offers', label: '🔗 შეთავაზებები' },
+          { id: 'offers', label: '💳 განვადება' },
           { id: 'requests', label: `📨 მოთხოვნები${newReqs > 0 ? ` (${newReqs})` : ''}` },
           { id: 'service', label: `🔧 Service${newServiceTickets > 0 ? ` (${newServiceTickets})` : ''}` },
           { id: 'engineering', label: `⚙️ Engineering${engineeringDivision.length > 0 ? ` (${engineeringDivision.length})` : ''}` },
@@ -489,6 +853,54 @@ export default function AdminPage() {
             {item.label}
           </button>
         ))}
+        <button onClick={() => window.location.href = '/admin/clinic-offers'}
+          style={{ display: 'block', width: '100%', textAlign: 'left', padding: '10px 16px', background: 'transparent', color: '#9FE1CB', border: 'none', borderLeft: '3px solid transparent', cursor: 'pointer', fontSize: 13 }}>
+          🏥 კლინიკის შეთავაზებები
+        </button>
+        <button onClick={() => window.location.href = '/admin/crm'}
+          style={{ display: 'block', width: '100%', textAlign: 'left', padding: '10px 16px', background: 'transparent', color: '#9FE1CB', border: 'none', borderLeft: '3px solid transparent', cursor: 'pointer', fontSize: 13 }}>
+          🧲 CRM
+        </button>
+        <button onClick={() => window.location.href = '/admin/installments'}
+          style={{ display: 'block', width: '100%', textAlign: 'left', padding: '10px 16px', background: 'transparent', color: '#9FE1CB', border: 'none', borderLeft: '3px solid transparent', cursor: 'pointer', fontSize: 13 }}>
+          💳 განვადებები
+        </button>
+        <button onClick={() => window.location.href = '/admin/expo2026'}
+          style={{ display: 'block', width: '100%', textAlign: 'left', padding: '10px 16px', background: 'transparent', color: '#9FE1CB', border: 'none', borderLeft: '3px solid transparent', cursor: 'pointer', fontSize: 13 }}>
+          🎪 Expo 2026
+        </button>
+        <button onClick={() => window.location.href = '/admin/products'}
+          style={{ display: 'block', width: '100%', textAlign: 'left', padding: '10px 16px', background: 'transparent', color: '#9FE1CB', border: 'none', borderLeft: '3px solid transparent', cursor: 'pointer', fontSize: 13 }}>
+          📦 პროდუქციის დამატება
+        </button>
+                <button onClick={() => window.location.href = '/admin/invoices/acceptance-acts'}
+          style={{ display: 'block', width: '100%', textAlign: 'left', padding: '10px 16px', background: 'transparent', color: '#9FE1CB', border: 'none', borderLeft: '3px solid transparent', cursor: 'pointer', fontSize: 13 }}>
+          📋 მიღება-ჩაბარების აქტი
+        </button>
+<button onClick={() => window.location.href = '/admin/invoices/ai-generator'}
+          style={{ display: 'block', width: '100%', textAlign: 'left', padding: '10px 16px', background: 'transparent', color: '#9FE1CB', border: 'none', borderLeft: '3px solid transparent', cursor: 'pointer', fontSize: 13 }}>
+          ✨ AI ინვოისები
+        </button>
+        <button onClick={() => window.location.href = '/admin/ai'}
+          style={{ display: 'block', width: '100%', textAlign: 'left', padding: '10px 16px', background: 'transparent', color: '#9FE1CB', border: 'none', borderLeft: '3px solid transparent', cursor: 'pointer', fontSize: 13 }}>
+          🤖 AI Operator
+        </button>
+        <button onClick={() => window.location.href = '/admin/ai-calls'}
+          style={{ display: 'block', width: '100%', textAlign: 'left', padding: '10px 16px', background: 'transparent', color: '#9FE1CB', border: 'none', borderLeft: '3px solid transparent', cursor: 'pointer', fontSize: 13 }}>
+          📞 AI ზარები
+        </button>
+        <button onClick={() => window.location.href = '/admin/ai-orders'}
+          style={{ display: 'block', width: '100%', textAlign: 'left', padding: '10px 16px', background: 'transparent', color: '#9FE1CB', border: 'none', borderLeft: '3px solid transparent', cursor: 'pointer', fontSize: 13 }}>
+          🤖 AI Agent შეკვეთები
+        </button>
+        <button onClick={() => window.location.href = '/admin/ai-knowledge'}
+          style={{ display: 'block', width: '100%', textAlign: 'left', padding: '10px 16px', background: 'transparent', color: '#9FE1CB', border: 'none', borderLeft: '3px solid transparent', cursor: 'pointer', fontSize: 13 }}>
+          🧠 AI ცოდნის ბაზა
+        </button>
+        <button onClick={() => window.location.href = '/admin/ai-corrections'}
+          style={{ display: 'block', width: '100%', textAlign: 'left', padding: '10px 16px', background: 'transparent', color: '#9FE1CB', border: 'none', borderLeft: '3px solid transparent', cursor: 'pointer', fontSize: 13 }}>
+          ✅ AI შეცდომები
+        </button>
         <button onClick={logoutAdmin}
           style={{ marginTop: 'auto', padding: '10px 16px', background: 'transparent', color: '#9FE1CB', border: 'none', textAlign: 'left', cursor: 'pointer', fontSize: 12 }}>
           გამოსვლა
@@ -496,10 +908,10 @@ export default function AdminPage() {
       </div>
 
       {/* MAIN */}
-      <div style={{ flex: 1, background: '#f5f5f0', overflow: 'auto' }}>
+      <div style={{ flex: 1, minWidth: 0, background: '#f5f5f0', overflow: 'auto' }}>
         <div style={{ background: '#fff', padding: '14px 24px', borderBottom: '0.5px solid rgba(0,0,0,0.08)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <h2 style={{ fontSize: 16, fontWeight: 500, color: '#1a1a1a' }}>
-            {tab === 'dashboard' ? 'Dashboard' : tab === 'analytics' ? 'Analytics' : tab === 'users' ? 'მომხმარებლები' : tab === 'prices' ? 'ფასების მართვა' : tab === 'requests' ? 'მოთხოვნები' : tab === 'service' ? 'Service Dispatch' : 'Engineering Division'}
+            {tab === 'dashboard' ? 'Dashboard' : tab === 'analytics' ? 'Analytics' : tab === 'users' ? 'მომხმარებლები' : tab === 'communications' ? 'მომხმარებლებთან კომუნიკაცია' : tab === 'prices' ? 'ფასების მართვა' : tab === 'requests' ? 'მოთხოვნები' : tab === 'service' ? 'Service Dispatch' : 'Engineering Division'}
           </h2>
           <span style={{ fontSize: 12, color: '#888' }}>Medical Line Pro · {new Date().toLocaleDateString('ka-GE')}</span>
         </div>
@@ -534,10 +946,13 @@ export default function AdminPage() {
                     <button onClick={() => setTab('users')} style={{ fontSize: 12, padding: '6px 10px', background: '#FAEEDA', color: '#633806', border: 'none', borderRadius: 8, cursor: 'pointer' }}>Users</button>
                     <button onClick={() => setTab('requests')} style={{ fontSize: 12, padding: '6px 10px', background: '#E6F1FB', color: '#0C447C', border: 'none', borderRadius: 8, cursor: 'pointer' }}>Requests</button>
                     <button onClick={() => setTab('engineering')} style={{ fontSize: 12, padding: '6px 10px', background: '#E1F5EE', color: '#085041', border: 'none', borderRadius: 8, cursor: 'pointer' }}>Engineering</button>
-                    <button onClick={() => window.location.href = '/admin/offers'} style={{ fontSize: 12, padding: '6px 10px', background: '#ECFDF5', color: '#047857', border: '1px solid rgba(4,120,87,0.12)', borderRadius: 8, cursor: 'pointer' }}>შეთავაზებები</button>
+                    <button onClick={() => window.location.href = '/admin/offers'} style={{ fontSize: 12, padding: '6px 10px', background: '#ECFDF5', color: '#047857', border: '1px solid rgba(4,120,87,0.12)', borderRadius: 8, cursor: 'pointer' }}>განვადება</button>
                     <button onClick={() => window.location.href = '/admin/warranty'} style={{ fontSize: 12, padding: '6px 10px', background: '#EDF7F3', color: '#085041', border: '1px solid rgba(8,80,65,0.12)', borderRadius: 8, cursor: 'pointer' }}>გარანტიები</button>
                     <button onClick={() => window.location.href = '/admin/contracts'} style={{ fontSize: 12, padding: '6px 10px', background: '#EEF2FF', color: '#3730A3', border: '1px solid rgba(55,48,163,0.12)', borderRadius: 8, cursor: 'pointer' }}>ხელშეკრულებები</button>
                     <button onClick={() => window.location.href = '/admin/erp'} style={{ fontSize: 12, padding: '6px 10px', background: '#EAF3FB', color: '#1F5F99', border: '1px solid rgba(31,95,153,0.12)', borderRadius: 8, cursor: 'pointer' }}>ERP</button>
+                    <button onClick={() => window.location.href = '/admin/imports'} style={{ fontSize: 12, padding: '6px 10px', background: '#E4F5F1', color: '#0B786D', border: '1px solid #B6E5DC', borderRadius: 8, cursor: 'pointer' }}>იმპორტები</button>
+                    <button onClick={() => window.location.href = '/admin/crm'} style={{ fontSize: 12, padding: '6px 10px', background: '#FDE8EF', color: '#9D174D', border: '1px solid rgba(157,23,77,0.12)', borderRadius: 8, cursor: 'pointer' }}>CRM</button>
+                    <button onClick={() => window.location.href = '/admin/installments'} style={{ fontSize: 12, padding: '6px 10px', background: '#FFEDF0', color: '#BB2E43', border: '1px solid rgba(187,46,67,0.12)', borderRadius: 8, cursor: 'pointer' }}>განვადებები</button>
                     <button onClick={() => window.location.href = '/invoice'} style={{ fontSize: 12, padding: '6px 10px', background: '#EFF6FF', color: '#1D4ED8', border: '1px solid rgba(29,78,216,0.12)', borderRadius: 8, cursor: 'pointer' }}>ინვოისები</button>
                     <button onClick={() => window.location.href = '/admin/invoices/ai-generator'} style={{ fontSize: 12, padding: '6px 10px', background: '#F3E8FF', color: '#7E22CE', border: '1px solid rgba(126,34,206,0.14)', borderRadius: 8, cursor: 'pointer' }}>AI ინვოისები</button>
                     <button onClick={() => window.location.href = '/admin/academy'} style={{ fontSize: 12, padding: '6px 10px', background: '#FFF7ED', color: '#9A3412', border: '1px solid rgba(154,52,18,0.12)', borderRadius: 8, cursor: 'pointer' }}>აკადემია</button>
@@ -660,7 +1075,7 @@ export default function AdminPage() {
                               დადასტურება
                             </button>
                           )}
-                          {u.status !== 'blocked' ? (
+                           {u.status !== 'blocked' ? (
                             <button onClick={() => updateUserStatus(u.id, 'blocked')}
                               style={{ fontSize: 11, padding: '4px 8px', background: '#FCEBEB', color: '#791F1F', border: 'none', borderRadius: 6, cursor: 'pointer' }}>
                               დაბლოკვა
@@ -670,7 +1085,23 @@ export default function AdminPage() {
                               style={{ fontSize: 11, padding: '4px 8px', background: '#E1F5EE', color: '#085041', border: 'none', borderRadius: 6, cursor: 'pointer' }}>
                               გახსნა
                             </button>
-                          )}
+                           )}
+                           <button onClick={() => manageUser(u.id, 'reset-password')} disabled={userActionId === u.id}
+                             style={{ fontSize: 11, padding: '4px 8px', background: '#E6F1FB', color: '#0C447C', border: 'none', borderRadius: 6, cursor: userActionId === u.id ? 'wait' : 'pointer', opacity: userActionId === u.id ? 0.6 : 1 }}>
+                             პაროლის აღდგენა
+                           </button>
+                           {u.role !== 'admin' && (
+                             <button onClick={() => manageUser(u.id, 'delete')} disabled={userActionId === u.id}
+                               style={{ fontSize: 11, padding: '4px 8px', background: '#fff', color: '#A32D2D', border: '1px solid #F3B8B8', borderRadius: 6, cursor: userActionId === u.id ? 'wait' : 'pointer', opacity: userActionId === u.id ? 0.6 : 1 }}>
+                               წაშლა
+                             </button>
+                            )}
+                            {u.phone && u.status !== 'blocked' && (
+                              <button onClick={() => sendSmsToUser(u)} disabled={userActionId === u.id}
+                                style={{ fontSize: 11, padding: '4px 8px', background: '#085041', color: '#fff', border: 'none', borderRadius: 6, cursor: userActionId === u.id ? 'wait' : 'pointer', opacity: userActionId === u.id ? 0.6 : 1 }}>
+                                SMS
+                              </button>
+                            )}
                         </div>
                       </td>
                     </tr>
@@ -680,6 +1111,47 @@ export default function AdminPage() {
                   )}
                 </tbody>
               </table>
+            </div>
+          )}
+
+          {/* COMMUNICATIONS */}
+          {tab === 'communications' && (
+            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(280px, 360px)', gap: 16 }}>
+              <div style={{ background: '#fff', borderRadius: 12, border: '0.5px solid rgba(0,0,0,0.08)', padding: 18 }}>
+                <h3 style={{ margin: '0 0 6px', fontSize: 16 }}>SMS შეტყობინების გაგზავნა</h3>
+                <p style={{ margin: '0 0 16px', color: '#667085', fontSize: 12 }}>აირჩიეთ აუდიტორია, შეიყვანეთ ტექსტი და გაგზავნამდე გადაამოწმეთ მიმღებების რაოდენობა.</p>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, marginBottom: 6 }}>აუდიტორია</label>
+                <select value={messageAudience} onChange={(event) => setMessageAudience(event.target.value as any)} style={{ width: '100%', minHeight: 42, borderRadius: 8, border: '1px solid #d0d5dd', padding: '0 10px', marginBottom: 14 }}>
+                  <option value="active">ყველა აქტიური მომხმარებელი</option>
+                  <option value="doctor">აქტიური ექიმები</option>
+                  <option value="engineer">აქტიური ინჟინრები</option>
+                  <option value="selected">მხოლოდ მონიშნული მომხმარებლები</option>
+                  <option value="all">ყველა დაუბლოკავი მომხმარებელი</option>
+                </select>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, marginBottom: 6 }}>SMS ტექსტი</label>
+                <textarea value={smsMessage} onChange={(event) => setSmsMessage(event.target.value)} maxLength={480} rows={7} placeholder="მაგალითად: Medical Line Georgia გაცნობებთ ახალ პროდუქტს..." style={{ width: '100%', boxSizing: 'border-box', resize: 'vertical', borderRadius: 8, border: '1px solid #d0d5dd', padding: 12, font: 'inherit', fontSize: 13 }} />
+                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, marginTop: 8, color: '#667085', fontSize: 11 }}>
+                  <span>მიმღები: <strong>{recipientsForAudience().length}</strong></span>
+                  <span>{smsMessage.length}/480</span>
+                </div>
+                {saveError && <div style={{ marginTop: 12, padding: 10, borderRadius: 8, background: '#fff1f2', color: '#9f1239', fontSize: 12 }}>{saveError}</div>}
+                {smsResult && <div style={{ marginTop: 12, padding: 10, borderRadius: 8, background: '#ecfdf5', color: '#047857', fontSize: 12, fontWeight: 700 }}>{smsResult}</div>}
+                <button onClick={() => sendUserSms()} disabled={smsSending || !smsMessage.trim() || recipientsForAudience().length === 0} style={{ marginTop: 14, minHeight: 42, border: 0, borderRadius: 8, padding: '0 16px', background: '#085041', color: '#fff', fontWeight: 700, cursor: smsSending ? 'wait' : 'pointer', opacity: smsSending || !smsMessage.trim() || recipientsForAudience().length === 0 ? 0.55 : 1 }}>
+                  {smsSending ? 'იგზავნება...' : 'SMS-ის გაგზავნა'}
+                </button>
+              </div>
+              <div style={{ background: '#fff', borderRadius: 12, border: '0.5px solid rgba(0,0,0,0.08)', padding: 18, maxHeight: 620, overflow: 'auto' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                  <h3 style={{ margin: 0, fontSize: 14 }}>მომხმარებლების მონიშვნა</h3>
+                  <button onClick={() => setSelectedUserIds(selectedUserIds.length === users.filter((user) => user.phone && user.status !== 'blocked').length ? [] : users.filter((user) => user.phone && user.status !== 'blocked').map((user) => user.id))} style={{ border: 0, background: 'transparent', color: '#0C447C', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>ყველას მონიშვნა</button>
+                </div>
+                {users.filter((user) => user.phone && user.status !== 'blocked').map((user) => (
+                  <label key={user.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 9, padding: '9px 0', borderTop: '1px solid #f0f1f3', cursor: 'pointer' }}>
+                    <input type="checkbox" checked={selectedUserIds.includes(user.id)} onChange={() => setSelectedUserIds((current) => current.includes(user.id) ? current.filter((id) => id !== user.id) : [...current, user.id])} />
+                    <span style={{ minWidth: 0 }}><strong style={{ display: 'block', fontSize: 12 }}>{user.full_name || user.clinic_name || 'უსახელო მომხმარებელი'}</strong><span style={{ display: 'block', color: '#667085', fontSize: 11 }}>{user.phone} · {user.role}</span></span>
+                  </label>
+                ))}
+              </div>
             </div>
           )}
 
@@ -950,6 +1422,97 @@ export default function AdminPage() {
                 <button onClick={() => setRequestFilter('inprogress')} style={{ fontSize: 12, padding: '5px 12px', borderRadius: 20, border: '0.5px solid rgba(0,0,0,0.15)', background: requestFilter === 'inprogress' ? '#085041' : '#fff', color: requestFilter === 'inprogress' ? '#fff' : '#333', cursor: 'pointer' }}>In Progress</button>
                 <button onClick={() => setRequestFilter('done')} style={{ fontSize: 12, padding: '5px 12px', borderRadius: 20, border: '0.5px solid rgba(0,0,0,0.15)', background: requestFilter === 'done' ? '#085041' : '#fff', color: requestFilter === 'done' ? '#fff' : '#333', cursor: 'pointer' }}>Done</button>
                 <input value={requestSearch} onChange={e => setRequestSearch(e.target.value)} placeholder="Search request..." style={{ marginLeft: 'auto', minWidth: 220, padding: '7px 10px', borderRadius: 10, border: '0.5px solid rgba(0,0,0,0.15)', fontSize: 12 }} />
+              </div>
+              <div style={{ marginBottom: 18 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                  <h3 style={{ fontSize: 14, margin: 0, color: '#1a1a1a' }}>კალათიდან მოთხოვნილი ინვოისები</h3>
+                  <span style={{ fontSize: 11, color: '#888' }}>{cartInvoiceRequests.length} მოთხოვნა</span>
+                </div>
+                {cartInvoiceNotice && (
+                  <p style={{ fontSize: 12, color: '#166534', background: '#dcfce7', borderRadius: 10, padding: '9px 11px', margin: '0 0 8px' }}>{cartInvoiceNotice}</p>
+                )}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {cartInvoiceRequests.map((request) => (
+                    <div key={request.id} style={{ background: '#fff', borderRadius: 14, padding: '14px 16px', border: '0.5px solid rgba(0,0,0,0.08)' }}>
+                      <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+                        <div style={{ width: 9, height: 9, borderRadius: 5, background: request.status === 'new' ? '#185FA5' : request.status === 'closed' ? '#1D9E75' : '#BA7517', marginTop: 5, flexShrink: 0 }} />
+                        <div style={{ flex: 1 }}>
+                          <p style={{ fontSize: 13, fontWeight: 700, color: '#1a1a1a', margin: 0 }}>{request.full_name} — {request.clinic_name}</p>
+                          <p style={{ fontSize: 12, color: '#666', margin: '3px 0 0' }}>{request.phone} · {request.email} · {request.city}{request.tax_id ? ` · ს/კ ${request.tax_id}` : ''}</p>
+                          <div style={{ display: 'grid', gap: 7, marginTop: 10 }}>
+                            {(request.items || []).map((item: any) => {
+                              const quantity = Math.max(1, Number(item.quantity) || 1)
+                              const unitPrice = parsePrice(cartInvoicePriceValue(request.id, item))
+                              return (
+                                <div key={item.id} style={{ display: 'grid', gridTemplateColumns: 'minmax(180px, 1fr) 72px 120px 120px', gap: 8, alignItems: 'center', background: '#F8FAFC', border: '0.5px solid rgba(15,23,42,0.08)', borderRadius: 10, padding: 8 }}>
+                                  <span style={{ fontSize: 12, fontWeight: 700, color: '#0f172a' }}>{item.product_name}</span>
+                                  <span style={{ fontSize: 11, color: '#64748b' }}>x {quantity}</span>
+                                  <input
+                                    inputMode="decimal"
+                                    value={cartInvoicePriceValue(request.id, item)}
+                                    onChange={(event) => updateCartInvoicePrice(request.id, item, event.target.value)}
+                                    placeholder="ფასი GEL"
+                                    style={{ width: '100%', boxSizing: 'border-box', fontSize: 12, borderRadius: 8, border: '0.5px solid rgba(15,23,42,0.18)', padding: '7px 8px', fontWeight: 700 }}
+                                  />
+                                  <span style={{ fontSize: 12, fontWeight: 800, color: '#085041', textAlign: 'right' }}>{money(unitPrice * quantity)}</span>
+                                </div>
+                              )
+                            })}
+                          </div>
+                          {request.comment && <p style={{ fontSize: 12, color: '#555', margin: '9px 0 0' }}>{request.comment}</p>}
+                          <p style={{ fontSize: 11, color: '#999', margin: '8px 0 0' }}>OTP: {request.otp_verified_at ? 'დადასტურებულია' : 'არა'} · IP: {request.ip_address || '—'} · {new Date(request.created_at).toLocaleString('ka-GE')}</p>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, alignItems: 'center', marginTop: 10, paddingTop: 9, borderTop: '0.5px solid rgba(0,0,0,0.08)' }}>
+                            <strong style={{ fontSize: 13, color: '#111827' }}>სულ: {money(cartInvoiceTotal(request))}</strong>
+                            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                              <button
+                                type="button"
+                                onClick={() => createInvoiceFromCartRequest(request, 'email')}
+                                disabled={cartInvoiceBusyId === request.id}
+                                style={{ fontSize: 12, padding: '8px 10px', background: '#0C447C', color: '#fff', border: 'none', borderRadius: 9, cursor: 'pointer', opacity: cartInvoiceBusyId === request.id ? 0.7 : 1, fontWeight: 800 }}
+                              >
+                                {cartInvoiceBusyId === request.id ? '...' : 'Email'}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => createInvoiceFromCartRequest(request, 'sms')}
+                                disabled={cartInvoiceBusyId === request.id}
+                                style={{ fontSize: 12, padding: '8px 10px', background: '#085041', color: '#fff', border: 'none', borderRadius: 9, cursor: 'pointer', opacity: cartInvoiceBusyId === request.id ? 0.7 : 1, fontWeight: 800 }}
+                              >
+                                SMS
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => createInvoiceFromCartRequest(request, 'whatsapp')}
+                                disabled={cartInvoiceBusyId === request.id}
+                                style={{ fontSize: 12, padding: '8px 10px', background: '#1D9E75', color: '#fff', border: 'none', borderRadius: 9, cursor: 'pointer', opacity: cartInvoiceBusyId === request.id ? 0.7 : 1, fontWeight: 800 }}
+                              >
+                                WhatsApp
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => createInvoiceFromCartRequest(request, 'link')}
+                                disabled={cartInvoiceBusyId === request.id}
+                                style={{ fontSize: 12, padding: '8px 10px', background: '#fff', color: '#0C447C', border: '1px solid #CFE1F2', borderRadius: 9, cursor: 'pointer', opacity: cartInvoiceBusyId === request.id ? 0.7 : 1, fontWeight: 800 }}
+                              >
+                                ლინკი
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                        <select value={request.status} onChange={(event) => updateCartInvoiceRequestStatus(request.id, event.target.value)} style={{ fontSize: 11, padding: '6px 8px', borderRadius: 8, border: '0.5px solid rgba(0,0,0,0.15)' }}>
+                          <option value="new">New</option>
+                          <option value="reviewed">Reviewed</option>
+                          <option value="invoice_sent">Invoice Sent</option>
+                          <option value="closed">Closed</option>
+                          <option value="cancelled">Cancelled</option>
+                        </select>
+                      </div>
+                    </div>
+                  ))}
+                  {cartInvoiceRequests.length === 0 && (
+                    <p style={{ textAlign: 'center', color: '#aaa', padding: 18, background: '#fff', borderRadius: 12 }}>კალათის ინვოისის მოთხოვნა ჯერ არ არის</p>
+                  )}
+                </div>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {filteredRequests.map(r => {

@@ -131,4 +131,29 @@ assert.equal(
   "automatic checks pass but MTF unavailable is incomplete",
 );
 
+// Real dental CBCT exports often omit kVp/mA/exposure/model/serial from the reconstructed
+// series DICOM. When the engineer has typed the same values into the Acceptance Test Fields,
+// the report must not falsely demand them again as "missing DICOM" data.
+assert.equal(
+  decision({
+    metadata: {
+      pixelSpacing: completeMetadata.pixelSpacing,
+      sliceThickness: completeMetadata.sliceThickness,
+      fov: completeMetadata.fov,
+      voxelSize: completeMetadata.voxelSize,
+      modality: completeMetadata.modality,
+      seriesDescription: completeMetadata.seriesDescription,
+    },
+    acceptanceForm: {
+      ...completeAcceptance,
+      kv: "90",
+      ma: "8",
+      exposureTime: "1000",
+      testDate: "2026-01-24",
+    },
+  }).status,
+  QA_STATUS.PASS,
+  "acceptance form values fill in for DICOM tags missing from the reconstructed series",
+);
+
 console.log("CBCT QA decision tests passed");

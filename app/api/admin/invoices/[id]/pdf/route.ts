@@ -28,7 +28,7 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
     if (uploadError) throw uploadError
     const column = kind === 'scanned' ? 'scanned_pdf_path' : 'clean_pdf_path'
     await tokenClient.from('invoices').update({ [column]: path, updated_at: new Date().toISOString() }).eq('id', id)
-    const url = await createSignedStorageUrl(tokenClient, 'invoice-documents', path, 60 * 10)
+    const url = await createSignedStorageUrl(tokenClient, 'invoice-documents', path, 60 * 60 * 24 * 7)
     return NextResponse.json({ ok: true, kind, path, url })
   } catch (cause) {
     const message = cause instanceof Error ? cause.message : 'PDF ვერ შეიქმნა.'

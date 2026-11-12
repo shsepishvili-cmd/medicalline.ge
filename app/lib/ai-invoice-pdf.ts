@@ -1,4 +1,6 @@
 import 'server-only'
+import fs from 'fs'
+import path from 'path'
 import { jsPDF } from 'jspdf'
 import sharp from 'sharp'
 import { SYLFAEN_FONT_BASE64 } from './warranty-font-data'
@@ -42,7 +44,7 @@ type Company = {
 
 const labels: Record<string, string> = {
   without_vat: 'საქონლის ღირებულება მითითებულია დღგ-ის გარეშე',
-  vat_included: 'ფასი შეიცავს დღგ-ს',
+  vat_included: 'ფასები მითითებულია დღგ-ს ჩათვლით',
   vat_excluded_add_vat: 'ფასს დამატებული აქვს 18% დღგ',
 }
 
@@ -58,6 +60,21 @@ function addSylfaen(pdf: jsPDF) {
   pdf.addFileToVFS('Sylfaen.ttf', SYLFAEN_FONT_BASE64)
   pdf.addFont('Sylfaen.ttf', 'Sylfaen', 'normal')
   pdf.setFont('Sylfaen')
+}
+
+const invoiceStampPath = path.join(process.cwd(), 'public', 'images', 'invoice-stamp.jpg')
+
+function invoiceStampDataUrl() {
+  if (!fs.existsSync(invoiceStampPath)) return null
+  return `data:image/jpeg;base64,${fs.readFileSync(invoiceStampPath).toString('base64')}`
+}
+
+function drawFallbackStamp(pdf: jsPDF) {
+  pdf.setDrawColor('#9f1239')
+  pdf.circle(180, 274, 10)
+  pdf.setTextColor('#9f1239')
+  pdf.setFontSize(7)
+  pdf.text('ბეჭედი', 180, 276, { align: 'center' })
 }
 
 export function generateCleanInvoicePdf(invoice: PdfInvoice, company: Company) {
@@ -134,7 +151,7 @@ export function generateCleanInvoicePdf(invoice: PdfInvoice, company: Company) {
   const totals = [
     ['ქვეჯამი', invoice.subtotal],
     ['ფასდაკლება', invoice.discount_total],
-    ['დღგ', invoice.vat_total],
+    ...(invoice.vat_mode === 'vat_excluded_add_vat' ? [['დღგ', invoice.vat_total] as const] : []),
     ['საბოლოო თანხა', invoice.grand_total],
   ] as const
   totals.forEach(([label, value], index) => {
@@ -165,11 +182,9 @@ export function generateCleanInvoicePdf(invoice: PdfInvoice, company: Company) {
   pdf.text(`დირექტორი: ${company.director}`, 16, 282)
   if (invoice.signature_applied) pdf.text('ხელმოწერა: __________________', 100, 282)
   if (invoice.stamp_applied) {
-    pdf.setDrawColor('#9f1239')
-    pdf.circle(180, 274, 10)
-    pdf.setTextColor('#9f1239')
-    pdf.setFontSize(7)
-    pdf.text('ბეჭედი', 180, 276, { align: 'center' })
+    const stamp = invoiceStampDataUrl()
+    if (stamp) pdf.addImage(stamp, 'JPEG', 156, 252, 34, 34, undefined, 'FAST')
+    else drawFallbackStamp(pdf)
   }
   return Buffer.from(pdf.output('arraybuffer'))
 }
@@ -178,6 +193,16 @@ export async function generateScannedInvoicePdf(invoice: PdfInvoice, company: Co
   const rows = invoice.items.map((item, index) => `
     <tr><td>${index + 1}</td><td>${escapeXml(item.product_name)}</td><td>${escapeXml(item.unit)}</td>
     <td>${item.quantity}</td><td>${item.unit_price.toFixed(2)}</td><td>${item.line_total.toFixed(2)}</td></tr>`).join('')
+  const separateVatLine = invoice.vat_mode === 'vat_excluded_add_vat'
+    ? `<text x="750" y="1310" class="body">დღგ: ${money(invoice.vat_total, invoice.currency)}</text>`
+    : ''
+  const totalY = invoice.vat_mode === 'vat_excluded_add_vat' ? 1360 : 1325
+  const stamp = invoice.stamp_applied ? invoiceStampDataUrl() : null
+  const stampMarkup = stamp
+    ? `<image href="${stamp}" x="910" y="1520" width="170" height="170" opacity=".92"/>`
+    : invoice.stamp_applied
+      ? '<circle cx="1080" cy="1570" r="58" fill="none" stroke="#9f1239" stroke-width="4"/><text x="1080" y="1580" class="small" fill="#9f1239" text-anchor="middle">ბეჭედი</text>'
+      : ''
   const svg = `<svg width="1240" height="1754" xmlns="http://www.w3.org/2000/svg">
     <defs><style>
       @font-face{font-family:Sylfaen;src:url(data:font/ttf;base64,${SYLFAEN_FONT_BASE64})}
@@ -196,11 +221,12 @@ export async function generateScannedInvoicePdf(invoice: PdfInvoice, company: Co
         <table style="width:100%;border-collapse:collapse"><thead><tr style="background:#dbe8e3"><th>№</th><th>პროდუქტი</th><th>ერთ.</th><th>რაოდ.</th><th>ფასი</th><th>ჯამი</th></tr></thead>
         <tbody>${rows}</tbody></table></div></foreignObject>
       <text x="750" y="1270" class="body">ქვეჯამი: ${money(invoice.subtotal, invoice.currency)}</text>
-      <text x="750" y="1310" class="body">დღგ: ${money(invoice.vat_total, invoice.currency)}</text>
-      <text x="750" y="1360" class="title">ჯამი: ${money(invoice.grand_total, invoice.currency)}</text>
+      ${separateVatLine}
+      <text x="750" y="${totalY}" class="title">ჯამი: ${money(invoice.grand_total, invoice.currency)}</text>
       <text x="90" y="1430" class="small">${escapeXml(invoice.amount_in_words)}</text>
       <text x="90" y="1470" class="small">${escapeXml(labels[invoice.vat_mode] || '')}</text>
       <text x="90" y="1640" class="body">დირექტორი: ${escapeXml(company.director)}</text>
+      ${stampMarkup}
     </g></svg>`
   const png = await sharp(Buffer.from(svg)).png({ compressionLevel: 7 }).blur(0.18).toBuffer()
   const pdf = new jsPDF({ unit: 'mm', format: 'a4', compress: true })

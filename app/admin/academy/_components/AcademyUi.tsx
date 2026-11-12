@@ -8,7 +8,7 @@
 
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
-import { supabase } from '@/app/lib/supabase'
+import { adminSupabase as supabase } from '@/app/lib/supabase-admin-browser'
 import type { ProfileSummary } from '@/app/lib/warranty-types'
 
 // Import shared design tokens

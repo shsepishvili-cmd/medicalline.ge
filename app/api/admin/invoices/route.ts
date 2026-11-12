@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
     const url = new URL(request.url)
     let query = tokenClient
       .from('invoices')
-      .select('*, invoice_items(*)')
+      .select('*, invoice_items(*), acceptance_acts:invoice_acceptance_acts(id, act_number, status, public_token, sms_sent, email_sent, accepted_at)')
       .order('created_at', { ascending: false })
       .limit(250)
     const status = url.searchParams.get('status')

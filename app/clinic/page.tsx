@@ -1,12 +1,25 @@
 'use client'
 import { useEffect, useState, useCallback } from 'react'
 import { isSupabaseReady, supabase, supabaseConfigError } from '../lib/supabase'
-import { findCatalogProductByAny, findDatabaseProductMatch, inferBrand, localCatalogProducts, mapCategoryToSlug, type LocalCatalogAiFeature, type LocalCatalogProduct, specsArrayToRecord } from '../lib/catalogSync'
+import { SmsSignInModal } from '../components/expo/SmsSignIn'
+import { collapseDatabaseProducts, findCatalogProductByAny, findDatabaseProductMatch, inferBrand, localCatalogProducts, mapCategoryToSlug, type LocalCatalogAiFeature, type LocalCatalogProduct, specsArrayToRecord } from '../lib/catalogSync'
 
 type Screen = 'login' | 'register' | 'catalog' | 'product' | 'service' | 'academy' | 'profile' | 'proposal'
 type User = { id: string; full_name: string; clinic_name: string; city: string; phone: string; role: string; status: string }
 type Product = { id: string; dbId?: string | null; slug: string; name: string; category_slug: string; brand: string; short_desc: string; specs: Record<string,string>; images?: string[]; prices: { price_gel: number; price_usd: number; installment_monthly: number; installment_months: number; note: string }[] }
-type Request = { id: string; type: string; status: string; created_at: string; products: { name: string } }
+type Request = {
+  id: string
+  type: string
+  status: string
+  created_at: string
+  message?: string | null
+  products: {
+    id?: string
+    slug?: string | null
+    name: string
+    prices?: { price_gel: number; price_usd?: number | null; installment_monthly: number | null; installment_months: number | null; note?: string | null }[]
+  } | null
+}
 type AcademyItem = { id: string; product_id: string | null; title: string; description: string | null; video_type: string; youtube_video_id: string | null; youtube_url: string | null; thumbnail_url: string | null; channel_title: string | null; duration_iso: string | null; is_featured: boolean; sort_order: number; products?: { id: string; name: string; brand: string | null; slug: string } | null }
 type ServiceTicket = { id: string; serial_number: string | null; problem_desc: string; status: string; created_at: string; visit_date: string | null; resolution: string | null; attachments?: string[] | null; products?: { name: string } | null }
 type ProposalForm = {
@@ -22,6 +35,16 @@ type ProposalForm = {
 }
 type CatalogAiFeature = LocalCatalogAiFeature
 type CatalogProduct = LocalCatalogProduct
+
+function dedupeProductList<T extends { slug?: string; name?: string }>(list: T[]) {
+  const seen = new Set<string>()
+  return list.filter((item) => {
+    const key = (item.slug || item.name || '').toString().trim().toLowerCase()
+    if (!key || seen.has(key)) return false
+    seen.add(key)
+    return true
+  })
+}
 
 const PRODUCT_IMAGE_MAP: Record<string, string> = {
   'helios-700': '/images/helios700.png',
@@ -39,7 +62,7 @@ const PRODUCT_IMAGE_MAP: Record<string, string> = {
   'acuvision-x': '/images/acuvisionx.jpg',
   'brilliance': '/images/brilliance.jpg',
   'ultramint-pro': '/images/ultramint.png',
-  'e-sanit': '/images/esanit.png',
+  'e-sanit': '/images/blog/e-sanit-autoclave/e-sanit-01.jpg',
   'hager-g4': '/images/hager-g4.jpg',
   'hager-h5': '/images/hager-h5.jpg',
 }
@@ -80,6 +103,7 @@ const CATS = [
 const TYPE_LABELS: Record<string,string> = { price: 'ფასი', demo: 'დემო', service: 'სერვისი', info: 'ინფო' }
 const STATUS_LABELS: Record<string,string> = { new: 'ახალი', inprogress: 'მიმდინარე', done: 'დასრულდა', cancelled: 'გაუქმდა' }
 const VAT_RATE = 0.18
+const REMEMBERED_LOGIN_EMAIL_KEY = 'ml_remembered_login_email'
 const COMPANY_BILLING = {
   name: 'Medical Line Georgia',
   legalName: 'შპს მედიქალ ლაინ ჯორჯია',
@@ -92,6 +116,31 @@ const COMPANY_BILLING = {
 
 function formatMoney(value: number) {
   return `₾${value.toLocaleString('ka-GE', { maximumFractionDigits: 2 })}`
+}
+
+function latestPrice(prices?: Product['prices'] | null) {
+  return Array.isArray(prices) ? prices.find((price) => Number(price.price_gel || 0) > 0) || prices[0] : undefined
+}
+
+function productMatchesRequest(product: Product, requestProduct: Request['products']) {
+  if (!requestProduct) return false
+  return Boolean(
+    (requestProduct.id && (product.id === requestProduct.id || product.dbId === requestProduct.id)) ||
+    (requestProduct.slug && product.slug === requestProduct.slug) ||
+    product.name.trim().toLowerCase() === requestProduct.name.trim().toLowerCase()
+  )
+}
+
+function requestMatchesProduct(request: Request, product: Product) {
+  const requestName = request.products?.name?.trim().toLowerCase() || ''
+  const requestSlug = request.products?.slug?.trim().toLowerCase() || ''
+  const requestMessage = request.message?.trim().toLowerCase() || ''
+  return Boolean(
+    (request.products?.id && (product.id === request.products.id || product.dbId === request.products.id)) ||
+    (requestSlug && product.slug.trim().toLowerCase() === requestSlug) ||
+    (requestName && product.name.trim().toLowerCase() === requestName) ||
+    (requestMessage && (requestMessage.includes(product.name.trim().toLowerCase()) || requestMessage.includes(product.slug.trim().toLowerCase())))
+  )
 }
 
 export default function ClinicApp() {
@@ -111,6 +160,7 @@ export default function ClinicApp() {
   const [proposalQuantities, setProposalQuantities] = useState<Record<string, number>>({})
   const [proposalDiscountPct, setProposalDiscountPct] = useState(0)
   const [proposalVatMode, setProposalVatMode] = useState<'included' | 'excluded'>('included')
+  const [locallyRequestedProductIds, setLocallyRequestedProductIds] = useState<string[]>([])
   const [proposalInvoiceNo] = useState(() => {
     const now = new Date()
     return `ML-${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}-${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}`
@@ -145,8 +195,14 @@ export default function ClinicApp() {
       return { ...prev, [p.id]: prev[p.id] || 1 }
     })
   }
+
+  const addProposalItem = (p: Product) => {
+    setProposalItems(prev => prev.some(item => item.id === p.id) ? prev : [...prev, p])
+    setProposalQuantities(prev => ({ ...prev, [p.id]: prev[p.id] || 1 }))
+  }
   const [installmentMonths, setInstallmentMonths] = useState(12)
   const [generatingPdf, setGeneratingPdf] = useState(false)
+  const [savingInvoice, setSavingInvoice] = useState(false)
   const [requests, setRequests] = useState<Request[]>([])
   const [serviceTickets, setServiceTickets] = useState<ServiceTicket[]>([])
   const [academy, setAcademy] = useState<AcademyItem[]>([])
@@ -159,11 +215,27 @@ export default function ClinicApp() {
   // auth fields
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [rememberLogin, setRememberLogin] = useState(false)
   const [fullName, setFullName] = useState('')
   const [clinicName, setClinicName] = useState('')
   const [city, setCity] = useState('')
   const [phone, setPhone] = useState('')
   const [authErr, setAuthErr] = useState('')
+  const [authNotice, setAuthNotice] = useState('')
+  const [registrationTermsAccepted, setRegistrationTermsAccepted] = useState(false)
+  const [phoneOtpCode, setPhoneOtpCode] = useState('')
+  const [phoneChallenge, setPhoneChallenge] = useState('')
+  const [otpCooldown, setOtpCooldown] = useState(0)
+
+  useEffect(() => {
+    try {
+      const rememberedEmail = window.localStorage.getItem(REMEMBERED_LOGIN_EMAIL_KEY)
+      if (rememberedEmail) {
+        setEmail(rememberedEmail)
+        setRememberLogin(true)
+      }
+    } catch {}
+  }, [])
 
   // service ticket
   const [ticketDesc, setTicketDesc] = useState('')
@@ -275,7 +347,14 @@ export default function ClinicApp() {
         setAuthErr('პროფილის ჩატვირთვა ვერ მოხერხდა. საჭიროა `profiles` policy-ს შემოწმება.')
         return
       }
-      if (data) { setUser(data); setScreen('catalog'); loadProducts(); loadRequests(uid); loadServiceTickets(uid); loadAcademy() }
+      if (data) {
+        setUser(data)
+        loadProducts()
+        loadRequests(uid)
+        loadServiceTickets(uid)
+        loadAcademy()
+        window.location.assign('/clinic/dashboard')
+      }
     } catch {
       setAuthErr('პროფილის ჩატვირთვა ვერ მოხერხდა. ბაზის policy-ს კონფლიქტია.')
     }
@@ -283,7 +362,7 @@ export default function ClinicApp() {
 
   async function loadProducts() {
     const { data } = await supabase.from('products').select('*, prices(*)').eq('is_active', true).order('sort_order')
-    const dbProducts = data || []
+    const dbProducts = collapseDatabaseProducts(data || [])
     const matchedIds = new Set<string>()
 
     const mergedCatalogProducts: Product[] = localCatalogProducts.map((item) => {
@@ -309,18 +388,44 @@ export default function ClinicApp() {
 
     const dbOnlyProducts = dbProducts
       .filter((product: Product) => !matchedIds.has(product.id))
-      .map((product: Product) => ({ ...product, dbId: product.id }))
-    const all = [...mergedCatalogProducts, ...dbOnlyProducts]
+      .map((product: Product) => ({ ...product, dbId: product.id, catalogSource: findCatalogProductByAny(product) }))
+      .filter((product: Product & { catalogSource?: CatalogProduct }) => !product.catalogSource)
+    const all = dedupeProductList([...mergedCatalogProducts, ...dbOnlyProducts])
     setProducts(all)
     setSelectedProduct(prev => {
       if (!prev) return prev
       return all.find(p => p.id === prev.id || p.slug === prev.slug) || prev
     })
+    setProposalItems(prev => prev.map(item => {
+      const latest = all.find(product => product.id === item.id || product.dbId === item.dbId || product.slug === item.slug)
+      return latest ? { ...latest, id: item.id, dbId: latest.dbId || latest.id } : item
+    }))
   }
 
   async function loadRequests(uid: string) {
-    const { data } = await supabase.from('requests').select('*, products(name)').eq('user_id', uid).order('created_at', { ascending: false })
-    if (data) setRequests(data)
+    const { data } = await supabase
+      .from('requests')
+      .select('*, products(id, slug, name, prices(price_gel, price_usd, installment_monthly, installment_months, note))')
+      .eq('user_id', uid)
+      .order('created_at', { ascending: false })
+    if (data) {
+      const nextRequests = data as Request[]
+      setRequests(nextRequests)
+
+      const pricedRequests = nextRequests.filter((request) => request.type === 'price' && latestPrice(request.products?.prices as Product['prices']))
+      if (pricedRequests.length) {
+        setProducts((prev) => prev.map((product) => {
+          const matchedRequest = pricedRequests.find((request) => productMatchesRequest(product, request.products))
+          const price = latestPrice(matchedRequest?.products?.prices as Product['prices'])
+          return price ? { ...product, prices: [price, ...(product.prices || []).filter((item) => Number(item.price_gel) !== Number(price.price_gel))] } : product
+        }))
+        setProposalItems((prev) => prev.map((product) => {
+          const matchedRequest = pricedRequests.find((request) => productMatchesRequest(product, request.products))
+          const price = latestPrice(matchedRequest?.products?.prices as Product['prices'])
+          return price ? { ...product, prices: [price, ...(product.prices || []).filter((item) => Number(item.price_gel) !== Number(price.price_gel))] } : product
+        }))
+      }
+    }
   }
 
   async function loadAcademy() {
@@ -344,17 +449,46 @@ export default function ClinicApp() {
     if (data) setServiceTickets(data as unknown as ServiceTicket[])
   }
 
+  const [smsLoginOpen, setSmsLoginOpen] = useState(false)
+
   async function doLogin() {
     if (!isSupabaseReady) {
       setAuthErr(getFriendlyAuthError(new Error('Supabase configuration error')))
       return
     }
-    setAuthErr(''); setLoading(true)
+    setAuthErr(''); setAuthNotice(''); setLoading(true)
     try {
       const { data, error } = await supabase.auth.signInWithPassword({ email, password })
       setLoading(false)
       if (error) { setAuthErr('ელ.ფოსტა ან პაროლი არასწორია'); return }
+      try {
+        if (rememberLogin) window.localStorage.setItem(REMEMBERED_LOGIN_EMAIL_KEY, email.trim())
+        else window.localStorage.removeItem(REMEMBERED_LOGIN_EMAIL_KEY)
+      } catch {}
       if (data.user) loadProfile(data.user.id)
+    } catch (error) {
+      setLoading(false)
+      setAuthErr(getFriendlyAuthError(error))
+    }
+  }
+
+  async function sendPasswordReset() {
+    if (!isSupabaseReady) {
+      setAuthErr(getFriendlyAuthError(new Error('Supabase configuration error')))
+      return
+    }
+    if (!email.trim() || !/^\S+@\S+\.\S+$/.test(email.trim())) {
+      setAuthErr('პაროლის აღსადგენად მიუთითეთ სწორი ელფოსტა')
+      return
+    }
+    setAuthErr(''); setAuthNotice(''); setLoading(true)
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+        redirectTo: `${window.location.origin}/clinic/reset-password`,
+      })
+      setLoading(false)
+      if (error) { setAuthErr(getFriendlyAuthError(error)); return }
+      setAuthNotice('თუ ამ ელფოსტით ანგარიში არსებობს, პაროლის აღდგენის ბმული გამოგზავნილია. შეამოწმეთ Inbox და Spam საქაღალდე.')
     } catch (error) {
       setLoading(false)
       setAuthErr(getFriendlyAuthError(error))
@@ -370,23 +504,62 @@ export default function ClinicApp() {
     if (!fullName || !clinicName || !city || !phone || !email || !password) {
       setAuthErr('გთხოვთ შეავსოთ ყველა ველი'); setLoading(false); return
     }
+    if (!phoneChallenge) {
+      setAuthErr('ჯერ მიიღეთ SMS კოდი და დაადასტურეთ ტელეფონის ნომერი.'); setLoading(false); return
+    }
+    if (!/^\d{6}$/.test(phoneOtpCode.trim())) {
+      setAuthErr('შეიყვანეთ SMS-ით მიღებული 6-ნიშნა კოდი.'); setLoading(false); return
+    }
+    if (!registrationTermsAccepted) {
+      setAuthErr('რეგისტრაციისთვის საჭიროა წესებისა და პირობების დადასტურება'); setLoading(false); return
+    }
     if (password.length < 6) { setAuthErr('პაროლი მინ. 6 სიმბოლო'); setLoading(false); return }
     try {
-      const { data, error } = await supabase.auth.signUp({
-        email, password,
-        options: { data: { full_name: fullName, clinic_name: clinicName, city, phone, role: 'doctor' } }
+      const response = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fullName, clinicName, city, phone, email, password, code: phoneOtpCode, challenge: phoneChallenge }),
       })
-      if (error) { setAuthErr(getFriendlyAuthError(error)); setLoading(false); return }
-      if (!data.user) { setAuthErr('რეგისტრაცია ვერ მოხერხდა'); setLoading(false); return }
+      const payload = await response.json().catch(() => null)
+      if (!response.ok) { setAuthErr(payload?.error || 'რეგისტრაცია ვერ მოხერხდა'); setLoading(false); return }
 
       setLoading(false)
-      await supabase.auth.signOut()
       setAuthTab('login')
       setPassword('')
+      setPhoneOtpCode('')
+      setPhoneChallenge('')
       showToast('რეგისტრაცია მიღებულია. სცადე შესვლა ცოტა მოგვიანებით ან დაელოდე ადმინისტრატორის დადასტურებას.')
     } catch (error) {
       setLoading(false)
       setAuthErr(getFriendlyAuthError(error))
+    }
+  }
+
+  async function sendRegistrationOtp() {
+    setAuthErr('')
+    const normalized = phone.replace(/\D/g, '')
+    if (!((normalized.length === 9 && normalized.startsWith('5')) || (normalized.length === 12 && normalized.startsWith('995')))) {
+      setAuthErr('მიუთითეთ მოქმედი ქართული მობილურის ნომერი.'); return
+    }
+    setLoading(true)
+    try {
+      const response = await fetch('/api/auth/phone-otp/request', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ phone }),
+      })
+      const payload = await response.json().catch(() => null)
+      if (!response.ok) throw new Error(payload?.error || 'SMS კოდი ვერ გაიგზავნა.')
+      setPhoneChallenge(payload.challenge)
+      setPhoneOtpCode('')
+      setOtpCooldown(60)
+      setAuthNotice(`კოდი გაიგზავნა ნომერზე +${payload.phone}.`)
+      const timer = window.setInterval(() => setOtpCooldown((value) => {
+        if (value <= 1) { window.clearInterval(timer); return 0 }
+        return value - 1
+      }), 1000)
+    } catch (error) {
+      setAuthErr(error instanceof Error ? error.message : 'SMS კოდი ვერ გაიგზავნა.')
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -428,11 +601,49 @@ export default function ClinicApp() {
 
   async function sendRequest(type: string, productId?: string) {
     if (!user) return
-    const resolvedProductId = await ensureClinicProductRecord(productId)
-    const { error } = await supabase.from('requests').insert({ user_id: user.id, product_id: resolvedProductId, type })
-    if (!error) {
-      showToast(type === 'price' ? '✓ ფასის მოთხოვნა გაიგზავნა!' : type === 'demo' ? '✓ დემოს მოთხოვნა გაიგზავნა!' : '✓ გაიგზავნა!')
+    const product = products.find((item) => item.id === productId || item.dbId === productId)
+    const catalogProduct = product ? getCatalogProduct(product) : undefined
+
+    if (type === 'price' && product) {
+      const persistedProductId = await ensureClinicProductRecord(productId)
+      if (!persistedProductId) {
+        showToast('ფასის მოთხოვნა ვერ გაიგზავნა: პროდუქტი ბაზასთან ვერ დაკავშირდა')
+        return
+      }
+      const { error } = await supabase.rpc('submit_special_price_request', {
+        p_product_id: persistedProductId,
+        p_quantity: 1,
+        p_purchase_timeline: 'now',
+        p_preferred_payment_method: 'advance_and_balance',
+        p_note: 'მოთხოვნა გაიგზავნა Clinic Portal-ის სწრაფი ფასის ღილაკიდან.',
+      })
+      if (error) {
+        console.error('[clinic-price-request] submit failed', { code: error.code, message: error.message })
+        showToast(`ფასის მოთხოვნა ვერ გაიგზავნა: ${error.message}`)
+        return
+      }
+      setLocallyRequestedProductIds(prev => prev.includes(product.id) ? prev : [...prev, product.id])
+      showToast('✓ სპეციალური ფასის მოთხოვნა გაიგზავნა ადმინთან.')
       loadRequests(user.id)
+      return
+    }
+
+    const { error } = await supabase.rpc('create_clinic_product_request', {
+      p_product_slug: product?.slug || null,
+      p_product_name: product?.name || null,
+      p_category_slug: product?.category_slug || null,
+      p_brand: product?.brand || null,
+      p_short_desc: product?.short_desc || catalogProduct?.description || null,
+      p_specs: product?.specs || (catalogProduct ? specsArrayToRecord(catalogProduct.specs) : {}),
+      p_images: product?.images?.length ? product.images : catalogProduct?.img ? [catalogProduct.img] : [],
+      p_sort_order: catalogProduct?.id || null,
+      p_type: type,
+      p_message: product ? `${type}: ${product.name}` : type,
+    })
+    if (!error) {
+      showToast(type === 'demo' ? '✓ დემოს მოთხოვნა გაიგზავნა!' : '✓ გაიგზავნა!')
+      loadRequests(user.id)
+      loadProducts()
       return
     }
     showToast('მოთხოვნის გაგზავნა ვერ მოხერხდა')
@@ -481,12 +692,17 @@ export default function ClinicApp() {
   const userStatusTone = user?.status === 'active' ? '#E1F5EE' : user?.status === 'blocked' ? '#FCEBEB' : '#FAEEDA'
   const userStatusText = user?.status === 'active' ? '#085041' : user?.status === 'blocked' ? '#791F1F' : '#633806'
   const proposalRows = proposalItems.map(product => {
+    const latestProduct = products.find(item => item.id === product.id || item.dbId === product.dbId || item.slug === product.slug)
+    const invoiceProduct = latestProduct ? { ...latestProduct, id: product.id, dbId: latestProduct.dbId || latestProduct.id } : product
     const quantity = Math.max(1, proposalQuantities[product.id] || 1)
-    const unitPrice = product.prices[0]?.price_gel || 0
+    const requestProduct = requests.find((request) => request.type === 'price' && productMatchesRequest(invoiceProduct, request.products))?.products
+    const requestPrice = latestPrice(requestProduct?.prices as Product['prices'])
+    const productPrice = latestPrice(invoiceProduct.prices)
+    const unitPrice = Number(productPrice?.price_gel || requestPrice?.price_gel || 0)
     const lineTotal = quantity * unitPrice
 
     return {
-      product,
+      product: requestPrice && !productPrice ? { ...invoiceProduct, prices: [requestPrice] } : invoiceProduct,
       quantity,
       unitPrice,
       lineTotal,
@@ -502,53 +718,140 @@ export default function ClinicApp() {
     ? proposalNetTotal
     : proposalNetTotal + proposalVatValue
 
-  function openInvoicePdf() {
-    window.print()
+  const resolveRequestPrice = (request: Request) => {
+    if (request.type !== 'price') return null
+    const direct = latestPrice(request.products?.prices as Product['prices'])
+    if (direct?.price_gel) return direct
+    const matchedProduct = products.find((product) => requestMatchesProduct(request, product))
+    const fallback = latestPrice(matchedProduct?.prices)
+    return fallback?.price_gel ? fallback : null
+  }
+
+  async function openInvoicePdf() {
+    await saveClinicInvoice()
+    const blob = await generateInvoicePdfBlob()
+    if (!blob) return
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `invoice-${proposalInvoiceNo}.pdf`
+    a.click()
+    URL.revokeObjectURL(url)
   }
 
   async function generateInvoicePdfBlob(): Promise<Blob | null> {
     const el = document.getElementById('proposal-print-area')
     if (!el) return null
     setGeneratingPdf(true)
+    const previousWidth = el.style.width
+    const previousMaxWidth = el.style.maxWidth
+    const previousMargin = el.style.margin
+    const previousBackground = el.style.background
     try {
+      el.style.width = '794px'
+      el.style.maxWidth = '794px'
+      el.style.margin = '0 auto'
+      el.style.background = '#ffffff'
       // temporarily show print-footer for full capture
       const footer = el.querySelector('.print-footer') as HTMLElement | null
       if (footer) footer.style.display = 'block'
       const noPrintEls = el.querySelectorAll('.no-print') as NodeListOf<HTMLElement>
+      const previousDisplay = Array.from(noPrintEls).map(e => e.style.display)
       noPrintEls.forEach(e => { e.style.display = 'none' })
 
       const { default: html2canvas } = await import('html2canvas')
       const canvas = await html2canvas(el, { scale: 2, useCORS: true, logging: false, backgroundColor: '#ffffff' })
 
       if (footer) footer.style.display = ''
-      noPrintEls.forEach(e => { e.style.display = '' })
+      noPrintEls.forEach((e, index) => { e.style.display = previousDisplay[index] || '' })
 
       const { jsPDF } = await import('jspdf')
       const pdf = new jsPDF('p', 'mm', 'a4')
       const pageW = 210
       const pageH = 297
-      const imgW = pageW
+      const imgData = canvas.toDataURL('image/png')
       const imgH = (canvas.height * pageW) / canvas.width
-      let y = 0
-      while (y < imgH) {
-        const srcY = (y * canvas.width) / pageW
-        const srcH = Math.min((pageH * canvas.width) / pageW, canvas.height - srcY)
-        const pageCanvas = document.createElement('canvas')
-        pageCanvas.width = canvas.width
-        pageCanvas.height = srcH
-        const ctx = pageCanvas.getContext('2d')!
-        ctx.drawImage(canvas, 0, srcY, canvas.width, srcH, 0, 0, canvas.width, srcH)
-        if (y > 0) pdf.addPage()
-        pdf.addImage(pageCanvas.toDataURL('image/png'), 'PNG', 0, 0, imgW, (srcH * pageW) / canvas.width)
-        y += pageH
+      let position = 0
+      let heightLeft = imgH
+      pdf.addImage(imgData, 'PNG', 0, position, pageW, imgH)
+      heightLeft -= pageH
+      while (heightLeft > 0) {
+        position = heightLeft - imgH
+        pdf.addPage()
+        pdf.addImage(imgData, 'PNG', 0, position, pageW, imgH)
+        heightLeft -= pageH
       }
       return pdf.output('blob')
     } finally {
+      el.style.width = previousWidth
+      el.style.maxWidth = previousMaxWidth
+      el.style.margin = previousMargin
+      el.style.background = previousBackground
       setGeneratingPdf(false)
     }
   }
 
+  async function saveClinicInvoice() {
+    if (!user || proposalRows.length === 0 || savingInvoice) return
+    setSavingInvoice(true)
+    try {
+      const clientPayload = {
+        name: proposalForm.recipientName || user.full_name,
+        company: proposalForm.clinicName || user.clinic_name,
+        id_num: proposalForm.taxId || null,
+        phone: proposalForm.phone || user.phone || null,
+        email: proposalForm.email || null,
+        city: user.city || null,
+        address: proposalForm.address || null,
+      }
+
+      const { data: client, error: clientError } = await supabase
+        .from('inv_clients')
+        .insert(clientPayload)
+        .select('id')
+        .single()
+      if (clientError) throw clientError
+
+      const items = proposalRows.map(({ product, quantity, unitPrice }) => ({
+        name: product.name,
+        description: product.short_desc || '',
+        quantity,
+        unit: 'ცალი',
+        unitPrice,
+        vatIncluded: proposalVatMode === 'included',
+      }))
+
+      const { error: invoiceError } = await supabase.from('inv_invoices').upsert({
+        number: proposalInvoiceNo,
+        status: 'sent',
+        client_id: client?.id || null,
+        date: new Date().toISOString().slice(0, 10),
+        due: new Date(Date.now() + proposalForm.validDays * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
+        currency: 'GEL',
+        terms: proposalForm.paymentTerms || null,
+        vat_rate: proposalVatMode === 'included' ? 0 : 18,
+        discount: proposalDiscountPct,
+        note: proposalForm.note || null,
+        bank: `${COMPANY_BILLING.bankName} · ${COMPANY_BILLING.iban}`,
+        payment_splits: [],
+        items,
+        subtotal: proposalSubtotal,
+        discount_amount: proposalDiscountValue,
+        vat_amount: proposalVatValue,
+        total: proposalGrandTotal,
+        color: G,
+      }, { onConflict: 'number' })
+      if (invoiceError) throw invoiceError
+      showToast('✓ ინვოისი შენახულია')
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : 'ინვოისის შენახვა ვერ მოხერხდა')
+    } finally {
+      setSavingInvoice(false)
+    }
+  }
+
   async function shareInvoiceWA() {
+    await saveClinicInvoice()
     const blob = await generateInvoicePdfBlob()
     if (!blob) return
     const filename = `invoice-${proposalInvoiceNo}.pdf`
@@ -569,6 +872,7 @@ export default function ClinicApp() {
   }
 
   async function shareInvoiceEmail() {
+    await saveClinicInvoice()
     const blob = await generateInvoicePdfBlob()
     if (!blob) return
     const filename = `invoice-${proposalInvoiceNo}.pdf`
@@ -688,15 +992,24 @@ export default function ClinicApp() {
           <p style={{ fontSize: 12, color: '#888', marginTop: 4 }}>Eighteeth ექსკლუზიური დისტრიბუტორი</p>
         </div>
         <div style={s.authTabs}>
-          <button style={{ ...s.authTab, ...(authTab === 'login' ? s.authTabOn : {}) }} onClick={() => { setAuthTab('login'); setAuthErr('') }}>შესვლა</button>
-          <button style={{ ...s.authTab, ...(authTab === 'register' ? s.authTabOn : {}) }} onClick={() => { setAuthTab('register'); setAuthErr('') }}>რეგისტრაცია</button>
+          <button style={{ ...s.authTab, ...(authTab === 'login' ? s.authTabOn : {}) }} onClick={() => { setAuthTab('login'); setAuthErr(''); setAuthNotice('') }}>შესვლა</button>
+          <button style={{ ...s.authTab, ...(authTab === 'register' ? s.authTabOn : {}) }} onClick={() => { setAuthTab('register'); setAuthErr(''); setAuthNotice('') }}>რეგისტრაცია</button>
         </div>
 
         {authTab === 'login' ? (
           <>
-            <div style={s.field}><label style={s.label}>ელ.ფოსტა</label><input style={s.input} type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="doctor@clinic.ge" /></div>
-            <div style={s.field}><label style={s.label}>პაროლი</label><input style={s.input} type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" onKeyDown={e => e.key === 'Enter' && doLogin()} /></div>
+            <div style={s.field}><label style={s.label} htmlFor="clinic-login-email">ელ.ფოსტა</label><input id="clinic-login-email" name="username" autoComplete="username" style={s.input} type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="doctor@clinic.ge" /></div>
+            <div style={s.field}><label style={s.label} htmlFor="clinic-login-password">პაროლი</label><input id="clinic-login-password" name="password" autoComplete="current-password" style={s.input} type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" onKeyDown={e => e.key === 'Enter' && doLogin()} /></div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, margin: '-4px 0 14px' }}>
+              <label style={{ display: 'inline-flex', alignItems: 'center', gap: 7, color: '#4b5563', fontSize: 12, cursor: 'pointer' }}>
+                <input type="checkbox" checked={rememberLogin} onChange={e => setRememberLogin(e.target.checked)} style={{ width: 16, height: 16 }} />
+                დამიმახსოვრე
+              </label>
+              <button type="button" onClick={sendPasswordReset} disabled={loading} style={{ border: 0, padding: 0, background: 'transparent', color: '#2563eb', fontSize: 12, fontWeight: 700, cursor: loading ? 'wait' : 'pointer' }}>დაგავიწყდა პაროლი?</button>
+            </div>
             <button style={s.btn} onClick={doLogin} disabled={loading}>{loading ? 'იტვირთება...' : 'შესვლა'}</button>
+            <button type="button" onClick={() => setSmsLoginOpen(true)} disabled={loading} style={{ ...s.btn, marginTop: 10, background: '#fff', color: '#1d4ed8', border: '1px solid #bfdbfe' }}>SMS კოდით შესვლა</button>
+            {smsLoginOpen ? <SmsSignInModal onCancel={() => setSmsLoginOpen(false)} onSignedIn={() => setSmsLoginOpen(false)} /> : null}
           </>
         ) : (
           <>
@@ -708,14 +1021,28 @@ export default function ClinicApp() {
                 {CITIES.map(c => <option key={c}>{c}</option>)}
               </select>
             </div>
-            <div style={s.field}><label style={s.label}>ტელეფონი</label><input style={s.input} value={phone} onChange={e => setPhone(e.target.value)} placeholder="555 000 000" /></div>
-            <div style={s.field}><label style={s.label}>ელ.ფოსტა</label><input style={s.input} type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="doctor@clinic.ge" /></div>
-            <div style={s.field}><label style={s.label}>პაროლი</label><input style={s.input} type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="მინ. 6 სიმბოლო" /></div>
-            <button style={s.btn} onClick={doRegister} disabled={loading}>{loading ? 'იტვირთება...' : 'დარეგისტრირება და ფასების ნახვა'}</button>
+            <div style={s.field}>
+              <label style={s.label}>ტელეფონი *</label>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 8 }}>
+                <input style={s.input} value={phone} onChange={e => { setPhone(e.target.value); setPhoneChallenge(''); setPhoneOtpCode(''); setAuthNotice('') }} placeholder="555 000 000" inputMode="tel" required />
+                <button type="button" onClick={sendRegistrationOtp} disabled={loading || otpCooldown > 0} style={{ border: 0, borderRadius: 10, padding: '0 12px', background: '#E1F5EE', color: G, fontSize: 11, fontWeight: 700, cursor: loading || otpCooldown > 0 ? 'wait' : 'pointer' }}>
+                  {otpCooldown > 0 ? `${otpCooldown} წმ` : phoneChallenge ? 'კოდის ხელახლა გაგზავნა' : 'SMS კოდის მიღება'}
+                </button>
+              </div>
+            </div>
+            {phoneChallenge && <div style={s.field}><label style={s.label}>SMS კოდი *</label><input style={s.input} value={phoneOtpCode} onChange={e => setPhoneOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6))} placeholder="6-ნიშნა კოდი" inputMode="numeric" autoComplete="one-time-code" /></div>}
+            <div style={s.field}><label style={s.label}>ელ.ფოსტა</label><input name="email" autoComplete="email" style={s.input} type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="doctor@clinic.ge" /></div>
+            <div style={s.field}><label style={s.label}>პაროლი</label><input name="new-password" autoComplete="new-password" style={s.input} type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="მინ. 6 სიმბოლო" /></div>
+            <label style={{ display: 'flex', alignItems: 'flex-start', gap: 9, fontSize: 12, lineHeight: 1.5, color: '#4b5563', margin: '10px 0 14px', cursor: 'pointer' }}>
+              <input type="checkbox" checked={registrationTermsAccepted} onChange={e => setRegistrationTermsAccepted(e.target.checked)} style={{ marginTop: 3, width: 18, height: 18, flexShrink: 0 }} />
+              <span>ვეთანხმები ვებგვერდით სარგებლობის <a href="/terms" target="_blank" style={{ color: '#2563eb', fontWeight: 700 }}>წესებსა და პირობებს</a> და <a href="/privacy" target="_blank" style={{ color: '#2563eb', fontWeight: 700 }}>კონფიდენციალურობის პოლიტიკას</a>.</span>
+            </label>
+            <button style={{ ...s.btn, ...(!registrationTermsAccepted || !phoneChallenge || phoneOtpCode.length !== 6 ? { opacity: .55, cursor: 'not-allowed' } : {}) }} onClick={doRegister} disabled={loading || !registrationTermsAccepted || !phoneChallenge || phoneOtpCode.length !== 6}>{loading ? 'იტვირთება...' : 'ნომრის დადასტურება და რეგისტრაცია'}</button>
             <p style={{ fontSize: 10, color: '#aaa', textAlign: 'center', marginTop: 8 }}>რეგისტრაციის შემდეგ ყველა ფასი ხილვადი გახდება</p>
           </>
         )}
         {authErr && <p style={s.errMsg}>{authErr}</p>}
+        {authNotice && <p style={{ fontSize: 12, lineHeight: 1.55, color: '#166534', background: '#dcfce7', borderRadius: 10, padding: 12, marginTop: 12 }}>{authNotice}</p>}
       </div>
     </div>
   )
@@ -736,6 +1063,7 @@ export default function ClinicApp() {
     const aiSalesCopy = buildAiSalesCopy(p, catalogProduct, monthlyEstimate)
     const catEmojis: Record<string,string> = { scan: '🦷', radio: '📡', endo: '⚙️', optics: '🔬', hygiene: '🧪', partner: '🪑', other: '📦' }
     const inProposal = proposalItems.some(item => item.id === p.id)
+    const priceRequested = locallyRequestedProductIds.includes(p.id) || requests.some(r => r.type === 'price' && r.status !== 'cancelled' && r.products?.name === p.name)
 
     const shareOfferWA = () => {
       const lines = [
@@ -747,6 +1075,9 @@ export default function ClinicApp() {
         `🌐 medicalline.ge`,
       ].filter(Boolean).join('\n')
       window.open(`https://wa.me/?text=${encodeURIComponent(lines)}`, '_blank')
+    }
+    const shareOfferMessenger = () => {
+      window.open('https://m.me/medicalline.ge', '_blank')
     }
     const shareOfferEmail = () => {
       const subject = encodeURIComponent(`Medical Line — ${p.name}`)
@@ -810,8 +1141,24 @@ export default function ClinicApp() {
             </div>
           ) : (
             <div style={s.lockBox}>
+              {priceRequested ? (
+                <>
+                  <p style={{ fontSize: 24, margin: '0 0 8px' }}>✓</p>
+                  <p style={{ fontSize: 13, color: G, margin: 0, fontWeight: 700 }}>ფასი მოთხოვნილია. პროდუქტი ინვოისისთვის მონიშნულია.</p>
+                  <button
+                    type="button"
+                    onClick={() => setScreen('proposal')}
+                    style={{ marginTop: 12, border: 'none', borderRadius: 10, background: G, color: '#fff', padding: '9px 14px', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}
+                  >
+                    ინვოისის ნახვა
+                  </button>
+                </>
+              ) : (
+                <>
               <p style={{ fontSize: 24, margin: '0 0 8px' }}>🔒</p>
               <p style={{ fontSize: 13, color: '#888', margin: 0 }}>ფასი ხილვადია დარეგისტრირებულთათვის</p>
+                </>
+              )}
             </div>
           )}
           {price && (
@@ -869,7 +1216,7 @@ export default function ClinicApp() {
               </div>
             </div>
           )}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10, marginBottom: 14 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: isDesktop ? 'repeat(4, 1fr)' : '1fr 1fr', gap: 10, marginBottom: 14 }}>
             <button 
               style={{ ...s.actBtnSec, background: inProposal ? '#FCEBEB' : '#f0fdf8', borderColor: inProposal ? '#E24B4A' : '#5DCAA5', color: inProposal ? '#E24B4A' : G }} 
               onClick={() => toggleProposalItem(p)}
@@ -877,6 +1224,7 @@ export default function ClinicApp() {
               {inProposal ? '🗑 ამოღება ინვოისიდან' : '➕ ინვოისში დამატება'}
             </button>
             <button style={{ ...s.actBtnSec, background: '#f0fdf4', borderColor: '#22c55e', color: '#15803d' }} onClick={shareOfferWA}>📱 WhatsApp</button>
+            <button style={{ ...s.actBtnSec, background: '#eff6ff', borderColor: '#0084FF', color: '#006AFF' }} onClick={shareOfferMessenger}>Messenger</button>
             <button style={{ ...s.actBtnSec, background: '#eff6ff', borderColor: '#60a5fa', color: '#1d4ed8' }} onClick={shareOfferEmail}>✉️ ელ.ფოსტა</button>
           </div>
           <div style={{ background: '#0f172a', color: '#fff', borderRadius: 16, padding: 16, marginBottom: 14 }}>
@@ -927,7 +1275,9 @@ export default function ClinicApp() {
           </div>
           <div style={s.actionRow}>
             <button style={s.actBtnSec} onClick={() => sendRequest('demo', p.id)}>დემოს ჯავშნა</button>
-            <button style={s.actBtnPri} onClick={() => sendRequest('price', p.id)}>ფასის მოთხოვნა</button>
+            <button style={s.actBtnPri} onClick={() => sendRequest('price', p.id)}>
+              {price ? 'ინვოისში დამატება' : priceRequested ? 'ფასი მოთხოვნილია' : 'ფასის მოთხოვნა'}
+            </button>
           </div>
           <div style={{ height: 30 }} />
         </div>
@@ -943,9 +1293,11 @@ export default function ClinicApp() {
 
       <style>{`
         @media print {
-          header, #app-header, .no-print, nav, button { display: none !important; }
-          body { background: white !important; padding: 0 !important; }
-          #proposal-print-area { display: block !important; padding: 32px !important; max-width: 794px !important; margin: 0 auto !important; }
+          body { background: white !important; padding: 0 !important; margin: 0 !important; }
+          body * { visibility: hidden !important; }
+          #proposal-print-area, #proposal-print-area * { visibility: visible !important; }
+          header, #app-header, .no-print, .no-print *, nav, button { display: none !important; visibility: hidden !important; }
+          #proposal-print-area { display: block !important; position: absolute !important; left: 0 !important; top: 0 !important; width: 794px !important; max-width: 794px !important; padding: 32px !important; margin: 0 !important; background: white !important; box-shadow: none !important; }
           .print-header { display: flex !important; justify-content: space-between; align-items: center; border-bottom: 2px solid #085041; padding-bottom: 20px; margin-bottom: 30px; }
           .print-footer { display: block !important; margin-top: 50px; border-top: 1px solid #eee; padding-top: 20px; font-size: 12px; color: #666; }
           .svc-card-print { border: 1px solid #eee !important; margin-bottom: 10px !important; }
@@ -1114,7 +1466,7 @@ export default function ClinicApp() {
               </div>
             </div>
 
-            <p style={{ fontSize: 18, fontWeight: 600, color: G, marginBottom: 14 }}>ჩემი ინვოისი ({proposalItems.length})</p>
+            <p className="no-print" style={{ fontSize: 18, fontWeight: 600, color: G, marginBottom: 14 }}>ჩემი ინვოისი ({proposalItems.length})</p>
             {proposalItems.length === 0 ? (
               <div style={{ textAlign: 'center', padding: 40, background: '#fff', borderRadius: 20 }}>
                 <p style={{ fontSize: 40 }}>📄</p>
@@ -1123,7 +1475,7 @@ export default function ClinicApp() {
               </div>
             ) : (
               <>
-                <div style={{ ...s.formCard, marginBottom: 14 }}>
+                <div className="no-print" style={{ ...s.formCard, marginBottom: 14 }}>
                   <p style={{ fontSize: 14, fontWeight: 600, marginBottom: 12 }}>ინვოისის ფორმა</p>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
                     <div style={s.field}>
@@ -1180,7 +1532,7 @@ export default function ClinicApp() {
                   </div>
                 </div>
 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 20 }}>
+                <div className="no-print" style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 20 }}>
                   {proposalRows.map(({ product: p, quantity, unitPrice, lineTotal }) => (
                     <div key={p.id} style={{ ...s.svcCard, padding: 10 }} className="svc-card-print">
                       <div style={{ width: 40, height: 40, background: '#f5f5f0', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -1209,6 +1561,30 @@ export default function ClinicApp() {
                         </div>
                       </div>
                       <button className="no-print" onClick={() => toggleProposalItem(p)} style={{ background: 'none', border: 'none', color: '#E24B4A', fontSize: 18 }}>✕</button>
+                    </div>
+                  ))}
+                </div>
+                <div style={{ border: '1px solid rgba(8,80,65,0.16)', borderRadius: 16, overflow: 'hidden', marginBottom: 18, background: '#fff' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 70px 110px 110px', gap: 0, background: G, color: '#fff', fontSize: 11, fontWeight: 700, letterSpacing: 0.2 }}>
+                    <div style={{ padding: '10px 12px' }}>პროდუქტი</div>
+                    <div style={{ padding: '10px 12px', textAlign: 'center' }}>რაოდ.</div>
+                    <div style={{ padding: '10px 12px', textAlign: 'right' }}>ფასი</div>
+                    <div style={{ padding: '10px 12px', textAlign: 'right' }}>ჯამი</div>
+                  </div>
+                  {proposalRows.map(({ product: p, quantity, unitPrice, lineTotal }, index) => (
+                    <div key={`doc-${p.id}`} style={{ display: 'grid', gridTemplateColumns: '1fr 70px 110px 110px', gap: 0, borderTop: index ? '1px solid #eef2f1' : 'none', background: index % 2 ? '#fbfdfc' : '#fff', alignItems: 'center' }}>
+                      <div style={{ padding: '12px', display: 'flex', gap: 10, alignItems: 'center' }}>
+                        <div style={{ width: 34, height: 34, borderRadius: 8, background: '#f5f7f6', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                          {getProductImage(p) ? <img src={getProductImage(p)} alt="" style={{ width: 28, height: 28, objectFit: 'contain' }} /> : null}
+                        </div>
+                        <div>
+                          <div style={{ fontSize: 13, fontWeight: 700, color: '#101827' }}>{p.name}</div>
+                          <div style={{ fontSize: 10, color: '#6b7280', marginTop: 2 }}>{p.brand}</div>
+                        </div>
+                      </div>
+                      <div style={{ padding: '12px', textAlign: 'center', fontSize: 12 }}>{quantity}</div>
+                      <div style={{ padding: '12px', textAlign: 'right', fontSize: 12 }}>{unitPrice ? formatMoney(unitPrice) : 'მოთხოვნით'}</div>
+                      <div style={{ padding: '12px', textAlign: 'right', fontSize: 12, fontWeight: 700, color: G }}>{formatMoney(lineTotal)}</div>
                     </div>
                   ))}
                 </div>
@@ -1284,7 +1660,10 @@ export default function ClinicApp() {
                       <div style={{ marginTop: -8, fontSize: 12, fontWeight: 600, color: '#0f3f35' }}>დირექტორი: შ. სეფიშვილი</div>
                     </div>
                   </div>
-                  <div className="no-print" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginTop: 4 }}>
+                  <div className="no-print" style={{ display: 'grid', gridTemplateColumns: isDesktop ? 'repeat(4, 1fr)' : '1fr 1fr', gap: 8, marginTop: 4 }}>
+                    <button style={{ ...s.btn, background: '#085041', marginTop: 0, opacity: savingInvoice ? 0.6 : 1 }} onClick={saveClinicInvoice} disabled={savingInvoice}>
+                      {savingInvoice ? '⏳ ინახება...' : '✓ შენახვა'}
+                    </button>
                     <button style={{ ...s.btn, background: '#15803d', marginTop: 0, opacity: generatingPdf ? 0.6 : 1 }} onClick={shareInvoiceWA} disabled={generatingPdf}>
                       {generatingPdf ? '⏳ მზადდება...' : '📱 WhatsApp'}
                     </button>
@@ -1590,16 +1969,22 @@ export default function ClinicApp() {
               <>
                 <p style={s.sectionTitle}>ბოლო მოთხოვნები</p>
                 <div style={s.histCard}>
-                  {requests.slice(0, 6).map(r => (
+                  {requests.slice(0, 6).map(r => {
+                    const requestPrice = resolveRequestPrice(r)
+                    return (
                     <div key={r.id} style={s.histRow}>
                       <div style={{ width: 8, height: 8, borderRadius: 4, background: r.status === 'done' ? '#1D9E75' : r.status === 'new' ? '#185FA5' : '#BA7517', flexShrink: 0 }} />
                       <div style={{ flex: 1 }}>
                         <p style={{ fontSize: 12, fontWeight: 600, color: '#1a1a1a', margin: 0 }}>{r.products?.name || '—'} — {TYPE_LABELS[r.type] || r.type}</p>
-                        <p style={{ fontSize: 11, color: '#aaa', margin: '2px 0 0' }}>{new Date(r.created_at).toLocaleDateString('ka-GE')}</p>
+                        <p style={{ fontSize: 11, color: '#aaa', margin: '2px 0 0' }}>
+                          {new Date(r.created_at).toLocaleDateString('ka-GE')}
+                          {requestPrice ? ` · ${formatMoney(Number(requestPrice.price_gel))}` : ''}
+                        </p>
                       </div>
                       <span style={{ fontSize: 11, fontWeight: 600, color: r.status === 'done' ? '#1D9E75' : r.status === 'new' ? '#185FA5' : '#BA7517' }}>{STATUS_LABELS[r.status] || r.status}</span>
                     </div>
-                  ))}
+                    )
+                  })}
                 </div>
               </>
             )}

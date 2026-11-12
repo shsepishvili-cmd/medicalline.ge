@@ -23,11 +23,31 @@ import {
 import { VIDEO_TYPE_ORDER, VIDEO_TYPE_LABELS } from '@/app/lib/academy-types'
 import type { AcademyVideo, AcademyProductRef, VideoType } from '@/app/lib/academy-types'
 
+function getDeviceId() {
+  if (typeof window === 'undefined') return ''
+  const key = 'ml_academy_device_id'
+  const existing = window.localStorage.getItem(key)
+  if (existing) return existing
+  const value = `ml-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`
+  window.localStorage.setItem(key, value)
+  return value
+}
+
 // ---------------------------------------------------------------------------
 // Video thumbnail card (for non-featured videos)
 // ---------------------------------------------------------------------------
 
-function VideoCard({ video }: { video: AcademyVideo }) {
+function VideoCard({
+  video,
+  likeCount,
+  liked,
+  onLike,
+}: {
+  video: AcademyVideo
+  likeCount: number
+  liked: boolean
+  onLike: (videoId: string) => void
+}) {
   const thumb =
     video.thumbnail_url ||
     (video.youtube_video_id
@@ -88,6 +108,19 @@ function VideoCard({ video }: { video: AcademyVideo }) {
         {video.channel_title && (
           <p className="mt-2 text-[11px] text-slate-400">{video.channel_title}</p>
         )}
+        <div className="mt-3 flex items-center justify-between">
+          <button
+            type="button"
+            onClick={(e) => {
+              e.preventDefault()
+              onLike(video.id)
+            }}
+            className={`text-xs font-bold px-2.5 py-1 rounded-full border transition ${liked ? 'bg-red-50 border-red-200 text-red-600' : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'}`}
+          >
+            {liked ? '♥ მოწონებულია' : '♡ მომწონს'}
+          </button>
+          <span className="text-xs text-slate-400">{likeCount} მოწონება</span>
+        </div>
       </div>
     </a>
   )
@@ -183,9 +216,15 @@ const SECTION_ICON: Record<VideoType, string> = {
 function CategorySection({
   type,
   videos,
+  likes,
+  likedIds,
+  onLike,
 }: {
   type: VideoType
   videos: AcademyVideo[]
+  likes: Record<string, number>
+  likedIds: Record<string, boolean>
+  onLike: (videoId: string) => void
 }) {
   if (videos.length === 0) return null
 
@@ -202,7 +241,7 @@ function CategorySection({
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
         {videos.map(v => (
-          <VideoCard key={v.id} video={v} />
+          <VideoCard key={v.id} video={v} likeCount={likes[v.id] || 0} liked={Boolean(likedIds[v.id])} onLike={onLike} />
         ))}
       </div>
     </section>
@@ -226,6 +265,8 @@ export default function ProductAcademyPage() {
   const [videos, setVideos]     = useState<AcademyVideo[]>([])
   const [loading, setLoading]   = useState(true)
   const [notFound, setNotFound] = useState(false)
+  const [likes, setLikes]       = useState<Record<string, number>>({})
+  const [likedIds, setLikedIds] = useState<Record<string, boolean>>({})
 
   useEffect(() => {
     if (!slug) return
@@ -243,6 +284,55 @@ export default function ProductAcademyPage() {
       })
     })
   }, [slug])
+
+  useEffect(() => {
+    if (videos.length === 0) return
+    const ids = videos.map((v) => v.id).join(',')
+    fetch(`/api/academy/likes?ids=${encodeURIComponent(ids)}`)
+      .then((res) => res.json())
+      .then((payload) => {
+        if (payload?.ok && payload.likes) setLikes(payload.likes as Record<string, number>)
+      })
+      .catch(() => {})
+  }, [videos])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const raw = window.localStorage.getItem('ml_academy_liked_ids')
+    if (!raw) return
+    try {
+      const arr = JSON.parse(raw) as string[]
+      const next: Record<string, boolean> = {}
+      for (const id of arr) next[id] = true
+      setLikedIds(next)
+    } catch {}
+  }, [])
+
+  function likeVideo(videoId: string) {
+    if (likedIds[videoId]) return
+    const deviceId = getDeviceId()
+    fetch('/api/academy/likes', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ videoId, deviceId }),
+    })
+      .then((res) => res.json())
+      .then((payload) => {
+        if (!payload?.ok) return
+        setLikedIds((prev) => {
+          const next = { ...prev, [videoId]: true }
+          if (typeof window !== 'undefined') {
+            window.localStorage.setItem('ml_academy_liked_ids', JSON.stringify(Object.keys(next).filter((id) => next[id])))
+          }
+          return next
+        })
+        setLikes((prev) => ({
+          ...prev,
+          [videoId]: typeof payload.count === 'number' ? payload.count : (prev[videoId] || 0) + 1,
+        }))
+      })
+      .catch(() => {})
+  }
 
   // ---------------------------------------------------------------------------
   // States
@@ -357,6 +447,9 @@ export default function ProductAcademyPage() {
             key={type}
             type={type}
             videos={grouped[type]}
+            likes={likes}
+            likedIds={likedIds}
+            onLike={likeVideo}
           />
         ))}
 
@@ -379,3 +472,4 @@ export default function ProductAcademyPage() {
     </main>
   )
 }
+
