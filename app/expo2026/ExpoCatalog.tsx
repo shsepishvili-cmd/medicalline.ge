@@ -160,7 +160,8 @@ export function ExpoCatalog({ products, curated = false }: { products: ExpoProdu
     } catch (cause) {
       console.error('[expo2026] session read failed', cause)
     }
-    const selectedToken = accessToken || session?.access_token || ''
+    // Only a real string token counts; never trust whatever a caller passed in.
+    const selectedToken = (typeof accessToken === 'string' && accessToken) || session?.access_token || ''
     // A stale or corrupted local session must never be sent to the server.
     // Preserve the requested products and offer a fresh SMS verification.
     if (selectedToken.split('.').length !== 3) {
@@ -320,7 +321,7 @@ export function ExpoCatalog({ products, curated = false }: { products: ExpoProdu
             </label>
           </>
         ) : null}
-        <div className={styles.row}><button type="button" className={styles.btn} disabled={busy || !lines.length} onClick={submit}>{busy ? 'იგზავნება...' : 'მოითხოვე სპეციალური ფასი'}</button></div>
+        <div className={styles.row}><button type="button" className={styles.btn} disabled={busy || !lines.length} onClick={() => void submit()}>{busy ? 'იგზავნება...' : 'მოითხოვე სპეციალური ფასი'}</button></div>
         <p className={styles.muted} style={{ marginTop: 10 }}>ფასს მენეჯერი ინდივიდუალურად ამტკიცებს. შეთავაზებას მიიღებთ SMS-ით, ერთჯერადი დაცული ბმულით.</p>
         {error ? <p className={styles.error} role="alert">{error}</p> : null}
       </aside>

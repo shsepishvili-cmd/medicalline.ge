@@ -123,7 +123,7 @@ export function SmsSignIn({ onSignedIn, onCancel, intro }: { onSignedIn: (access
   )
 }
 
-export function SmsSignInModal(props: { onSignedIn: () => void; onCancel: () => void; intro?: string }) {
+export function SmsSignInModal(props: { onSignedIn: (accessToken: string) => void; onCancel: () => void; intro?: string }) {
   return (
     <div className={styles.modal} role="dialog" aria-modal="true" aria-label="SMS-ით შესვლა">
       <div className={styles.modalBox}><SmsSignIn {...props} /></div>
