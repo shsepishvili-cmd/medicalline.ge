@@ -160,20 +160,33 @@ export function ExpoCatalog({ products, curated = false }: { products: ExpoProdu
     } catch (cause) {
       console.error('[expo2026] session read failed', cause)
     }
-    if (!session && !accessToken) {
+    const selectedToken = accessToken || session?.access_token || ''
+    // A stale or corrupted local session must never be sent to the server.
+    // Preserve the requested products and offer a fresh SMS verification.
+    if (selectedToken.split('.').length !== 3) {
       window.sessionStorage.setItem(PENDING_KEY, JSON.stringify({ cart, note, timeline, payment }))
+      if (session) await supabase.auth.signOut({ scope: 'local' }).catch(() => {})
       setCartOpen(false)
       setSignIn(true)
+      setError('საჭიროა SMS-ით ხელახლა შესვლა. არჩეული პროდუქტები შენახულია.')
       return
     }
     setBusy(true)
     try {
       const response = await fetch('/api/price-requests', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken || session?.access_token}` },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${selectedToken}` },
         body: JSON.stringify({ items: lines.map(([productId, quantity]) => ({ productId, quantity })), note, source: 'EXPO2026', purchaseTimeline: timeline, paymentMethod: payment }),
       })
       const payload = await response.json().catch(() => ({}))
+      if (response.status === 401) {
+        await supabase.auth.signOut({ scope: 'local' }).catch(() => {})
+        window.sessionStorage.setItem(PENDING_KEY, JSON.stringify({ cart, note, timeline, payment }))
+        setCartOpen(false)
+        setSignIn(true)
+        setError(payload.error || 'ხელახლა გაიარეთ SMS-ით შესვლა.')
+        return
+      }
       if (response.status === 403) {
         // Signed in with a password account whose phone was never confirmed.
         setError(payload.error || 'საჭიროა ტელეფონის დადასტურება.')
