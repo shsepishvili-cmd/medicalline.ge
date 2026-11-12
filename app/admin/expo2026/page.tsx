@@ -6,11 +6,9 @@ import { adminSupabase as supabase } from '@/app/lib/supabase-admin-browser'
 import { AuthBlockedView, LoadingView, useWarrantyAdminGate } from '@/app/admin/warranty/_components/WarrantyUi'
 import styles from '@/app/expo2026/expo.module.css'
 import { QuickAddProduct } from './QuickAddProduct'
+import { ExpoOfferForm, OFFER_STATUS, sendOfferLink, type ExpoOfferRow, type ExpoRequestRow } from './ExpoOffers'
 
-type RequestRow = {
-  id: string; group_id: string | null; status: string; quantity: number; created_at: string; source: string
-  doctor_name_snapshot: string; clinic_name_snapshot: string; phone_snapshot: string; products: { name: string } | null
-}
+type RequestRow = ExpoRequestRow
 type OutboxRow = { id: string; created_at: string; recipient: string; purpose: string; status: string; attempts: number; last_error: string | null; sent_at: string | null }
 type AuditRow = { id: string; created_at: string; actor: string | null; action: string; target_type: string | null; target_id: string | null; details: Record<string, unknown> }
 type Conflict = { phone: string; profiles: number }
@@ -40,18 +38,27 @@ export default function Expo2026AdminPage() {
   const [saving, setSaving] = useState('')
   const [categories, setCategories] = useState<Array<{ slug: string; name_ka: string | null }>>([])
   const [catalogNotice, setCatalogNotice] = useState('')
+  const [offers, setOffers] = useState<ExpoOfferRow[]>([])
+  const [offerFor, setOfferFor] = useState<RequestRow[] | null>(null)
+  const [linkBusy, setLinkBusy] = useState('')
   const isAdmin = profile?.role === 'admin'
 
   const load = useCallback(async () => {
     const [r, o, a, c] = await Promise.all([
-      supabase.from('special_price_requests').select('id, group_id, status, quantity, created_at, source, doctor_name_snapshot, clinic_name_snapshot, phone_snapshot, products(name)').eq('source', 'EXPO2026').order('created_at', { ascending: false }).limit(500),
+      supabase.from('special_price_requests').select('id, group_id, status, quantity, created_at, source, user_id, product_id, doctor_name_snapshot, clinic_name_snapshot, phone_snapshot, products(name, slug, images, prices(price_gel))').eq('source', 'EXPO2026').order('created_at', { ascending: false }).limit(500),
       supabase.from('message_outbox').select('id, created_at, recipient, purpose, status, attempts, last_error, sent_at').order('created_at', { ascending: false }).limit(200),
       supabase.from('audit_log').select('id, created_at, actor, action, target_type, target_id, details').order('created_at', { ascending: false }).limit(200),
       supabase.from('phone_identity_conflicts').select('phone, profiles'),
     ])
     const failed = [r.error, o.error, a.error, c.error].find(Boolean)
     if (failed) setMessage(/does not exist|schema cache|column/i.test(failed.message) ? MIGRATION_HINT : failed.message)
-    setRequests((r.data || []) as unknown as RequestRow[])
+    const rows = (r.data || []) as unknown as RequestRow[]
+    setRequests(rows)
+    const ids = rows.map((row) => row.id)
+    if (ids.length) {
+      const { data: offerRows } = await supabase.from('offers').select('id, request_id, offer_number, status, total_amount, currency, created_at').in('request_id', ids).order('created_at', { ascending: false })
+      setOffers((offerRows || []) as ExpoOfferRow[])
+    } else setOffers([])
     setOutbox((o.data || []) as OutboxRow[])
     setAudit((a.data || []) as AuditRow[])
     setConflicts((c.data || []) as Conflict[])
@@ -139,6 +146,18 @@ export default function Expo2026AdminPage() {
     return catalog.filter((product) => !chosen.has(product.id) && (!query || `${product.name} ${product.brand || ''}`.toLowerCase().includes(query)))
   }, [catalog, picks, catalogSearch])
 
+  async function resendLink(offer: ExpoOfferRow) {
+    if (!accessToken || !window.confirm(`${offer.offer_number}: ექიმს ხელახლა გაეგზავნოს SMS ბმული?`)) return
+    setLinkBusy(offer.id); setMessage('')
+    try {
+      const problem = await sendOfferLink(offer.id, accessToken)
+      setMessage(problem || `${offer.offer_number}: ბმული ხელახლა გაიგზავნა.`)
+      await load()
+    } finally {
+      setLinkBusy('')
+    }
+  }
+
   async function retry(row: OutboxRow) {
     setMessage('')
     const response = await fetch(`/api/admin/outbox/${row.id}/retry`, { method: 'POST', headers: { Authorization: `Bearer ${accessToken}` } })
@@ -169,7 +188,6 @@ export default function Expo2026AdminPage() {
             {tabs.map(([key, label]) => (
               <button key={key} type="button" className={styles.linkBtn} style={{ color: tab === key ? '#d72c47' : undefined }} onClick={() => setTab(key)}>{label}</button>
             ))}
-            <Link href="/admin/clinic-offers">შეთავაზებები →</Link>
           </nav>
         </div>
       </header>
@@ -242,17 +260,32 @@ export default function Expo2026AdminPage() {
 
         {tab === 'requests' ? (
           <>
-            <p className={styles.muted}>ფასს და შეთავაზებას ადგენთ „შეთავაზებებში“ — იქ ჯგუფის ყველა პროდუქტი ერთ შეთავაზებაში ჩაჯდება და „SMS ბმული“ ღილაკით გაიგზავნება.</p>
-            {groups.length ? groups.map((rows) => (
-              <div key={rows[0].group_id || rows[0].id} className={styles.step} style={{ marginBottom: 10 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
-                  <b style={{ color: '#102952', fontSize: 14 }}>{rows[0].doctor_name_snapshot || '—'} · {rows[0].clinic_name_snapshot || 'კლინიკა არ არის მითითებული'}</b>
-                  <span className={styles.muted}>{time(rows[0].created_at)} · {STATUS[rows[0].status] || rows[0].status}</span>
+            <p className={styles.muted}>ჩაწერეთ ფასი და დააჭირეთ „შეთავაზება“ — ექიმს ერთჯერადი ბმული SMS-ით მიუვა (მოქმედებს 15 წუთი; საჭიროებისას „SMS ხელახლა“).</p>
+            {groups.length ? groups.map((rows) => {
+              const ids = new Set(rows.map((row) => row.id))
+              const offer = offers.find((item) => item.request_id && ids.has(item.request_id))
+              const open = offer && ['draft', 'sent', 'viewed'].includes(offer.status)
+              return (
+                <div key={rows[0].group_id || rows[0].id} className={styles.step} style={{ marginBottom: 10 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
+                    <b style={{ color: '#102952', fontSize: 14 }}>{rows[0].doctor_name_snapshot || '—'} · {rows[0].clinic_name_snapshot || 'კლინიკა არ არის მითითებული'}</b>
+                    <span className={styles.muted}>{time(rows[0].created_at)} · {STATUS[rows[0].status] || rows[0].status}</span>
+                  </div>
+                  <p>{rows.map((row) => `${row.products?.name || 'პროდუქტი'} × ${row.quantity}`).join(', ')}</p>
+                  <p className={styles.muted}>{rows[0].phone_snapshot}</p>
+                  {offer ? <p className={styles.muted}>{offer.offer_number} · {offer.total_amount} {offer.currency} · <b>{OFFER_STATUS[offer.status] || offer.status}</b></p> : null}
+                  <div className={styles.row} style={{ marginTop: 8 }}>
+                    {!offer || ['cancelled', 'expired'].includes(offer.status)
+                      ? <button type="button" className={styles.btn} onClick={() => setOfferFor(rows)}>შეთავაზება</button>
+                      : open ? <button type="button" className={`${styles.btn} ${styles.btnLight}`} disabled={linkBusy === offer.id} onClick={() => void resendLink(offer)}>{linkBusy === offer.id ? 'იგზავნება...' : 'SMS ხელახლა'}</button> : null}
+                  </div>
                 </div>
-                <p>{rows.map((row) => `${row.products?.name || 'პროდუქტი'} × ${row.quantity}`).join(', ')}</p>
-                <p className={styles.muted}>{rows[0].phone_snapshot}</p>
-              </div>
-            )) : <p className={styles.muted}>Expo-დან მოთხოვნა ჯერ არ შემოსულა.</p>}
+              )
+            }) : <p className={styles.muted}>Expo-დან მოთხოვნა ჯერ არ შემოსულა.</p>}
+            {offerFor ? (
+              <ExpoOfferForm rows={offerFor} accessToken={accessToken} onClose={() => setOfferFor(null)}
+                onDone={(text) => { setOfferFor(null); setMessage(text); void load() }} />
+            ) : null}
           </>
         ) : null}
 

@@ -67,8 +67,11 @@ export function AdminClinicOffers() {
       console.error('[admin-clinic-offers] load failed', { code: loadError.code, message: loadError.message })
       setMessage(`მონაცემები სრულად ვერ ჩაიტვირთა: ${loadError.message}`)
     }
-    const currentRequests = (requestResult.data || []) as AdminRequest[]
-    const currentIds = new Set(currentRequests.map((request) => request.id))
+    // Expo 2026 requests and their offers are handled only in /admin/expo2026.
+    const allRequests = (requestResult.data || []) as AdminRequest[]
+    const expoIds = new Set(allRequests.filter((request) => request.source === 'EXPO2026').map((request) => request.id))
+    const currentRequests = allRequests.filter((request) => !expoIds.has(request.id))
+    const currentIds = new Set(allRequests.map((request) => request.id))
     const legacyRequests = ((legacyRequestResult.data || []) as unknown as LegacyPriceRequest[])
       .filter((request) => !currentIds.has(request.id) && request.user_id && request.product_id)
       .map((request): AdminRequest => ({
@@ -81,7 +84,7 @@ export function AdminClinicOffers() {
         updated_at: request.updated_at, products: request.products || null, legacySource: true,
       }))
     setRequests([...currentRequests, ...legacyRequests].sort((a, b) => b.created_at.localeCompare(a.created_at)))
-    setOffers((offerResult.data || []) as ClinicOffer[]); setProducts((productResult.data || []) as ProductWithPrices[])
+    setOffers(((offerResult.data || []) as ClinicOffer[]).filter((offer) => !offer.request_id || !expoIds.has(offer.request_id))); setProducts((productResult.data || []) as ProductWithPrices[])
   }
   useEffect(() => { void load() }, [])
 
