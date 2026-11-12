@@ -954,6 +954,7 @@ export default function AdminPage() {
                     <button onClick={() => window.location.href = '/admin/crm'} style={{ fontSize: 12, padding: '6px 10px', background: '#FDE8EF', color: '#9D174D', border: '1px solid rgba(157,23,77,0.12)', borderRadius: 8, cursor: 'pointer' }}>CRM</button>
                     <button onClick={() => window.location.href = '/admin/installments'} style={{ fontSize: 12, padding: '6px 10px', background: '#FFEDF0', color: '#BB2E43', border: '1px solid rgba(187,46,67,0.12)', borderRadius: 8, cursor: 'pointer' }}>განვადებები</button>
                     <button onClick={() => window.location.href = '/invoice'} style={{ fontSize: 12, padding: '6px 10px', background: '#EFF6FF', color: '#1D4ED8', border: '1px solid rgba(29,78,216,0.12)', borderRadius: 8, cursor: 'pointer' }}>ინვოისები</button>
+                    <button onClick={() => window.location.href = '/admin/invoices/ai-generator'} style={{ fontSize: 12, padding: '6px 10px', background: '#F3E8FF', color: '#7E22CE', border: '1px solid rgba(126,34,206,0.14)', borderRadius: 8, cursor: 'pointer' }}>AI ინვოისები</button>
                     <button onClick={() => window.location.href = '/admin/academy'} style={{ fontSize: 12, padding: '6px 10px', background: '#FFF7ED', color: '#9A3412', border: '1px solid rgba(154,52,18,0.12)', borderRadius: 8, cursor: 'pointer' }}>აკადემია</button>
                   </div>
                 </div>

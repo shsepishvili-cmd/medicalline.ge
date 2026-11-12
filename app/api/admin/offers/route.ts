@@ -140,10 +140,6 @@ export async function POST(request: Request) {
   const priceGel = validNumber(body?.priceGel)
   const installmentMonths = Math.max(1, Number(body?.installmentMonths || 12))
   const installmentMonthly = priceGel !== null ? Math.round(priceGel / installmentMonths) : null
-  const expiresInDays = Number(body?.expiresInDays || 14)
-  const expiresAt = Number.isFinite(expiresInDays) && expiresInDays > 0
-    ? new Date(Date.now() + expiresInDays * 24 * 60 * 60 * 1000).toISOString()
-    : null
 
   if (!rawProduct || !cleanText(rawProduct.name)) {
     return NextResponse.json({ code: 'missing_product', error: 'Product is required.' }, { status: 400 })
@@ -180,8 +176,8 @@ export async function POST(request: Request) {
       warranty_note: cleanText(body?.warrantyNote, 'გარანტია: 12 თვე ოფიციალური სერვისით') || null,
       delivery_note: cleanText(body?.deliveryNote, 'მიწოდება/მონტაჟი შეთანხმებით') || null,
       custom_note: cleanText(body?.customNote) || null,
-      status: 'sent',
-      expires_at: expiresAt,
+      status: 'draft',
+      expires_at: null,
       created_by: auth.user.id,
     })
     .select('*')
@@ -198,7 +194,23 @@ export async function PATCH(request: Request) {
   const auth = await requireAdmin(request)
   if ('error' in auth) return auth.error
 
-  const body = await request.json().catch(() => null) as { id?: string; status?: string } | null
+  const body = await request.json().catch(() => null) as { id?: string; status?: string; action?: string } | null
+  if (body?.action === 'send_whatsapp' && body.id) {
+    const { data: existing, error: readError } = await auth.admin.from('product_offers').select('*').eq('id', body.id).single()
+    if (readError || !existing) return NextResponse.json({ ok: false, error: 'შეთავაზება ვერ მოიძებნა.' }, { status: 404 })
+    if (!existing.client_phone) return NextResponse.json({ ok: false, error: 'მიუთითე კლიენტის ტელეფონი.' }, { status: 400 })
+    if (existing.status === 'expired' || existing.status === 'archived') return NextResponse.json({ ok: false, error: 'შეთავაზება გაუქმებულია.' }, { status: 409 })
+    if (existing.status !== 'draft') return NextResponse.json({ ok: true, offer: existing })
+    // WhatsApp opens with prefilled text; this timestamp records the handoff,
+    // not proof that the user pressed Send inside WhatsApp.
+    const { data, error } = await auth.admin.from('product_offers')
+      .update({ status: 'sent', expires_at: new Date(Date.now() + 72 * 60 * 60 * 1000).toISOString() })
+      .eq('id', body.id).eq('status', 'draft').select('*').maybeSingle()
+    if (error) return NextResponse.json({ ok: false, error: error.message }, { status: 500 })
+    if (!data) return NextResponse.json({ ok: false, error: 'შეთავაზების სტატუსი შეიცვალა. განაახლე გვერდი.' }, { status: 409 })
+    return NextResponse.json({ ok: true, offer: data })
+  }
+
   const allowed = new Set(['sent', 'accepted', 'expired', 'archived'])
   if (!body?.id || !body.status || !allowed.has(body.status)) {
     return NextResponse.json({ code: 'invalid_status', error: 'Valid offer id and status are required.' }, { status: 400 })
