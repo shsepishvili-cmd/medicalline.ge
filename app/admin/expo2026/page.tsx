@@ -6,7 +6,7 @@ import { adminSupabase as supabase } from '@/app/lib/supabase-admin-browser'
 import { AuthBlockedView, LoadingView, useWarrantyAdminGate } from '@/app/admin/warranty/_components/WarrantyUi'
 import styles from '@/app/expo2026/expo.module.css'
 import { QuickAddProduct } from './QuickAddProduct'
-import { ExpoOfferForm, OFFER_STATUS, sendOfferLink, type ExpoOfferRow, type ExpoRequestRow } from './ExpoOffers'
+import { ExpoOfferForm, OFFER_STATUS, prepareWhatsAppWindow, sendOfferLink, type Channel, type ExpoOfferRow, type ExpoRequestRow } from './ExpoOffers'
 
 type RequestRow = ExpoRequestRow
 type OutboxRow = { id: string; created_at: string; recipient: string; purpose: string; status: string; attempts: number; last_error: string | null; sent_at: string | null }
@@ -146,12 +146,16 @@ export default function Expo2026AdminPage() {
     return catalog.filter((product) => !chosen.has(product.id) && (!query || `${product.name} ${product.brand || ''}`.toLowerCase().includes(query)))
   }, [catalog, picks, catalogSearch])
 
-  async function resendLink(offer: ExpoOfferRow) {
-    if (!accessToken || !window.confirm(`${offer.offer_number}: ექიმს ხელახლა გაეგზავნოს SMS ბმული?`)) return
+  async function resendLink(offer: ExpoOfferRow, channel: Channel) {
+    if (!accessToken) return
+    // No confirm dialog for WhatsApp: the admin still presses send there, and
+    // the tab must open during the click.
+    if (channel === 'sms' && !window.confirm(`${offer.offer_number}: ექიმს ხელახლა გაეგზავნოს SMS ბმული?`)) return
+    const whatsAppWindow = prepareWhatsAppWindow(channel)
     setLinkBusy(offer.id); setMessage('')
     try {
-      const problem = await sendOfferLink(offer.id, accessToken)
-      setMessage(problem || `${offer.offer_number}: ბმული ხელახლა გაიგზავნა.`)
+      const problem = await sendOfferLink(offer.id, accessToken, channel, whatsAppWindow)
+      setMessage(problem || (channel === 'whatsapp' ? `${offer.offer_number}: WhatsApp გაიხსნა — დააჭირეთ გაგზავნას.` : `${offer.offer_number}: ბმული ხელახლა გაიგზავნა.`))
       await load()
     } finally {
       setLinkBusy('')
@@ -260,7 +264,7 @@ export default function Expo2026AdminPage() {
 
         {tab === 'requests' ? (
           <>
-            <p className={styles.muted}>ჩაწერეთ ფასი და დააჭირეთ „შეთავაზება“ — ექიმს ერთჯერადი ბმული SMS-ით მიუვა (მოქმედებს 15 წუთი; საჭიროებისას „SMS ხელახლა“).</p>
+            <p className={styles.muted}>ჩაწერეთ ფასი და დააჭირეთ „შეთავაზება“ — ექიმს ბმული SMS-ით ან WhatsApp-ით მიუვა. ბმული მოქმედებს 14 დღე და იხსნება მხოლოდ ექიმის ნომრით SMS კოდით შესვლის შემდეგ.</p>
             {groups.length ? groups.map((rows) => {
               const ids = new Set(rows.map((row) => row.id))
               const offer = offers.find((item) => item.request_id && ids.has(item.request_id))
@@ -277,7 +281,10 @@ export default function Expo2026AdminPage() {
                   <div className={styles.row} style={{ marginTop: 8 }}>
                     {!offer || ['cancelled', 'expired'].includes(offer.status)
                       ? <button type="button" className={styles.btn} onClick={() => setOfferFor(rows)}>შეთავაზება</button>
-                      : open ? <button type="button" className={`${styles.btn} ${styles.btnLight}`} disabled={linkBusy === offer.id} onClick={() => void resendLink(offer)}>{linkBusy === offer.id ? 'იგზავნება...' : 'SMS ხელახლა'}</button> : null}
+                      : open ? <>
+                        <button type="button" className={`${styles.btn} ${styles.btnLight}`} disabled={linkBusy === offer.id} onClick={() => void resendLink(offer, 'sms')}>{linkBusy === offer.id ? 'იგზავნება...' : 'SMS ხელახლა'}</button>
+                        <button type="button" className={`${styles.btn} ${styles.btnLight}`} style={{ color: '#1f9d55' }} disabled={linkBusy === offer.id} onClick={() => void resendLink(offer, 'whatsapp')}>WhatsApp</button>
+                      </> : null}
                   </div>
                 </div>
               )

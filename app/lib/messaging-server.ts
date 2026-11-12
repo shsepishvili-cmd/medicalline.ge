@@ -73,7 +73,7 @@ export async function processOutbox(service: SupabaseClient, limit = 20) {
   await service.from('message_outbox')
     .update({ status: 'cancelled', body: null, last_error: 'Link expired before delivery', updated_at: now })
     .eq('purpose', 'offer_link').in('status', ['queued', 'sending'])
-    .lt('created_at', new Date(Date.now() - 15 * 60_000).toISOString())
+    .lt('created_at', new Date(Date.now() - 24 * 60 * 60_000).toISOString())
 
   const { data: due } = await service.from('message_outbox')
     .select('id, recipient, body, attempts')

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createSupabaseServiceClient } from '@/app/lib/supabase-service'
 import { requireAdmin } from '@/app/lib/admin-guard'
-import { hashLinkToken, newLinkToken, OFFER_LINK_TTL_MINUTES } from '@/app/lib/phone-auth'
+import { hashLinkToken, newLinkToken, OFFER_LINK_TTL_DAYS, OFFER_LINK_TTL_MINUTES } from '@/app/lib/phone-auth'
 import { normalizeGeorgianPhone } from '@/app/lib/phone-verification'
 import { sendMessage } from '@/app/lib/messaging-server'
 import { writeAudit, maskPhone } from '@/app/lib/audit-server'
@@ -15,13 +15,16 @@ function linkBase(request: Request) {
 }
 
 // The manager's approval step: marks the offer sent and texts the doctor a
-// one-time, 15-minute link. Any earlier unused link for the offer is revoked.
+// two-week link (or prepares it for WhatsApp). Any earlier unused link for the
+// offer is revoked.
 export async function POST(request: Request, context: { params: Promise<{ id: string }> }) {
   if (!isAllowedOrigin(request)) return forbiddenOrigin()
   const guard = await requireAdmin(request)
   if ('error' in guard) return guard.error
   const { profile } = guard.session
   const { id } = await context.params
+  const body = await request.json().catch(() => ({}))
+  const channel = body?.channel === 'whatsapp' ? 'whatsapp' : 'sms'
   const ip = clientIp(request)
 
   try {
@@ -58,9 +61,21 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     }
 
     const url = `${linkBase(request)}/o/${token}`
+
+    // WhatsApp has no API provider yet: hand the admin a prepared wa.me link
+    // and let them send it from their own WhatsApp.
+    if (channel === 'whatsapp') {
+      const text = `Medical Line Georgia: თქვენი პერსონალური შეთავაზება ${offer.offer_number}: ${url}\nბმული მოქმედებს ${OFFER_LINK_TTL_DAYS} დღე და იხსნება თქვენი ნომრით SMS კოდით შესვლის შემდეგ.`
+      await writeAudit(service, {
+        actorId: profile.id, actor: profile.full_name, action: 'offer_link.whatsapp', targetType: 'offer', targetId: offer.id, ip,
+        details: { linkId: link.id, to: maskPhone(phone) },
+      })
+      return NextResponse.json({ ok: true, delivered: true, expiresAt: link.expires_at, whatsappUrl: `https://wa.me/995${phone.slice(-9)}?text=${encodeURIComponent(text)}` })
+    }
+
     const delivery = await sendMessage(service, {
       recipient: phone,
-      body: `Medical Line Georgia: tqveni personaluri shetavazeba ${offer.offer_number}: ${url} bmuli ertjeradia da moqmedebs ${OFFER_LINK_TTL_MINUTES} wuti. nu gauziarebt sxvas.`,
+      body: `Medical Line Georgia: tqveni personaluri shetavazeba ${offer.offer_number}: ${url} bmuli moqmedebs ${OFFER_LINK_TTL_DAYS} dge. nu gauziarebt sxvas.`,
       purpose: 'offer_link', relatedType: 'offer', relatedId: offer.id,
     })
 

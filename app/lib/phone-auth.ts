@@ -3,7 +3,10 @@ import { createHash, createHmac, randomBytes, randomInt, timingSafeEqual } from 
 
 export const OTP_TTL_SECONDS = 300
 export const OTP_MAX_ATTEMPTS = 5
-export const OFFER_LINK_TTL_MINUTES = 15
+// Offer links last two weeks; opening one still needs an SMS sign-in by the
+// doctor it was made for.
+export const OFFER_LINK_TTL_DAYS = 14
+export const OFFER_LINK_TTL_MINUTES = OFFER_LINK_TTL_DAYS * 24 * 60
 
 export function otpSecret() {
   const value = process.env.PHONE_OTP_SECRET?.trim()
