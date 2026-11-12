@@ -10,13 +10,12 @@ export function createSupabaseTokenClient(accessToken: string) {
     throw new Error('Supabase public keys are not configured.')
   }
 
+  // Supply the signed-in user's JWT through the supported auth callback.
+  // A global Authorization header can be replaced by Supabase's internal
+  // auth handling (especially when the API key is a publishable sb_* key).
   return createClient(supabaseUrl, supabaseAnonKey, {
     auth: { persistSession: false, autoRefreshToken: false },
-    global: {
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-      },
-    },
+    accessToken: async () => accessToken,
   })
 }
 
