@@ -148,7 +148,7 @@ export function ExpoCatalog({ products, curated = false }: { products: ExpoProdu
     setCart((current) => ({ ...current, [id]: Math.max(0, Math.min(50, (current[id] || 0) + delta)) }))
   }
 
-  async function submit() {
+  async function submit(accessToken?: string) {
     setError('')
     if (!lines.length) { setError('აირჩიეთ მინიმუმ ერთი პროდუქტი.'); return }
     // Keep the visitor's selection and show verification even if reading the
@@ -160,7 +160,7 @@ export function ExpoCatalog({ products, curated = false }: { products: ExpoProdu
     } catch (cause) {
       console.error('[expo2026] session read failed', cause)
     }
-    if (!session) {
+    if (!session && !accessToken) {
       window.sessionStorage.setItem(PENDING_KEY, JSON.stringify({ cart, note, timeline, payment }))
       setCartOpen(false)
       setSignIn(true)
@@ -170,7 +170,7 @@ export function ExpoCatalog({ products, curated = false }: { products: ExpoProdu
     try {
       const response = await fetch('/api/price-requests', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken || session?.access_token}` },
         body: JSON.stringify({ items: lines.map(([productId, quantity]) => ({ productId, quantity })), note, source: 'EXPO2026', purchaseTimeline: timeline, paymentMethod: payment }),
       })
       const payload = await response.json().catch(() => ({}))
@@ -183,6 +183,9 @@ export function ExpoCatalog({ products, curated = false }: { products: ExpoProdu
       if (!response.ok) { setError(payload.error || 'მოთხოვნა ვერ გაიგზავნა.'); return }
       window.sessionStorage.removeItem(PENDING_KEY)
       setCart({}); setNote(''); setDone(true); setCartOpen(true)
+    } catch (cause) {
+      console.error('[expo2026] price request failed', cause)
+      setError('კავშირის შეცდომა. სცადეთ თავიდან.')
     } finally {
       setBusy(false)
     }
@@ -340,7 +343,7 @@ export function ExpoCatalog({ products, curated = false }: { products: ExpoProdu
         <SmsSignInModal
           intro="ფასის მოთხოვნისთვის დაადასტურეთ ნომერი. დარეგისტრირებული ექიმი შევა თავის არსებულ კაბინეტში."
           onCancel={() => setSignIn(false)}
-          onSignedIn={() => { setSignIn(false); void submit() }}
+          onSignedIn={(accessToken) => { setSignIn(false); void submit(accessToken) }}
         />
       ) : null}
     </div>
