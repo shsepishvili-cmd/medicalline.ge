@@ -47,6 +47,12 @@ export async function POST(request: Request) {
   if (!isAllowedOrigin(request)) return forbiddenOrigin()
   const token = bearerToken(request)
   if (!token) return NextResponse.json({ error: 'გაიარეთ ავტორიზაცია.' }, { status: 401 })
+  // Reject malformed sessions before attempting any database write.
+  // Never log the token itself or its contents.
+  if (token.split('.').length !== 3) {
+    console.error('[price-requests] malformed user token', { segments: token.split('.').length })
+    return NextResponse.json({ error: 'სესია არასწორია. ხელახლა გაიარეთ SMS-ით შესვლა.' }, { status: 401 })
+  }
 
   const body = await request.json().catch(() => null) as Record<string, unknown> | null
   const items = Array.isArray(body?.items) ? body.items as Array<Record<string, unknown>> : []
@@ -64,6 +70,11 @@ export async function POST(request: Request) {
     if (!await withinRateLimits(service, [{ key: `price-request:ip:${clientIp(request)}`, windowSeconds: 3600, max: 30 }])) return tooManyRequests()
 
     const client = createSupabaseTokenClient(token)
+    const { data: verified, error: verifyError } = await client.auth.getUser(token)
+    if (verifyError || !verified.user) {
+      console.error('[price-requests] auth verification failed', verifyError?.message || 'no user')
+      return NextResponse.json({ error: 'სესია ვერ დადასტურდა. ხელახლა გაიარეთ SMS-ით შესვლა.' }, { status: 401 })
+    }
     const { data, error } = await client.rpc('submit_price_request_batch', {
       p_items: clean, p_note: note, p_source: source, p_purchase_timeline: timeline, p_preferred_payment_method: payment,
     })
