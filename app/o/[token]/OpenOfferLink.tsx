@@ -23,6 +23,7 @@ export function OpenOfferLink({ token }: { token: string }) {
 
   async function open() {
     setState('opening'); setError(''); setWrongAccount(false)
+    try {
     const { data } = await supabase.auth.getSession()
     if (!data.session) { setState('sign-in'); return }
     const response = await fetch('/api/offer-links/open', {
@@ -40,6 +41,11 @@ export function OpenOfferLink({ token }: { token: string }) {
     setWrongAccount(response.status === 404)
     setError(payload.error || 'ბმული ვერ გაიხსნა.')
     setState('error')
+    } catch (cause) {
+      console.error('[offer-link] open failed', cause)
+      setError('ბმულის შემოწმება ვერ დასრულდა. სცადეთ გვერდის განახლება.')
+      setState('error')
+    }
   }
 
   useEffect(() => {
