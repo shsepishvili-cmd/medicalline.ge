@@ -17,7 +17,7 @@ async function post(url: string, body: unknown) {
 
 // Phone + SMS code sign-in for doctors. A number that has no account yet gets
 // a short registration step; an existing doctor is signed into their account.
-export function SmsSignIn({ onSignedIn, onCancel, intro }: { onSignedIn: () => void; onCancel?: () => void; intro?: string }) {
+export function SmsSignIn({ onSignedIn, onCancel, intro }: { onSignedIn: (accessToken: string) => void; onCancel?: () => void; intro?: string }) {
   const [step, setStep] = useState<Step>('phone')
   const [phone, setPhone] = useState('')
   const [code, setCode] = useState('')
@@ -46,9 +46,13 @@ export function SmsSignIn({ onSignedIn, onCancel, intro }: { onSignedIn: () => v
       const { ok, payload } = await post('/api/auth/sms/verify', { phone, code, registration: withRegistration ? form : undefined })
       if (!ok) { setError(payload.error || 'კოდი არასწორია.'); return }
       if (payload.needsRegistration) { setStep('register'); return }
-      const { error: sessionError } = await supabase.auth.verifyOtp({ token_hash: payload.tokenHash, type: 'magiclink' })
+      const { data: sessionData, error: sessionError } = await supabase.auth.verifyOtp({ token_hash: payload.tokenHash, type: 'magiclink' })
       if (sessionError) { setError('შესვლა ვერ დასრულდა. სცადეთ თავიდან.'); return }
-      onSignedIn()
+      if (!sessionData.session?.access_token) { setError('სესია ვერ შეიქმნა. სცადეთ თავიდან.'); return }
+      onSignedIn(sessionData.session.access_token)
+    } catch (cause) {
+      console.error('[sms-sign-in] verification failed', cause)
+      setError('კავშირის შეცდომა. სცადეთ თავიდან.')
     } finally {
       setBusy(false)
     }
